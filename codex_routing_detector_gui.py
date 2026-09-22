@@ -26,6 +26,7 @@ from typing import Dict, List, Optional
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
+import codex_routing_assets as assets
 import codex_routing_detector as cmc
 import codex_routing_live as live
 import codex_routing_proxy as crp
@@ -124,15 +125,16 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "guide_title": "Live monitor",
         "guide_heading": "\U0001F44B  Hi! Here is what this tab does",
         "guide_body": (
-            "\U0001F680  Press Start monitoring and a Codex CLI window opens by itself. Just work in it as you always do.\n\n"
-            "\U0001F50D  Every time Codex calls a model, this tab checks which model really answered and adds a line here: "
-            "the model Codex asked for, the model that answered, and the verdict.\n\n"
-            "\U0001F7E2  Green means the model you chose answered.   \U0001F534  Red means it was quietly routed to another model.\n\n"
-            "\U0001F512  Everything stays on your computer. Your prompts, files and answers are never saved; only model names and ids are kept.\n\n"
-            "\U0001F4BB  This works with the Codex CLI only, not with the Codex desktop app. When you are done, press Stop."
+            "\U0001F680  Press Start monitoring.\nA Codex CLI window opens by itself. Work in it as you always do.\n\n"
+            "\U0001F50D  Every time Codex calls a model, this tab checks which model really answered\n"
+            "and adds a line: the model Codex asked for, the model that answered, and the verdict.\n\n"
+            "\U0001F7E2  Green: the model you chose answered.\n\U0001F534  Red: it was quietly routed to another model.\n\n"
+            "\U0001F512  Everything stays on your computer.\nPrompts, files and answers are never saved; only model names and ids are kept.\n\n"
+            "\U0001F4BB  Codex CLI only (not the Codex desktop app).\nWhen you are done, press Stop."
         ),
         "guide_ok": "Got it!",
         "guide_skip": "Don't show this again",
+        "panel_options": "Options", "panel_results": "Results", "panel_session": "Session",
     },
     "ko": {
         "model": "모델", "effort": "Effort", "repeat": "반복",
@@ -216,15 +218,16 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "guide_title": "라이브 모니터",
         "guide_heading": "\U0001F44B  안녕하세요! 이 탭은 이런 일을 해요",
         "guide_body": (
-            "\U0001F680  모니터링 시작을 누르면 Codex CLI 창이 자동으로 열려요. 그 창에서 평소처럼 작업하시면 돼요.\n\n"
-            "\U0001F50D  Codex가 모델을 호출할 때마다 실제로 어떤 모델이 답했는지 확인해서 여기에 한 줄씩 적어요. "
-            "요청한 모델, 실제로 답한 모델, 판정이 나란히 보여요.\n\n"
-            "\U0001F7E2  초록이면 고른 모델이 답한 거예요.   \U0001F534  빨강이면 몰래 다른 모델로 라우팅된 거예요.\n\n"
-            "\U0001F512  전부 내 컴퓨터 안에서만 일어나요. 프롬프트·파일·답변은 저장하지 않고, 모델명과 ID만 기억해요.\n\n"
-            "\U0001F4BB  Codex CLI에서만 돼요 (데스크톱 앱은 아직 안 돼요). 다 끝나면 중지를 눌러 주세요."
+            "\U0001F680  모니터링 시작을 누르세요.\nCodex CLI 창이 자동으로 열려요. 그 창에서 평소처럼 작업하시면 돼요.\n\n"
+            "\U0001F50D  Codex가 모델을 호출할 때마다 실제로 어떤 모델이 답했는지 확인해서\n"
+            "여기에 한 줄씩 적어요. 요청한 모델, 실제로 답한 모델, 판정이 나란히 보여요.\n\n"
+            "\U0001F7E2  초록: 고른 모델이 답했어요.\n\U0001F534  빨강: 몰래 다른 모델로 라우팅됐어요.\n\n"
+            "\U0001F512  전부 내 컴퓨터 안에서만 일어나요.\n프롬프트·파일·답변은 저장하지 않고, 모델명과 ID만 기억해요.\n\n"
+            "\U0001F4BB  Codex CLI에서만 돼요 (데스크톱 앱은 아직 안 돼요).\n다 끝나면 중지를 눌러 주세요."
         ),
         "guide_ok": "알겠어요!",
         "guide_skip": "다시 보지 않기",
+        "panel_options": "옵션", "panel_results": "결과", "panel_session": "세션",
     },
 }
 
@@ -437,20 +440,28 @@ Source and updates: {repo}
 }
 
 # ------------------------------------------------------------------ theme
-PALETTE = {
-    "bg": "#f4f6fb", "card": "#ffffff", "border": "#e2e8f0", "text": "#0f172a", "muted": "#64748b",
-    "accent": "#2563eb", "accent_dark": "#1e40af", "accent_text": "#ffffff", "head": "#eef2f7",
-    "row_alt": "#f8fafc",
+PALETTE = {  # soft pastel: lavender accent on a blush background
+    "bg": "#fff5fa", "card": "#ffffff", "border": "#f2d6e6", "text": "#4a3b5c", "muted": "#9a8aae",
+    "accent": "#b48cff", "accent_dark": "#9b6bff", "accent_text": "#ffffff", "head": "#f7f0ff",
+    "row_alt": "#fcf8ff", "secondary": "#ffe1ee", "secondary_dark": "#ffcbe0", "secondary_text": "#7a3b5c",
+    "disabled": "#e9e2f2", "disabled_text": "#b8adc9", "tab": "#f7e9f3",
+    "outline": "#5b3d6e", "shadow": "#5b3d6e",
 }
+PASTEL = {"pink": "#ffd6e7", "lavender": "#dcd0ff", "mint": "#cfeee5", "yellow": "#fff1b8", "peach": "#ffe0cc",
+          "sky": "#d6ecff", "white": "#ffffff"}
 FONT_UI = "Segoe UI" if os.name == "nt" else "TkDefaultFont"
 FONT_MONO = "Consolas" if os.name == "nt" else "TkFixedFont"
 VERDICT_STYLE = {  # verdict: (background, foreground, glyph)
-    "ok": ("#dcfce7", "#166534", "✔"), "REROUTED": ("#fee2e2", "#991b1b", "✖"),
-    "ERROR": ("#fef3c7", "#92400e", "⚠"), "UNSUPPORTED": ("#fef3c7", "#92400e", "⚠"),
-    "UNKNOWN": ("#e5e7eb", "#374151", "•"), "NO_DATA": ("#e5e7eb", "#374151", "•"),
-    "CANCELLED": ("#e5e7eb", "#374151", "•"), "RUNNING": ("#dbeafe", "#1e3a8a", "…"),
-    "IDLE": ("#e5e7eb", "#475569", "•"),
+    "ok": ("#dff7ea", "#1f7a4d", "✔"), "REROUTED": ("#ffe1e6", "#c0304f", "✖"),
+    "ERROR": ("#fff0d6", "#a3600b", "⚠"), "UNSUPPORTED": ("#fff0d6", "#a3600b", "⚠"),
+    "UNKNOWN": ("#efeaf7", "#5d4e75", "•"), "NO_DATA": ("#efeaf7", "#5d4e75", "•"),
+    "CANCELLED": ("#efeaf7", "#5d4e75", "•"), "RUNNING": ("#e8e6ff", "#4b3fa3", "…"),
+    "IDLE": ("#f3eef8", "#7a6c8f", "•"),
 }
+# which mascot picture goes with a banner state
+VERDICT_MOOD = {"ok": "mood_ok", "REROUTED": "mood_rerouted", "ERROR": "mood_error", "UNSUPPORTED": "mood_error",
+                "UNKNOWN": "mood_error", "NO_DATA": "mood_error", "CANCELLED": "mood_idle", "RUNNING": "mood_idle",
+                "IDLE": "mood_idle"}
 VERDICT_COLORS = {k: (v[0], v[1]) for k, v in VERDICT_STYLE.items()}
 
 SETTINGS_ENV = "CODEX_ROUTING_DETECTOR_SETTINGS"
@@ -627,6 +638,246 @@ def build_brief(res: cmc.CheckResult, lang: str) -> str:
     return " ".join(parts)
 
 
+def rounded_rect(canvas: tk.Canvas, x1: float, y1: float, x2: float, y2: float, r: float, **kw) -> int:
+    pts = [x1 + r, y1, x2 - r, y1, x2, y1, x2, y1 + r, x2, y2 - r, x2, y2, x2 - r, y2, x1 + r, y2,
+           x1, y2, x1, y2 - r, x1, y1 + r, x1, y1]
+    return canvas.create_polygon(pts, smooth=True, **kw)
+
+
+BUTTON_STYLES = {  # kind: {state: (fill, text colour)}
+    "primary": {"normal": (PASTEL["lavender"], "#4a3b5c"), "hover": ("#cbb9ff", "#4a3b5c"),
+                "disabled": ("#efe9f5", "#b8adc9")},
+    "secondary": {"normal": (PASTEL["pink"], "#7a3b5c"), "hover": ("#ffc4dc", "#7a3b5c"),
+                  "disabled": ("#efe9f5", "#b8adc9")},
+    "tab": {"normal": ("#ffffff", "#9a8aae"), "hover": (PASTEL["yellow"], "#4a3b5c"), "disabled": ("#efe9f5", "#b8adc9")},
+    "tab_selected": {"normal": (PASTEL["mint"], "#4a3b5c"), "hover": (PASTEL["mint"], "#4a3b5c"),
+                     "disabled": (PASTEL["mint"], "#4a3b5c")},
+}
+
+
+_FONT_CACHE: dict = {}
+
+
+def _font(spec):
+    """tkinter.font.Font objects are cached for the process: one collected by the garbage
+    collector on a worker thread would call into Tk from that thread (and stall it)."""
+    import tkinter.font as tkfont
+    key = tuple(spec) if isinstance(spec, (list, tuple)) else spec
+    f = _FONT_CACHE.get(key)
+    if f is not None:
+        try:
+            f.metrics("linespace")
+            return f
+        except tk.TclError:
+            pass
+    f = tkfont.Font(font=spec)
+    _FONT_CACHE[key] = f
+    return f
+
+
+class RoundedButton(tk.Canvas):
+    """A sticker-style button: rounded pill with a thick outline and an offset shadow, drawn on a
+    canvas (tk.Button cannot look like this). Supports the subset of the tk.Button interface the
+    app uses: text, state, command."""
+
+    OUTLINE_W = 2
+    SHADOW = 3
+
+    def __init__(self, parent: tk.Misc, text: str = "", command=None, kind: str = "primary", bg: str = "",
+                 padx: int = 22, pady: int = 7, font=None, state: str = "normal", **_ignored) -> None:
+        super().__init__(parent, highlightthickness=0, bd=0, bg=bg or PALETTE["bg"], cursor="hand2")
+        self._text, self._command, self._kind, self._state = text, command, kind, state
+        self._padx, self._pady = padx, pady
+        self._font = font or (FONT_UI, 11, "bold")
+        self._hover = False
+        self._pressed = False
+        self.bind("<Enter>", lambda _e: self._set_hover(True))
+        self.bind("<Leave>", lambda _e: self._set_hover(False))
+        self.bind("<ButtonPress-1>", lambda _e: self._press(True))
+        self.bind("<ButtonRelease-1>", self._release)
+        self._draw()
+
+    def _set_hover(self, on: bool) -> None:
+        self._hover = on
+        self._draw()
+
+    def _press(self, on: bool) -> None:
+        self._pressed = on
+        self._draw()
+
+    def _release(self, e) -> None:
+        inside = 0 <= e.x <= self.winfo_width() and 0 <= e.y <= self.winfo_height()
+        was = self._pressed
+        self._pressed = False
+        self._draw()
+        if was and inside:
+            self.invoke()
+
+    def invoke(self) -> None:
+        if self._state == "normal" and self._command is not None:
+            self._command()
+
+    def _draw(self) -> None:
+        f = _font(self._font)
+        w = f.measure(self._text) + 2 * self._padx + self.SHADOW
+        h = f.metrics("linespace") + 2 * self._pady + self.SHADOW
+        tk.Canvas.configure(self, width=w, height=h)
+        self.delete("all")
+        disabled = self._state != "normal"
+        state = "disabled" if disabled else ("hover" if self._hover else "normal")
+        fill, text = BUTTON_STYLES[self._kind][state]
+        r = min((h - self.SHADOW) / 2, 16)
+        down = self._pressed and not disabled
+        dx = self.SHADOW if down else 0
+        if not disabled and not down:
+            rounded_rect(self, 1 + self.SHADOW, 1 + self.SHADOW, w - 1, h - 1, r, fill=PALETTE["shadow"], outline="")
+        rounded_rect(self, 1 + dx, 1 + dx, w - 1 - self.SHADOW + dx, h - 1 - self.SHADOW + dx, r, fill=fill,
+                     outline=PALETTE["outline"] if not disabled else "#d8cfe3", width=self.OUTLINE_W)
+        self.create_text((w - self.SHADOW) / 2 + dx, (h - self.SHADOW) / 2 + dx, text=self._text, fill=text,
+                         font=self._font)
+        tk.Canvas.configure(self, cursor="arrow" if disabled else "hand2")
+
+    def configure(self, cnf=None, **kw):  # type: ignore[override]
+        if isinstance(cnf, dict):
+            kw.update(cnf)
+        redraw = False
+        for key in ("text", "state", "command", "kind"):
+            if key in kw:
+                setattr(self, "_" + key, kw.pop(key))
+                redraw = True
+        for key in ("bg", "fg", "activebackground", "activeforeground", "disabledforeground", "relief", "bd",
+                    "padx", "pady", "font", "cursor"):
+            kw.pop(key, None)
+        if kw:
+            tk.Canvas.configure(self, **kw)
+        if redraw:
+            self._draw()
+
+    config = configure
+
+    def cget(self, key: str):  # type: ignore[override]
+        if key in ("text", "state", "command", "kind"):
+            return getattr(self, "_" + key)
+        return tk.Canvas.cget(self, key)
+
+    def __getitem__(self, key: str):
+        return self.cget(key)
+
+
+class RetroPanel(tk.Canvas):
+    """A pastel 'retro window' card: rounded outline, coloured title bar with three dots, offset
+    shadow. Put widgets into `.body` (a ttk Card frame)."""
+
+    TITLE_H = 30
+    PAD = 10
+    SHADOW = 4
+    RADIUS = 14
+
+    def __init__(self, parent: tk.Misc, title: str = "", color: str = "pink", bg: str = "", expand: bool = False,
+                 min_height: int = 140) -> None:
+        super().__init__(parent, bg=bg or PALETTE["bg"], highlightthickness=0, bd=0)
+        self.color = PASTEL.get(color, color)
+        self.title = title
+        self.expand = expand
+        self.sticker: Optional[tk.PhotoImage] = None
+        self.body = ttk.Frame(self, style="Card.TFrame", padding=(12, 8))
+        self._win = self.create_window(self.PAD + 2, self.TITLE_H + 6, window=self.body, anchor="nw")
+        tk.Canvas.configure(self, height=(min_height if expand else 60))  # never the canvas default of 7 cm
+        self.bind("<Configure>", lambda _e: self._redraw(), add="+")
+        self.body.bind("<Configure>", lambda _e: self.after_idle(self._fit), add="+")
+        self.after_idle(self._fit)
+
+    def set_title(self, text: str) -> None:
+        self.title = text
+        self._redraw()
+
+    def set_sticker(self, img: Optional[tk.PhotoImage]) -> None:
+        self.sticker = img
+        self._redraw()
+
+    def _fit(self) -> None:
+        """Non-expanding panels take exactly the height their body asks for."""
+        if self.expand or not self.winfo_exists():
+            return
+        want = self.body.winfo_reqheight() + self.TITLE_H + 6 + self.PAD + self.SHADOW + 2
+        if abs(int(self.cget("height")) - want) > 1:
+            tk.Canvas.configure(self, height=want)
+
+    def _redraw(self) -> None:
+        w, h = self.winfo_width(), self.winfo_height()
+        if w < 10 or h < 10:
+            return
+        self.delete("chrome")
+        o, r, sh = PALETTE["outline"], self.RADIUS, self.SHADOW
+        x1, y1, x2, y2 = 1, 1, w - 1 - sh, h - 1 - sh
+        rounded_rect(self, x1 + sh, y1 + sh, x2 + sh, y2 + sh, r, fill=PALETTE["shadow"], outline="", tags="chrome")
+        rounded_rect(self, x1, y1, x2, y2, r, fill=PALETTE["card"], outline="", tags="chrome")
+        rounded_rect(self, x1, y1, x2, y1 + self.TITLE_H + r, r, fill=self.color, outline="", tags="chrome")
+        self.create_rectangle(x1 + 1, y1 + self.TITLE_H, x2 - 1, y1 + self.TITLE_H + r + 2, fill=PALETTE["card"],
+                              outline="", tags="chrome")
+        # faint grid on the title bar, like graph paper
+        for gx in range(x1 + 8, x2, 12):
+            self.create_line(gx, y1 + 3, gx, y1 + self.TITLE_H - 1, fill="#ffffff", tags="chrome")
+        self.create_line(x1, y1 + self.TITLE_H, x2, y1 + self.TITLE_H, fill=o, width=2, tags="chrome")
+        rounded_rect(self, x1, y1, x2, y2, r, fill="", outline=o, width=2, tags="chrome")
+        self.create_text(x1 + 16, y1 + self.TITLE_H / 2, text=self.title, anchor="w", fill=o,
+                         font=(FONT_UI, 10, "bold"), tags="chrome")
+        for i, c in enumerate((PASTEL["pink"], PASTEL["yellow"], PASTEL["mint"])):
+            cx = x2 - 16 - i * 18
+            self.create_oval(cx - 6, y1 + self.TITLE_H / 2 - 6, cx + 6, y1 + self.TITLE_H / 2 + 6, fill=c, outline=o,
+                             width=2, tags="chrome")
+        if self.sticker is not None:
+            self.create_image(x2 - 70, y1 + self.TITLE_H / 2, image=self.sticker, anchor="center", tags="chrome")
+        self.tag_lower("chrome")
+        self.coords(self._win, x1 + self.PAD, y1 + self.TITLE_H + 6)
+        if self.expand:
+            self.itemconfigure(self._win, width=max(10, x2 - x1 - 2 * self.PAD),
+                               height=max(10, y2 - y1 - self.TITLE_H - 6 - self.PAD))
+        else:  # the body keeps its natural height, so content changes reach _fit through <Configure>
+            self.itemconfigure(self._win, width=max(10, x2 - x1 - 2 * self.PAD))
+
+
+def tint_title_bar(root: tk.Tk) -> None:
+    """Windows 11: paint the OS title bar in the app's pastel colours (harmless elsewhere)."""
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+        hwnd = int(root.wm_frame(), 16)
+        dwm = ctypes.windll.dwmapi
+        for attr, rgb in ((35, PASTEL["pink"]), (36, PALETTE["outline"]), (34, PALETTE["outline"])):
+            r_, g_, b_ = int(rgb[1:3], 16), int(rgb[3:5], 16), int(rgb[5:7], 16)
+            value = ctypes.c_int((b_ << 16) | (g_ << 8) | r_)
+            dwm.DwmSetWindowAttribute(hwnd, attr, ctypes.byref(value), 4)
+    except Exception:
+        pass
+
+
+_IMAGE_CACHE: Dict[str, tk.PhotoImage] = {}
+
+
+def load_image(name: str, size: Optional[int] = None) -> Optional[tk.PhotoImage]:
+    """A bundled picture (mascot, moods) as a PhotoImage, or None when it is missing or Tk cannot
+    show it. Images are cached for the life of the process: a PhotoImage collected by the garbage
+    collector on a worker thread would call into Tk from that thread."""
+    data = assets.IMAGES.get(name)
+    if not data:
+        return None
+    img = _IMAGE_CACHE.get(name)
+    if img is not None:
+        try:
+            img.width()
+            return img
+        except tk.TclError:
+            pass  # its interpreter is gone (tests create several roots)
+    try:
+        img = tk.PhotoImage(data=data)
+    except tk.TclError:
+        return None
+    _IMAGE_CACHE[name] = img
+    return img
+
+
 class ConfirmDialog:
     """Modal 'we are about to send one prompt to Codex' box with a don't-ask-again checkbox."""
 
@@ -634,22 +885,22 @@ class ConfirmDialog:
         self.result = (False, False)
         self.win = tk.Toplevel(parent)
         self.win.title(title)
-        self.win.configure(bg=PALETTE["card"])
+        self.win.configure(bg=PALETTE["outline"])
         self.win.transient(parent.winfo_toplevel())
         self.win.resizable(False, False)
         body = ttk.Frame(self.win, style="Card.TFrame", padding=(22, 18))
-        body.pack(fill="both", expand=True)
+        body.pack(fill="both", expand=True, padx=3, pady=3)
         ttk.Label(body, text=title, style="CardTitle.TLabel").pack(anchor="w")
         ttk.Label(body, text=message, style="Card.TLabel", wraplength=460, justify="left").pack(anchor="w", pady=(8, 14))
         self.var_skip = tk.BooleanVar(value=False)
         ttk.Checkbutton(body, text=checkbox, variable=self.var_skip, style="Card.TCheckbutton").pack(anchor="w")
         row = ttk.Frame(body, style="Card.TFrame")
         row.pack(fill="x", pady=(16, 0))
-        self.btn_ok = tk.Button(row, text=ok, command=self._ok, bg=PALETTE["accent"], fg=PALETTE["accent_text"],
-                                activebackground=PALETTE["accent_dark"], activeforeground=PALETTE["accent_text"],
-                                relief="flat", bd=0, padx=18, pady=6, font=(FONT_UI, 10, "bold"), cursor="hand2")
+        self.btn_ok = RoundedButton(row, text=ok, command=self._ok, bg=PALETTE["card"], font=(FONT_UI, 10, "bold"),
+                                    padx=20, pady=7)
         self.btn_ok.pack(side="right")
-        ttk.Button(row, text=cancel, command=self._cancel).pack(side="right", padx=(0, 8))
+        RoundedButton(row, text=cancel, command=self._cancel, kind="secondary", bg=PALETTE["card"],
+                      font=(FONT_UI, 10, "bold"), padx=16, pady=7).pack(side="right", padx=(0, 8))
         self.win.bind("<Return>", lambda _e: self._ok())
         self.win.bind("<Escape>", lambda _e: self._cancel())
         self.win.protocol("WM_DELETE_WINDOW", self._cancel)
@@ -683,22 +934,30 @@ class GuideDialog:
         self.skip = False
         self.win = tk.Toplevel(parent)
         self.win.title(title)
-        self.win.configure(bg=PALETTE["card"])
+        self.win.configure(bg=PALETTE["outline"])
         self.win.transient(parent.winfo_toplevel())
         self.win.resizable(False, False)
-        head = tk.Frame(self.win, bg=PALETTE["accent"])
-        head.pack(fill="x")
-        tk.Label(head, text=heading, bg=PALETTE["accent"], fg=PALETTE["accent_text"], font=(FONT_UI, 13, "bold"),
-                 padx=22, pady=14, anchor="w").pack(fill="x")
-        frame = ttk.Frame(self.win, style="Card.TFrame", padding=(22, 16))
-        frame.pack(fill="both", expand=True)
-        ttk.Label(frame, text=body, style="Card.TLabel", wraplength=520, justify="left",
-                  font=(FONT_UI, 10)).pack(anchor="w")
+        head = tk.Frame(self.win, bg=PASTEL["lavender"])
+        head.pack(fill="x", padx=3, pady=(3, 0))
+        self.mascot = load_image("mascot_96")
+        if self.mascot is not None:
+            tk.Label(head, image=self.mascot, bg=PASTEL["lavender"], padx=18, pady=10).pack(side="left")
+        tk.Label(head, text=heading, bg=PASTEL["lavender"], fg=PALETTE["outline"], font=(FONT_UI, 13, "bold"),
+                 padx=(6 if self.mascot else 22), pady=14, anchor="w", justify="left", wraplength=440).pack(side="left", fill="x")
+        frame = ttk.Frame(self.win, style="Card.TFrame", padding=(24, 18))
+        frame.pack(fill="both", expand=True, padx=3, pady=(0, 3))
+        # one label per paragraph: a blank line between them and the emoji marker hanging on the left
+        for para in [p.strip() for p in body.split("\n\n") if p.strip()]:
+            row = ttk.Frame(frame, style="Card.TFrame")
+            row.pack(fill="x", pady=(0, 10))
+            marker, _, text = para.partition("  ")
+            ttk.Label(row, text=marker, style="Card.TLabel", font=(FONT_UI, 12), width=3).pack(side="left", anchor="n")
+            ttk.Label(row, text=text or marker, style="Card.TLabel", wraplength=470, justify="left",
+                      font=(FONT_UI, 10)).pack(side="left", anchor="n", fill="x")
         self.var_skip = tk.BooleanVar(value=False)
-        ttk.Checkbutton(frame, text=checkbox, variable=self.var_skip, style="Card.TCheckbutton").pack(anchor="w", pady=(14, 0))
-        self.btn_ok = tk.Button(frame, text=ok, command=self._ok, bg=PALETTE["accent"], fg=PALETTE["accent_text"],
-                                activebackground=PALETTE["accent_dark"], activeforeground=PALETTE["accent_text"],
-                                relief="flat", bd=0, padx=22, pady=7, font=(FONT_UI, 10, "bold"), cursor="hand2")
+        ttk.Checkbutton(frame, text=checkbox, variable=self.var_skip, style="Card.TCheckbutton").pack(anchor="w", pady=(6, 0))
+        self.btn_ok = RoundedButton(frame, text=ok, command=self._ok, bg=PALETTE["card"], font=(FONT_UI, 10, "bold"),
+                                    padx=24, pady=8)
         self.btn_ok.pack(anchor="e", pady=(14, 0))
         self.win.bind("<Return>", lambda _e: self._ok())
         self.win.bind("<Escape>", lambda _e: self._ok())
@@ -730,30 +989,33 @@ def apply_theme(root: tk.Tk) -> None:
     style.configure("Card.TLabel", background=p["card"], foreground=p["text"])
     style.configure("Muted.TLabel", background=p["bg"], foreground=p["muted"])
     style.configure("CardMuted.TLabel", background=p["card"], foreground=p["muted"])
-    style.configure("Title.TLabel", background=p["bg"], foreground=p["text"], font=(FONT_UI, 16, "bold"))
-    style.configure("CardTitle.TLabel", background=p["card"], foreground=p["text"], font=(FONT_UI, 11, "bold"))
+    style.configure("Title.TLabel", background=p["bg"], foreground=p["text"], font=(FONT_UI, 18, "bold"))
+    style.configure("CardTitle.TLabel", background=p["card"], foreground=p["accent_dark"], font=(FONT_UI, 11, "bold"))
     style.configure("TCheckbutton", background=p["bg"], foreground=p["text"])
     style.configure("Card.TCheckbutton", background=p["card"], foreground=p["text"])
-    style.configure("TButton", padding=(12, 5), background=p["card"], foreground=p["text"], borderwidth=1,
-                    bordercolor=p["border"], lightcolor=p["card"], darkcolor=p["card"], relief="flat")
-    style.map("TButton", background=[("active", p["head"]), ("disabled", p["bg"])],
-              foreground=[("disabled", p["muted"])])
-    style.configure("TCombobox", fieldbackground=p["card"], background=p["card"], bordercolor=p["border"],
-                    arrowcolor=p["muted"], padding=3)
-    style.configure("TSpinbox", fieldbackground=p["card"], background=p["card"], bordercolor=p["border"],
-                    arrowcolor=p["muted"], padding=3)
+    style.configure("TButton", padding=(12, 5), background=p["secondary"], foreground=p["secondary_text"], borderwidth=0,
+                    bordercolor=p["secondary"], lightcolor=p["secondary"], darkcolor=p["secondary"], relief="flat",
+                    font=(FONT_UI, 10, "bold"))
+    style.map("TButton", background=[("active", p["secondary_dark"]), ("disabled", p["disabled"])],
+              foreground=[("disabled", p["disabled_text"])])
+    style.configure("TCombobox", fieldbackground=PASTEL["yellow"], background=PASTEL["yellow"], bordercolor=p["outline"],
+                    arrowcolor=p["outline"], padding=4)
+    style.configure("TSpinbox", fieldbackground=PASTEL["yellow"], background=PASTEL["yellow"], bordercolor=p["outline"],
+                    arrowcolor=p["outline"], padding=4)
     style.configure("Treeview", background=p["card"], fieldbackground=p["card"], foreground=p["text"],
                     rowheight=26, borderwidth=0, font=(FONT_UI, 10))
-    style.configure("Treeview.Heading", background=p["head"], foreground=p["muted"], font=(FONT_UI, 9, "bold"),
+    style.configure("Treeview.Heading", background=PASTEL["lavender"], foreground=p["outline"], font=(FONT_UI, 9, "bold"),
                     relief="flat", padding=(6, 6))
     style.map("Treeview.Heading", background=[("active", p["head"])])
     style.map("Treeview", background=[("selected", "#dbeafe")], foreground=[("selected", p["text"])])
-    style.configure("TProgressbar", troughcolor=p["head"], background=p["accent"], borderwidth=0, thickness=6)
+    style.configure("TProgressbar", troughcolor=PASTEL["pink"], background=p["accent"], borderwidth=0, thickness=8)
+    style.layout("TNotebook.Tab", [])  # the app draws its own sticker tabs
     style.configure("TNotebook", background=p["bg"], borderwidth=0, tabmargins=(0, 4, 0, 0))
-    style.configure("TNotebook.Tab", background=p["head"], foreground=p["muted"], padding=(16, 7), borderwidth=0,
+    style.configure("TNotebook.Tab", background=p["tab"], foreground=p["muted"], padding=(18, 8), borderwidth=0,
                     font=(FONT_UI, 10, "bold"))
-    style.map("TNotebook.Tab", background=[("selected", p["bg"])], foreground=[("selected", p["text"])],
+    style.map("TNotebook.Tab", background=[("selected", p["accent"])], foreground=[("selected", p["accent_text"])],
               expand=[("selected", (0, 0, 0, 0))])
+    style.configure("Treeview", rowheight=28)
     style.configure("TScrollbar", troughcolor=p["bg"], background=p["border"], arrowcolor=p["muted"], borderwidth=0)
 
 
@@ -783,9 +1045,15 @@ class App:
         self.update_info: Optional[dict] = None
         self.cfg_model, self.cfg_tier, _ = cmc.read_config_values()
         self.guide_shown = False
+        self.moods: Dict[str, tk.PhotoImage] = {}
+        self.panels: List[RetroPanel] = []
         self.have_mitm = bool(cmc.shutil.which("mitmdump"))
         self.models = listed_models()
         apply_theme(root)
+        for name in ("mood_ok", "mood_rerouted", "mood_idle", "mood_error"):
+            img = load_image(name + "_56")
+            if img is not None:
+                self.moods[name] = img
         self._build()
         self._apply_language()
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -794,19 +1062,25 @@ class App:
             threading.Thread(target=lambda: self.q.put(("update", cmc.check_for_update())), daemon=True).start()
 
     # ---------------------------------------------------------------- layout
-    def _card(self, parent: tk.Misc, **grid) -> ttk.Frame:
-        outer = tk.Frame(parent, bg=PALETTE["border"], bd=0)
-        outer.grid(**grid)
-        inner = ttk.Frame(outer, style="Card.TFrame", padding=(14, 10))
-        inner.pack(fill="both", expand=True, padx=1, pady=1)
-        return inner
+    STICKERS = {"panel_options": "sticker_sparkle", "panel_session": "sticker_sparkle", "brief": "sticker_flower",
+                "panel_results": "sticker_leaf", "notes": "sticker_heart"}
+
+    def _card(self, parent: tk.Misc, title_key: str = "panel_options", color: str = "pink", min_height: int = 140,
+              **grid) -> ttk.Frame:
+        expand = "n" in grid.get("sticky", "") and "s" in grid.get("sticky", "")
+        panel = RetroPanel(parent, title=self.s(title_key), color=color, expand=expand, min_height=min_height)
+        panel.set_sticker(load_image(self.STICKERS.get(title_key, "sticker_sparkle") + "_26"))
+        panel.title_key = title_key  # type: ignore[attr-defined]
+        panel.grid(**grid)
+        self.panels.append(panel)
+        return panel.body
 
     def _build(self) -> None:
         r = self.root
         p = PALETTE
         r.title(APP_TITLE)
-        r.geometry("1180x880")
-        r.minsize(1000, 740)
+        r.geometry("1180x960")
+        r.minsize(1000, 800)
         r.columnconfigure(0, weight=1)
         r.rowconfigure(1, weight=1)
 
@@ -822,26 +1096,49 @@ class App:
         self.help_windows: Dict[str, tk.Toplevel] = {}
 
         header = ttk.Frame(r)
-        header.grid(row=0, column=0, sticky="ew", padx=18, pady=(14, 6))
-        header.columnconfigure(0, weight=1)
+        header.grid(row=0, column=0, sticky="ew", padx=18, pady=(8, 2))
+        header.columnconfigure(1, weight=1)
+        self.img_mascot = load_image("mascot_72")
+        if self.img_mascot is not None:
+            tk.Label(header, image=self.img_mascot, bg=p["bg"]).grid(row=0, column=0, rowspan=2, padx=(0, 12))
+            try:
+                icon = load_image("mascot_96")
+                if icon is not None:
+                    r.iconphoto(True, icon)
+                    self.img_icon = icon
+            except tk.TclError:
+                pass
         self.lbl_title = ttk.Label(header, text=APP_TITLE, style="Title.TLabel")
-        self.lbl_title.grid(row=0, column=0, sticky="w")
+        self.lbl_title.grid(row=0, column=1, sticky="sw")
+        self.img_sparkle = load_image("sticker_sparkle_44")
+        if self.img_sparkle is not None:
+            tk.Label(header, image=self.img_sparkle, bg=p["bg"]).grid(row=0, column=2, rowspan=2, padx=(12, 0), sticky="e")
         self.lbl_subtitle = ttk.Label(header, style="Muted.TLabel")
-        self.lbl_subtitle.grid(row=1, column=0, sticky="w")
+        self.lbl_subtitle.grid(row=1, column=1, sticky="nw")
 
+        self.tabbar = ttk.Frame(r)
+        self.tabbar.grid(row=1, column=0, sticky="ew", padx=18, pady=(6, 0))
         self.nb = ttk.Notebook(r)
-        self.nb.grid(row=1, column=0, sticky="nsew", padx=18, pady=(4, 0))
+        self.nb.grid(row=2, column=0, sticky="nsew", padx=18, pady=(2, 0))
+        r.rowconfigure(1, weight=0)
+        r.rowconfigure(2, weight=1)
         page = self.page_check = ttk.Frame(self.nb)
         self.nb.add(page)
         self.page_live = ttk.Frame(self.nb)
         self.nb.add(self.page_live)
+        self.tab_btns: Dict[ttk.Frame, RoundedButton] = {}
+        for pg in (self.page_check, self.page_live):
+            btn = RoundedButton(self.tabbar, kind="tab", bg=p["bg"], padx=22, pady=6, font=(FONT_UI, 10, "bold"),
+                                command=lambda pg=pg: self.nb.select(pg))
+            btn.pack(side="left", padx=(0, 8))
+            self.tab_btns[pg] = btn
         self.guide_window: Optional[tk.Toplevel] = None
         self.nb.bind("<<NotebookTabChanged>>", lambda _e: self._on_tab_changed())
         page.columnconfigure(0, weight=1)
         page.rowconfigure(5, weight=3)
         page.rowconfigure(6, weight=1)
 
-        opts = self._card(page, row=1, column=0, sticky="ew", padx=0, pady=(10, 6))
+        opts = self._card(page, "panel_options", "lavender", row=1, column=0, sticky="ew", padx=0, pady=(10, 8))
         pad = {"padx": (0, 6), "pady": 2}
         self.lbl_model = ttk.Label(opts, style="CardMuted.TLabel")
         self.lbl_model.grid(row=0, column=0, **pad)
@@ -863,7 +1160,8 @@ class App:
         self.chk_wire.grid(row=0, column=6, padx=(0, 18), pady=2)
         if not self.have_mitm:
             self.chk_wire.state(["disabled"])
-        self.btn_codex = ttk.Button(opts, command=self.pick_codex)
+        self.btn_codex = RoundedButton(opts, command=self.pick_codex, kind="secondary", bg=p["card"], padx=14, pady=4,
+                                       font=(FONT_UI, 9, "bold"))
         self.btn_codex.grid(row=0, column=7, padx=(0, 6), pady=2)
         self.var_codex = tk.StringVar()
         ttk.Label(opts, textvariable=self.var_codex, style="CardMuted.TLabel").grid(row=0, column=8, pady=2)
@@ -871,14 +1169,11 @@ class App:
         act = ttk.Frame(page)
         act.grid(row=2, column=0, sticky="ew", padx=0, pady=(2, 4))
         act.columnconfigure(2, weight=1)
-        self.btn_check = tk.Button(act, command=self.start_check, bg=p["accent"], fg=p["accent_text"],
-                                   activebackground=p["accent_dark"], activeforeground=p["accent_text"],
-                                   disabledforeground="#bfdbfe", relief="flat", bd=0, padx=30, pady=8,
-                                   font=(FONT_UI, 12, "bold"), cursor="hand2")
+        self.btn_check = RoundedButton(act, command=self.start_check, bg=p["bg"], padx=34, pady=10,
+                                       font=(FONT_UI, 12, "bold"))
         self.btn_check.grid(row=0, column=0, padx=(0, 10), pady=4)
-        self.btn_check.bind("<Enter>", lambda _e: self.btn_check.configure(bg=p["accent_dark"]) if self.btn_check["state"] == "normal" else None)
-        self.btn_check.bind("<Leave>", lambda _e: self.btn_check.configure(bg=p["accent"]))
-        self.btn_cancel = ttk.Button(act, command=self.cancel_check, state="disabled")
+        self.btn_cancel = RoundedButton(act, command=self.cancel_check, state="disabled", kind="secondary", bg=p["bg"],
+                                        padx=18, pady=8, font=(FONT_UI, 10, "bold"))
         self.btn_cancel.grid(row=0, column=1, padx=(0, 12), pady=4)
         self.var_status = tk.StringVar()
         ttk.Label(act, textvariable=self.var_status, style="Muted.TLabel", anchor="w").grid(row=0, column=2, sticky="ew")
@@ -888,15 +1183,14 @@ class App:
 
         self.banner_frame, self.banner_glyph, self.banner = self._banner(page, row=3)
 
-        brief = self._card(page, row=4, column=0, sticky="ew", padx=0, pady=(0, 6))
+        brief = self._card(page, "brief", "pink", row=4, column=0, sticky="ew", padx=0, pady=(0, 8))
         brief.columnconfigure(0, weight=1)
         self.lbl_brief_title = ttk.Label(brief, style="CardTitle.TLabel")
-        self.lbl_brief_title.grid(row=0, column=0, sticky="w")
         self.lbl_brief = ttk.Label(brief, style="Card.TLabel", justify="left", anchor="w", wraplength=1080)
         self.lbl_brief.grid(row=1, column=0, sticky="ew", pady=(4, 0))
-        brief.bind("<Configure>", lambda e: self.lbl_brief.configure(wraplength=max(300, e.width - 30)))
+        brief.bind("<Configure>", lambda e: self.lbl_brief.configure(wraplength=max(300, e.width - 30)), add="+")
 
-        table = self._card(page, row=5, column=0, sticky="nsew", padx=0, pady=(0, 6))
+        table = self._card(page, "panel_results", "mint", 230, row=5, column=0, sticky="nsew", padx=0, pady=(0, 8))
         table.columnconfigure(0, weight=1)
         table.rowconfigure(0, weight=1)
         cols = ("n", "requested", "kind", "served", "status", "created", "verdict", "rid")
@@ -913,12 +1207,11 @@ class App:
         ysb.grid(row=0, column=1, sticky="ns")
         xsb.grid(row=1, column=0, sticky="ew")
 
-        details = self._card(page, row=6, column=0, sticky="nsew", padx=0, pady=(0, 6))
+        details = self._card(page, "notes", "yellow", 120, row=6, column=0, sticky="nsew", padx=0, pady=(0, 8))
         details.columnconfigure(0, weight=1)
         details.rowconfigure(1, weight=1)
         self.lbl_notes_title = ttk.Label(details, style="CardTitle.TLabel")
-        self.lbl_notes_title.grid(row=0, column=0, sticky="w")
-        self.notes = tk.Text(details, height=4, wrap="word", font=(FONT_MONO, 10), state="disabled",
+        self.notes = tk.Text(details, height=3, wrap="word", font=(FONT_MONO, 10), state="disabled",
                              bg=PALETTE["card"], fg=PALETTE["text"], relief="flat", bd=0, highlightthickness=0)
         self.notes.grid(row=1, column=0, sticky="nsew", pady=(4, 0))
         nsb = ttk.Scrollbar(details, orient="vertical", command=self.notes.yview)
@@ -927,17 +1220,19 @@ class App:
 
         bottom = ttk.Frame(page)
         bottom.grid(row=7, column=0, sticky="ew", padx=0, pady=(0, 10))
-        self.btn_copy = ttk.Button(bottom, command=self.copy_report, state="disabled")
-        self.btn_copy.pack(side="left", padx=(0, 6))
-        self.btn_json = ttk.Button(bottom, command=self.save_json, state="disabled")
-        self.btn_json.pack(side="left", padx=(0, 6))
-        self.btn_logs = ttk.Button(bottom, command=self.open_logs, state="disabled")
-        self.btn_logs.pack(side="left", padx=(0, 6))
+        small = {"kind": "secondary", "bg": p["bg"], "padx": 16, "pady": 6, "font": (FONT_UI, 10, "bold")}
+        self.btn_copy = RoundedButton(bottom, command=self.copy_report, state="disabled", **small)
+        self.btn_copy.pack(side="left", padx=(0, 8))
+        self.btn_json = RoundedButton(bottom, command=self.save_json, state="disabled", **small)
+        self.btn_json.pack(side="left", padx=(0, 8))
+        self.btn_logs = RoundedButton(bottom, command=self.open_logs, state="disabled", **small)
+        self.btn_logs.pack(side="left", padx=(0, 8))
 
         self._build_live(self.page_live)
 
         foot = ttk.Frame(r)
-        foot.grid(row=2, column=0, sticky="ew", padx=18, pady=(6, 10))
+        foot.grid(row=3, column=0, sticky="ew", padx=18, pady=(6, 10))
+        r.after(50, lambda: tint_title_bar(r))
         self.lbl_version = tk.Label(foot, text=f"v{cmc.__version__}", bg=p["bg"], fg=p["muted"], font=(FONT_UI, 9))
         self.lbl_version.pack(side="right", padx=(8, 0))
         try:
@@ -948,12 +1243,15 @@ class App:
                                     bg=p["bg"], fg=p["accent"], cursor="hand2", padx=4, font=(FONT_UI, 9))
         self.link_github.pack(side="right", padx=6)
         self.link_github.bind("<Button-1>", lambda _e: self.open_repo())
-        self.btn_lang = ttk.Button(foot, command=self.toggle_language)
+        self.btn_lang = RoundedButton(foot, command=self.toggle_language, kind="secondary", bg=p["bg"], padx=16, pady=6,
+                                      font=(FONT_UI, 10, "bold"))
         self.btn_lang.pack(side="right", padx=4)
 
     def _banner(self, parent: tk.Misc, row: int):
-        frame = tk.Frame(parent, bg=VERDICT_STYLE["IDLE"][0], bd=0)
-        frame.grid(row=row, column=0, sticky="ew", padx=0, pady=(4, 6))
+        outer = tk.Frame(parent, bg=PALETTE["outline"], bd=0)
+        outer.grid(row=row, column=0, sticky="ew", padx=0, pady=(4, 8))
+        frame = tk.Frame(outer, bg=VERDICT_STYLE["IDLE"][0], bd=0)
+        frame.pack(fill="x", padx=2, pady=2)
         glyph = tk.Label(frame, text=VERDICT_STYLE["IDLE"][2], font=(FONT_UI, 18, "bold"),
                          bg=VERDICT_STYLE["IDLE"][0], fg=VERDICT_STYLE["IDLE"][1], padx=14, pady=8)
         glyph.pack(side="left")
@@ -968,7 +1266,7 @@ class App:
         page.rowconfigure(5, weight=3)
         page.rowconfigure(6, weight=1)
 
-        opts = self._card(page, row=1, column=0, sticky="ew", padx=0, pady=(10, 6))
+        opts = self._card(page, "panel_session", "lavender", row=1, column=0, sticky="ew", padx=0, pady=(10, 8))
         opts.columnconfigure(1, weight=1)
         self.lbl_live_cfg = ttk.Label(opts, style="CardMuted.TLabel")
         self.lbl_live_cfg.grid(row=0, column=0, sticky="w", padx=(0, 10), pady=2)
@@ -981,18 +1279,18 @@ class App:
             self.live_dir = str(Path.home())
         self.var_live_dir = tk.StringVar(value=cmc.display_path(self.live_dir))
         ttk.Label(opts, textvariable=self.var_live_dir, style="Card.TLabel").grid(row=1, column=1, sticky="w", pady=2)
-        self.btn_live_dir = ttk.Button(opts, command=self.pick_live_dir)
+        self.btn_live_dir = RoundedButton(opts, command=self.pick_live_dir, kind="secondary", bg=p["card"], padx=14, pady=4,
+                                          font=(FONT_UI, 9, "bold"))
         self.btn_live_dir.grid(row=1, column=2, sticky="e", pady=2)
 
         act = ttk.Frame(page)
         act.grid(row=2, column=0, sticky="ew", padx=0, pady=(2, 4))
         act.columnconfigure(2, weight=1)
-        self.btn_live_start = tk.Button(act, command=self.start_live, bg=p["accent"], fg=p["accent_text"],
-                                        activebackground=p["accent_dark"], activeforeground=p["accent_text"],
-                                        disabledforeground="#bfdbfe", relief="flat", bd=0, padx=30, pady=8,
-                                        font=(FONT_UI, 12, "bold"), cursor="hand2")
+        self.btn_live_start = RoundedButton(act, command=self.start_live, bg=p["bg"], padx=34, pady=10,
+                                            font=(FONT_UI, 12, "bold"))
         self.btn_live_start.grid(row=0, column=0, padx=(0, 10), pady=4)
-        self.btn_live_stop = ttk.Button(act, command=self.stop_live, state="disabled")
+        self.btn_live_stop = RoundedButton(act, command=self.stop_live, state="disabled", kind="secondary", bg=p["bg"],
+                                           padx=18, pady=8, font=(FONT_UI, 10, "bold"))
         self.btn_live_stop.grid(row=0, column=1, padx=(0, 12), pady=4)
         self.var_live_status = tk.StringVar()
         ttk.Label(act, textvariable=self.var_live_status, style="Muted.TLabel", anchor="w").grid(row=0, column=2, sticky="ew")
@@ -1002,15 +1300,14 @@ class App:
 
         self.live_banner_frame, self.live_banner_glyph, self.live_banner = self._banner(page, row=3)
 
-        brief = self._card(page, row=4, column=0, sticky="ew", padx=0, pady=(0, 6))
+        brief = self._card(page, "brief", "pink", row=4, column=0, sticky="ew", padx=0, pady=(0, 8))
         brief.columnconfigure(0, weight=1)
         self.lbl_live_brief_title = ttk.Label(brief, style="CardTitle.TLabel")
-        self.lbl_live_brief_title.grid(row=0, column=0, sticky="w")
         self.lbl_live_brief = ttk.Label(brief, style="Card.TLabel", justify="left", anchor="w", wraplength=1080)
         self.lbl_live_brief.grid(row=1, column=0, sticky="ew", pady=(4, 0))
-        brief.bind("<Configure>", lambda e: self.lbl_live_brief.configure(wraplength=max(300, e.width - 30)))
+        brief.bind("<Configure>", lambda e: self.lbl_live_brief.configure(wraplength=max(300, e.width - 30)), add="+")
 
-        table = self._card(page, row=5, column=0, sticky="nsew", padx=0, pady=(0, 6))
+        table = self._card(page, "panel_results", "mint", 230, row=5, column=0, sticky="nsew", padx=0, pady=(0, 8))
         table.columnconfigure(0, weight=1)
         table.rowconfigure(0, weight=1)
         cols = ("n", "time", "requested", "kind", "served", "status", "verdict", "rid")
@@ -1027,12 +1324,11 @@ class App:
         ysb.grid(row=0, column=1, sticky="ns")
         xsb.grid(row=1, column=0, sticky="ew")
 
-        details = self._card(page, row=6, column=0, sticky="nsew", padx=0, pady=(0, 6))
+        details = self._card(page, "notes", "yellow", 120, row=6, column=0, sticky="nsew", padx=0, pady=(0, 8))
         details.columnconfigure(0, weight=1)
         details.rowconfigure(1, weight=1)
         self.lbl_live_notes_title = ttk.Label(details, style="CardTitle.TLabel")
-        self.lbl_live_notes_title.grid(row=0, column=0, sticky="w")
-        self.live_notes = tk.Text(details, height=4, wrap="word", font=(FONT_MONO, 10), state="disabled",
+        self.live_notes = tk.Text(details, height=3, wrap="word", font=(FONT_MONO, 10), state="disabled",
                                   bg=PALETTE["card"], fg=PALETTE["text"], relief="flat", bd=0, highlightthickness=0)
         self.live_notes.grid(row=1, column=0, sticky="nsew", pady=(4, 0))
         nsb = ttk.Scrollbar(details, orient="vertical", command=self.live_notes.yview)
@@ -1041,10 +1337,11 @@ class App:
 
         bottom = ttk.Frame(page)
         bottom.grid(row=7, column=0, sticky="ew", padx=0, pady=(0, 10))
-        self.btn_live_copy = ttk.Button(bottom, command=self.copy_live_report, state="disabled")
-        self.btn_live_copy.pack(side="left", padx=(0, 6))
-        self.btn_live_clear = ttk.Button(bottom, command=self.clear_live, state="disabled")
-        self.btn_live_clear.pack(side="left", padx=(0, 6))
+        small = {"kind": "secondary", "bg": p["bg"], "padx": 16, "pady": 6, "font": (FONT_UI, 10, "bold")}
+        self.btn_live_copy = RoundedButton(bottom, command=self.copy_live_report, state="disabled", **small)
+        self.btn_live_copy.pack(side="left", padx=(0, 8))
+        self.btn_live_clear = RoundedButton(bottom, command=self.clear_live, state="disabled", **small)
+        self.btn_live_clear.pack(side="left", padx=(0, 8))
 
         self.monitor: Optional[live.LiveMonitor] = None
         self.agg = live.LiveAggregator()
@@ -1066,7 +1363,11 @@ class App:
         else:
             frame, glabel, label = self.banner_frame, self.banner_glyph, self.banner
         frame.configure(bg=bg)
-        glabel.configure(text=glyph, bg=bg, fg=fg)
+        mood = self.moods.get(VERDICT_MOOD.get(key, "mood_idle"))
+        if mood is not None:
+            glabel.configure(image=mood, text="", bg=bg, fg=fg, padx=10, pady=2)
+        else:
+            glabel.configure(text=glyph, bg=bg, fg=fg)
         label.configure(text=text, bg=bg, fg=fg)
 
     def _apply_language(self) -> None:
@@ -1095,8 +1396,12 @@ class App:
         self.btn_lang.configure(text=self.s("lang"))
         self.lbl_notes_title.configure(text=self.s("notes"))
         self.lbl_brief_title.configure(text=self.s("brief"))
+        for panel in self.panels:
+            panel.set_title(self.s(panel.title_key))  # type: ignore[attr-defined]
         self.nb.tab(self.page_check, text=self.s("tab_check"))
         self.nb.tab(self.page_live, text=self.s("tab_live"))
+        for page, btn in self.tab_btns.items():
+            btn.configure(text=self.nb.tab(page, "text"))
         self.lbl_live_cfg.configure(text=self.s("live_cfg"))
         self.lbl_live_folder.configure(text=self.s("live_folder"))
         self.btn_live_dir.configure(text=self.s("live_folder_btn"))
@@ -1168,7 +1473,8 @@ class App:
         sb = ttk.Scrollbar(frame, orient="vertical", command=text.yview)
         text.configure(yscrollcommand=sb.set)
         sb.grid(row=0, column=1, sticky="ns")
-        btn = ttk.Button(frame, command=win.destroy)
+        btn = RoundedButton(frame, command=win.destroy, kind="secondary", bg=PALETTE["bg"], padx=20, pady=7,
+                            font=(FONT_UI, 10, "bold"))
         btn.grid(row=1, column=0, columnspan=2, pady=(8, 0))
         win.help_text = text  # type: ignore[attr-defined]
         win.help_button = btn  # type: ignore[attr-defined]
@@ -1261,8 +1567,7 @@ class App:
         self.root.destroy()
 
     def _set_running(self, running: bool) -> None:
-        self.btn_check.configure(state="disabled" if running else "normal",
-                                 bg=PALETTE["accent"] if not running else "#93c5fd")
+        self.btn_check.configure(state="disabled" if running else "normal")
         self.btn_cancel.configure(state="normal" if running else "disabled")
         have = self.result is not None and not running
         self.btn_copy.configure(state="normal" if have else "disabled")
@@ -1297,7 +1602,10 @@ class App:
 
     # ------------------------------------------------------------ live monitor
     def _on_tab_changed(self) -> None:
-        if self.nb.select() == str(self.page_live):
+        current = self.nb.select()
+        for pg, btn in self.tab_btns.items():
+            btn.configure(kind="tab_selected" if str(pg) == current else "tab")
+        if current == str(self.page_live):
             self.show_guide()
 
     def show_guide(self, force: bool = False) -> Optional[tk.Toplevel]:
@@ -1401,8 +1709,7 @@ class App:
         self._render_live_summary()
 
     def _set_live_running(self, running: bool) -> None:
-        self.btn_live_start.configure(state="disabled" if running else "normal",
-                                      bg="#93c5fd" if running else PALETTE["accent"])
+        self.btn_live_start.configure(state="disabled" if running else "normal")
         self.btn_live_stop.configure(state="normal" if running else "disabled")
         self.btn_live_dir.configure(state="disabled" if running else "normal")
         have = bool(self.agg.rows) or bool(self.live_lines)
@@ -1725,7 +2032,7 @@ class App:
 
     def _start_auto_update(self, info: dict) -> None:
         self.updating = True
-        self.btn_check.configure(state="disabled", bg="#93c5fd")
+        self.btn_check.configure(state="disabled")
         self.progress.grid()
         asset, new = info["asset"], info["version"]
         dest = self.exe_path.with_name(self.exe_path.stem + ".new.exe")
@@ -1752,7 +2059,7 @@ class App:
         self.progress.stop()
         self.progress.configure(mode="indeterminate", value=0)
         self.progress.grid_remove()
-        self.btn_check.configure(state="normal", bg=PALETTE["accent"])
+        self.btn_check.configure(state="normal")
         self.var_status.set(self.s("update_failed", new=new, err=err))
 
     def open_update(self) -> None:

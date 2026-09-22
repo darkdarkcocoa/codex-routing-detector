@@ -52,7 +52,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-__version__ = "1.4.1"
+__version__ = "1.5.0"
 
 FALLBACK_MODEL = "gpt-6-astra"
 DEFAULT_CONTROL = "gpt-5.6-sol"

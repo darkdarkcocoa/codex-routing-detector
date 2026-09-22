@@ -210,6 +210,16 @@ pip/pipx 설치는 건드리지 않고 배지와 `pipx upgrade codex-routing-det
 `REROUTED`가 나오면 응답 ID, `created_at`(UTC), 요청/응답 모델 쌍, 플랜과 사용량 줄, Codex
 버전이 유용합니다. `--json`이 전부 기록하고, 창의 **보고서 복사**도 같은 내용을 줍니다.
 
+## 디자인
+
+창 전체를 파스텔 "레트로 창" 스타일로 그렸습니다. 패널 하나하나가 색 타이틀바를 가진 작은 창이고,
+버튼은 스티커 모양이며, 라벤더 고양이 탐정 마스코트가 결과 배너에서 표정으로 반응합니다
+(기쁨·놀람·졸림·걱정). 그림은 Codex의 이미지 생성 기능으로 만들어 프로그램 안에 내장했고
+(`codex_routing_assets.py`), `tools/make_assets.py`가 원본 PNG에서 다시 만들어 줍니다
+(`docs/icon.ico` 포함).
+
+![라이브 모니터 안내](docs/screenshot-guide.png)
+
 ## 테스트와 빌드
 
 ```

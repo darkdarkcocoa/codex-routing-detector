@@ -3,6 +3,7 @@
 They need a display (tkinter cannot run headless); they are skipped where none is available.
 No codex process is launched: run_capture() is replaced by the bundled fixture runs.
 """
+import gc
 import pathlib
 import sys
 import time
@@ -44,6 +45,7 @@ class GuiSmoke(unittest.TestCase):
         self.app = gui.App(self.root, lang="en", fake=True, update_check=False, confirm=False)
 
     def tearDown(self):
+        gc.collect()  # dead Tk variables/images must be collected on the main thread, not in a worker
         self.root.destroy()
 
     def _pump(self, seconds: float):
@@ -345,6 +347,7 @@ class RunCheckOffline(unittest.TestCase):
         assert g.install_fake_runner()
 
     def tearDown(self):
+        gc.collect()  # dead Tk variables/images must be collected on the main thread, not in a worker
         cmc.run_capture, cmc.find_codex = self.orig
 
     def test_progress_events_and_result(self):

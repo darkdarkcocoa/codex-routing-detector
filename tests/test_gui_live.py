@@ -2,6 +2,7 @@
 banner and briefing, then end the session both ways (Stop, and Codex exiting by itself)."""
 import json
 import os
+import gc
 import pathlib
 import sys
 import tempfile
@@ -49,6 +50,7 @@ class LiveTab(unittest.TestCase):
         self.app = gui.App(self.root, lang="en", fake=True, update_check=False, confirm=False)
 
     def tearDown(self):
+        gc.collect()  # dead Tk variables/images must be collected on the main thread, not in a worker
         if self.app.monitor is not None:
             self.app.monitor.stop()
             self.app.monitor = None

@@ -299,6 +299,16 @@ Remove-Item Env:RUST_LOG
 Both print the served model once for the warm-up and once for the turn. A turn that failed
 (`response.failed`, for example "at capacity") prints nothing; run it again.
 
+## Look and feel
+
+The window is drawn in a pastel "retro window" style: every panel is a small window of its own
+with a coloured title bar, sticker-style buttons and a lavender cat detective as the mascot, who
+reacts in the result banner (happy, shocked, sleepy, worried). The pictures were made with
+Codex's own image generation and are embedded in the program (`codex_routing_assets.py`);
+`tools/make_assets.py` rebuilds them from the source PNGs and writes `docs/icon.ico`.
+
+![Live monitor guide](docs/screenshot-guide.png)
+
 ## Tests
 
 ```
