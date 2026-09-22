@@ -313,7 +313,6 @@ class InterceptProxy:
         self._socks: set = set()
         self._lock = threading.Lock()
         self._conn_seq = 0
-        self.stats = {"connections": 0, "websockets": 0, "messages": 0}
 
     # lifecycle
     def start(self) -> int:
@@ -347,10 +346,10 @@ class InterceptProxy:
     def env(self) -> Tuple[Dict[str, str], List[str]]:
         """(variables to set, variables to remove) for a Codex process that should use this proxy."""
         url = f"http://127.0.0.1:{self.port}"
-        add = {"HTTPS_PROXY": url, "HTTP_PROXY": url, "ALL_PROXY": url,
-               "https_proxy": url, "http_proxy": url, "all_proxy": url,
-               "CODEX_CA_CERTIFICATE": str(self.ca.cert_path), "SSL_CERT_FILE": str(self.ca.cert_path)}
-        return add, ["NO_PROXY", "no_proxy"]
+        # Only HTTPS is proxied (plain http:// would get 405 here), and only Codex's own CA
+        # variable is set: SSL_CERT_FILE would break every other TLS client in that console.
+        add = {"HTTPS_PROXY": url, "https_proxy": url, "CODEX_CA_CERTIFICATE": str(self.ca.cert_path)}
+        return add, ["NO_PROXY", "no_proxy", "HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"]
 
     # connections
     def _track(self, *socks: socket.socket) -> None:
@@ -365,15 +364,14 @@ class InterceptProxy:
         upstream_raw = client_tls = upstream = None
         self._track(client)
         try:
-            client.settimeout(30)
-            head, _rest = read_head(client)
+            client.settimeout(30)  # only the CONNECT line and the TLS handshake are time-limited
+            head, rest = read_head(client)
             line, _ = parse_head(head)
             m = CONNECT_RE.match(line)
             if not m:
                 client.sendall(b"HTTP/1.1 405 Method Not Allowed\r\nConnection: close\r\nContent-Length: 0\r\n\r\n")
                 return
             host, port = m.group(1).strip("[]"), int(m.group(2))
-            self.stats["connections"] += 1
             try:
                 upstream_raw = socket.create_connection((host, port), timeout=self.connect_timeout)
             except OSError as e:
@@ -381,6 +379,8 @@ class InterceptProxy:
                 client.sendall(b"HTTP/1.1 502 Bad Gateway\r\nConnection: close\r\nContent-Length: 0\r\n\r\n")
                 return
             self._track(upstream_raw)
+            if rest:  # bytes sent before our 200 cannot be handed to the TLS layer; say so instead of hiding it
+                self.on_event("error", {"host": host, "error": f"{len(rest)} bytes sent before the CONNECT reply were dropped"})
             client.sendall(b"HTTP/1.1 200 Connection established\r\n\r\n")
             try:
                 client_tls = self.ca.context_for(host).wrap_socket(client, server_side=True)
@@ -393,8 +393,11 @@ class InterceptProxy:
                 self.on_event("error", {"host": host, "error": f"upstream TLS handshake failed: {e}"})
                 return
             self._track(client_tls, upstream)
+            client_tls.settimeout(None)  # a pooled tunnel may sit idle for minutes before its first request
             self.on_event("connect", {"host": host, "port": port})
             self._intercept(client_tls, upstream, host)
+        except socket.timeout:
+            pass  # nothing arrived on a fresh tunnel: not worth a notice
         except (OSError, ValueError, ConnectionError) as e:
             self.on_event("error", {"error": f"{type(e).__name__}: {e}"})
         finally:
@@ -405,22 +408,25 @@ class InterceptProxy:
     def _intercept(self, client: ssl.SSLSocket, upstream: ssl.SSLSocket, host: str) -> None:
         """One HTTP/1.1 request on the tunnel: read its head, forward it, then either decode a
         WebSocket or relay bytes blindly. Both sockets are closed by the pumps when done."""
-        try:
-            head, rest = read_head(client)
-        except ConnectionError:
-            return  # the client opened the tunnel and closed it again without asking for anything
-        req_line, req_headers = parse_head(head)
-        upstream.sendall(head)
-        if rest:
-            upstream.sendall(rest)
-        parts = req_line.split()
-        path = parts[1] if len(parts) >= 2 else ""
-        upgrade = "websocket" in req_headers.get("upgrade", "").lower()
         client.settimeout(None)
         upstream.settimeout(None)
-        if not upgrade:
-            self._pump_both(client, upstream, None, None, 0, b"")
-            return
+        while True:
+            try:
+                head, rest = read_head(client)
+            except ConnectionError:
+                return  # the client opened the tunnel and closed it again without asking for anything
+            req_line, req_headers = parse_head(head)
+            upstream.sendall(head)
+            if rest:
+                upstream.sendall(rest)
+            parts = req_line.split()
+            path = parts[1] if len(parts) >= 2 else ""
+            if "websocket" in req_headers.get("upgrade", "").lower():
+                break
+            # A plain request: relay its body and response, then look at the next request on the
+            # same tunnel (a WebSocket upgrade may follow on a kept-alive connection).
+            if not self._relay_one_exchange(client, upstream, req_headers, rest):
+                return
         rhead, rrest = read_head(upstream)
         status_line, resp_headers = parse_head(rhead)
         client.sendall(rhead)
@@ -435,7 +441,6 @@ class InterceptProxy:
         with self._lock:
             self._conn_seq += 1
             conn = self._conn_seq
-        self.stats["websockets"] += 1
         hint = req_headers.get("x-codex-routing-hint", "")
         self.on_event("ws_open", {"conn": conn, "host": host, "path": path, "watched": watched, "deflate": on,
                                   "routing_hint": hint})
@@ -447,12 +452,50 @@ class InterceptProxy:
             client.sendall(rrest)
         self._pump_both(client, upstream, c2s, s2c, conn, rest)
 
+    def _relay_one_exchange(self, client: socket.socket, upstream: socket.socket, req_headers: Dict[str, str],
+                            body_start: bytes) -> bool:
+        """Forward one plain HTTP/1.1 request body and its response. Returns True if the tunnel
+        stays open for another request, False if either side closed or framing is unknown."""
+        if req_headers.get("transfer-encoding") or "connection: close" in ("connection: " + req_headers.get("connection", "").lower()):
+            self._pump_both(client, upstream, None, None, 0, b"")
+            return False
+        try:
+            remaining = int(req_headers.get("content-length", "0")) - len(body_start)
+        except ValueError:
+            self._pump_both(client, upstream, None, None, 0, b"")
+            return False
+        while remaining > 0:
+            chunk = client.recv(min(65536, remaining))
+            if not chunk:
+                return False
+            upstream.sendall(chunk)
+            remaining -= len(chunk)
+        rhead, rrest = read_head(upstream)
+        _status, rh = parse_head(rhead)
+        client.sendall(rhead)
+        if rrest:
+            client.sendall(rrest)
+        if rh.get("transfer-encoding") or rh.get("connection", "").lower() == "close" or "content-length" not in rh:
+            self._pump_both(client, upstream, None, None, 0, b"")  # cannot frame the rest: blind relay
+            return False
+        try:
+            remaining = int(rh["content-length"]) - len(rrest)
+        except ValueError:
+            self._pump_both(client, upstream, None, None, 0, b"")
+            return False
+        while remaining > 0:
+            chunk = upstream.recv(min(65536, remaining))
+            if not chunk:
+                return False
+            client.sendall(chunk)
+            remaining -= len(chunk)
+        return True
+
     def _deliver(self, parser: WsParser, data: bytes, direction: str, conn: int) -> bool:
         """Feed bytes to a parser and hand out complete messages. False once decoding is lost."""
         try:
             for op, payload in parser.feed(data):
                 if op in (1, 2):
-                    self.stats["messages"] += 1
                     self.on_message(WsMessage(direction, payload.decode("utf-8", "replace"), time.time(), conn))
             return True
         except WsError as e:

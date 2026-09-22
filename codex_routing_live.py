@@ -103,7 +103,6 @@ class _Conn:
     requested: Optional[str] = None
     request_had_user_input: Optional[bool] = None
     rows_by_id: Dict[str, LiveRow] = field(default_factory=dict)
-    error_rows: int = 0
 
 
 def _has_user_input(obj: dict) -> Optional[bool]:
@@ -157,14 +156,16 @@ class LiveAggregator:
             row = conn.rows_by_id.get(rec.response_id)
             new = row is None
             if row is None:
-                requested = conn.requested or self.hints.get(msg.conn)
                 kind = rec.kind
                 if kind != "turn" and conn.request_had_user_input:
                     kind = "turn"
-                row = LiveRow(n=len(self.rows) + 1, conn=msg.conn, first_seen=msg.ts, requested=requested,
+                conn.request_had_user_input = None  # consumed by this response
+                row = LiveRow(n=len(self.rows) + 1, conn=msg.conn, first_seen=msg.ts, requested=None,
                               kind=kind, record=rec)
                 conn.rows_by_id[rec.response_id] = row
                 self.rows.append(row)
+            if row.requested is None:  # the request frame may be decoded after the first server frame
+                row.requested = conn.requested or self.hints.get(msg.conn)
             events.append(("row", {"row": row, "new": new}))
         elif stream_error:
             code, message = conn.collector.stream_errors[-1]
@@ -193,17 +194,21 @@ class LiveAggregator:
         return seen
 
     def overall(self) -> str:
-        """REROUTED if any response named another model; OK if at least one turn completed as
-        requested and nothing was rerouted; UNSUPPORTED / ERROR / NO_DATA otherwise."""
-        c = self.counts()
-        if c.get("REROUTED"):
+        """REROUTED if any response named another model; OK if a turn completed as requested and
+        nothing was rerouted; UNSUPPORTED / ERROR next; OK again if only warm-ups were seen and
+        all of them were fine; NO_DATA when there is nothing yet."""
+        pairs = [(r.kind, r.verdict()) for r in self.rows]
+        verdicts = [v for _k, v in pairs]
+        if "REROUTED" in verdicts:
             return "REROUTED"
-        if c.get("ok"):
+        if any(k == "turn" and v == "ok" for k, v in pairs):
             return "OK"
-        if c.get("UNSUPPORTED"):
+        if "UNSUPPORTED" in verdicts:
             return "UNSUPPORTED"
-        if c.get("ERROR") or c.get("UNKNOWN"):
+        if "ERROR" in verdicts or "UNKNOWN" in verdicts:
             return "ERROR"
+        if "ok" in verdicts:
+            return "OK"
         return "NO_DATA"
 
     def report(self) -> str:
@@ -260,17 +265,23 @@ def launch_in_terminal(cmd: List[str], env: dict, cwd: str) -> subprocess.Popen:
     the default). macOS/Linux: best effort through a common terminal emulator."""
     if os.name == "nt":
         return subprocess.Popen(cmd, cwd=cwd, env=env, creationflags=subprocess.CREATE_NEW_CONSOLE)
+    passthrough = [f"{k}={v}" for k, v in env.items() if k in PROXY_VARS]
     if sys.platform == "darwin":
-        script = "cd " + shlex.quote(cwd) + " && " + " ".join(
-            f"{k}={shlex.quote(v)}" for k, v in env.items() if k in ("HTTPS_PROXY", "HTTP_PROXY", "ALL_PROXY",
-                                                                        "CODEX_CA_CERTIFICATE", "SSL_CERT_FILE")
-        ) + " " + " ".join(shlex.quote(c) for c in cmd)
+        script = "cd " + shlex.quote(cwd) + " && env " + " ".join(shlex.quote(p) for p in passthrough) \
+            + " " + " ".join(shlex.quote(c) for c in cmd)
         return subprocess.Popen(["osascript", "-e", f'tell application "Terminal" to do script {json.dumps(script)}'],
                                 env=env)
     for term in (["x-terminal-emulator", "-e"], ["gnome-terminal", "--"], ["konsole", "-e"], ["xterm", "-e"]):
         if cmc.shutil.which(term[0]):
-            return subprocess.Popen(term + cmd, cwd=cwd, env=env)
-    raise RuntimeError("no terminal emulator found; run the command shown in the details by hand")
+            # terminal servers (gnome-terminal, konsole) do not inherit env=, so pass it on the command line
+            return subprocess.Popen(term + ["env"] + passthrough + cmd, cwd=cwd, env=env)
+    raise RuntimeError("no terminal emulator found")
+
+
+PROXY_VARS = ("HTTPS_PROXY", "https_proxy", "CODEX_CA_CERTIFICATE")
+# On Windows the new console *is* the Codex process, so its exit ends the session. macOS/Linux
+# terminal launchers return as soon as the window is handed off; there only Stop ends the session.
+LAUNCHER_TRACKS_CODEX = os.name == "nt"
 
 
 class LiveMonitor:
@@ -294,6 +305,7 @@ class LiveMonitor:
         self.started_at = 0.0
         self.command_hint = ""
         self._stopped = False
+        self._announced: set = set()
 
     # lifecycle
     def start(self) -> None:
@@ -313,12 +325,17 @@ class LiveMonitor:
         self.events.put(("notice", f"proxy listening on 127.0.0.1:{port}; CA certificate: {cmc.display_path(self.ca.cert_path)}"))
         try:
             self.proc = self.launcher(cmd, env, self.workdir)
-        except (OSError, RuntimeError) as e:
+        except Exception as e:
             self.stop()
-            raise RuntimeError(f"could not start Codex: {e}")
+            raise RuntimeError(f"could not start Codex: {e}. To run it by hand, start the monitor from the command "
+                               f"line and use: {self.command_hint}")
         self.started_at = time.time()
         self.events.put(("notice", f"started {cmc.display_path(cmd[0])} in {cmc.display_path(self.workdir)} (pid {self.proc.pid})"))
-        threading.Thread(target=self._wait_codex, name="crd-live-wait", daemon=True).start()
+        if LAUNCHER_TRACKS_CODEX or self.launcher is not launch_in_terminal:
+            threading.Thread(target=self._wait_codex, name="crd-live-wait", daemon=True).start()
+        else:
+            self.events.put(("notice", "this platform's terminal detaches from Codex: press Stop when you are done "
+                                       "(it will not close the Codex window)"))
 
     def _wait_codex(self) -> None:
         proc = self.proc
@@ -330,11 +347,12 @@ class LiveMonitor:
 
     def _proxy_event(self, name: str, info: dict) -> None:
         if name == "ws_open" and info.get("watched"):
+            self._announced.add(info["conn"])
             self.events.put(("ws_open", info))
             self.events.put(("notice", f"responses WebSocket #{info['conn']} opened"
                              + (f" (routing hint: {info['routing_hint']})" if info.get("routing_hint") else "")
                              + ("" if info.get("deflate") else ", no compression")))
-        elif name == "ws_close":
+        elif name == "ws_close" and info.get("conn") in self._announced:
             self.events.put(("notice", f"WebSocket #{info['conn']} closed"))
         elif name == "parse_lost":
             self.events.put(("notice", f"WebSocket #{info['conn']} {info['direction']}: decoding stopped ({info['error']}); "
@@ -398,6 +416,18 @@ def run_live_cli(codex_path: Optional[str], workdir: Optional[str], codex_args: 
             elif ev[0] == "notice":
                 print(f"  [{ev[1]}]", file=sys.stderr, flush=True)
             elif ev[0] == "codex_exit":
+                while True:  # messages decoded just before the exit are still worth showing
+                    try:
+                        late = mon.events.get_nowait()
+                    except queue.Empty:
+                        break
+                    if late[0] == "message":
+                        for name, info in agg.feed(late[1]):
+                            if name == "row":
+                                r = info["row"]
+                                t = time.strftime("%H:%M:%S", time.localtime(r.first_seen))
+                                print(f"{t}  #{r.n:<3} {r.requested or '?':22} {r.kind:7} -> {r.served or '-':22} "
+                                      f"{r.status or r.error_code or '-':11} {r.verdict()}", flush=True)
                 print(f"codex exited with code {ev[1]}", file=sys.stderr)
                 break
     except KeyboardInterrupt:

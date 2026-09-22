@@ -150,6 +150,46 @@ class LiveTab(unittest.TestCase):
         finally:
             cmc.find_codex = orig
 
+    def test_messages_queued_before_codex_exit_are_not_lost(self):
+        self.app.start_live(confirm=False)
+        self._pump(0.3)
+        q = self.app.monitor.events
+        q.put(("message", msg("c2s", {"type": "response.create", "model": "gpt-6-astra"})))
+        q.put(("codex_exit", 0))
+        q.put(("message", msg("s2c", {"type": "response.completed", "response": {"id": "late", "model": "gpt-5.6-luna",
+                                                                                "status": "completed", "previous_response_id": "p"}})))
+        self._pump(0.5)
+        self.assertIsNone(self.app.monitor)
+        self.assertEqual(len(self.app.live_tree.get_children()), 1)
+        self.assertIn("REROUTED", self.app.live_banner.cget("text"))
+
+    def test_guide_popup_on_first_visit_and_skip_flag(self):
+        self.app.nb.select(self.app.page_live)
+        self._pump(0.3)
+        win = self.app.guide_window
+        self.assertIsNotNone(win)
+        self.assertTrue(win.winfo_exists())
+        self.assertIn("Live monitor", win.title())
+        win.destroy()
+        self._pump(0.2)
+        self.app.nb.select(self.app.page_check)
+        self.app.nb.select(self.app.page_live)
+        self._pump(0.2)
+        self.assertFalse(self.app.guide_window.winfo_exists())  # once per session
+        win = self.app.show_guide(force=True)
+        self.assertTrue(win.winfo_exists())
+        self.app.settings["skip_live_guide"] = True
+        gui.save_settings(self.app.settings)
+        win.destroy()
+        self._pump(0.2)
+        root2 = tk.Toplevel(_root)
+        root2.withdraw()
+        app2 = gui.App(root2, lang="ko", fake=True, update_check=False, confirm=False)
+        app2.nb.select(app2.page_live)
+        root2.update()
+        self.assertIsNone(app2.guide_window)
+        root2.destroy()
+
     def test_check_tab_still_works_next_to_the_live_tab(self):
         self.app.var_model.set("gpt-6-astra")
         self.app.start_check()

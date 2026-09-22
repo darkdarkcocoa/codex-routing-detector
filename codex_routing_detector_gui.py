@@ -112,7 +112,7 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "banner_live_unsupported": "{models} is not available on this account",
         "banner_live_error": "No confirmed response yet ({n} error(s))",
         "brief_live_idle": "Codex CLI only. Start opens a terminal with Codex routed through a local proxy on this computer; every request you make there is listed here with the model that really answered. The Codex desktop app cannot be watched.",
-        "brief_live_running": "Codex is running in its own window. Each request appears here as soon as the server answers; nothing is written to disk.",
+        "brief_live_running": "Codex is running in its own window. Each request appears here as soon as the server answers; no traffic is written to disk.",
         "brief_live_waiting": "No request yet. Type something in the Codex window.",
         "brief_live_rerouted": "{bad} of {total} responses were answered by {served} although Codex asked for {requested}.",
         "brief_live_ok": "{n} response(s) so far, all answered by the model Codex asked for.",
@@ -121,6 +121,18 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "confirm_live_title": "Start the live monitor?",
         "confirm_live_body": "A new terminal window opens with the Codex CLI. Its connections go through a local proxy on this computer (127.0.0.1 only) with a certificate that exists for this session only, so the model name in every server response can be read. Prompts, files and answers pass through and are not saved. Stopping the monitor closes that Codex window.",
         "confirm_live_ok": "Start",
+        "guide_title": "Live monitor",
+        "guide_heading": "\U0001F44B  Hi! Here is what this tab does",
+        "guide_body": (
+            "\U0001F680  Press Start monitoring and a Codex CLI window opens by itself. Just work in it as you always do.\n\n"
+            "\U0001F50D  Every time Codex calls a model, this tab checks which model really answered and adds a line here: "
+            "the model Codex asked for, the model that answered, and the verdict.\n\n"
+            "\U0001F7E2  Green means the model you chose answered.   \U0001F534  Red means it was quietly routed to another model.\n\n"
+            "\U0001F512  Everything stays on your computer. Your prompts, files and answers are never saved; only model names and ids are kept.\n\n"
+            "\U0001F4BB  This works with the Codex CLI only, not with the Codex desktop app. When you are done, press Stop."
+        ),
+        "guide_ok": "Got it!",
+        "guide_skip": "Don't show this again",
     },
     "ko": {
         "model": "모델", "effort": "Effort", "repeat": "반복",
@@ -192,7 +204,7 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "banner_live_unsupported": "{models}은(는) 이 계정에서 쓸 수 없는 모델입니다",
         "banner_live_error": "아직 확인된 응답 없음 (오류 {n}개)",
         "brief_live_idle": "Codex CLI 전용입니다. 시작을 누르면 이 컴퓨터의 로컬 프록시를 거치는 Codex 터미널이 열리고, 거기서 보내는 모든 요청이 실제로 답한 모델과 함께 여기에 쌓입니다. Codex 데스크톱 앱은 감시할 수 없습니다.",
-        "brief_live_running": "Codex가 별도 창에서 실행 중입니다. 서버가 답하는 즉시 요청이 여기에 나타나며, 디스크에는 아무것도 저장하지 않습니다.",
+        "brief_live_running": "Codex가 별도 창에서 실행 중입니다. 서버가 답하는 즉시 요청이 여기에 나타나며, 통신 내용은 디스크에 저장하지 않습니다.",
         "brief_live_waiting": "아직 요청이 없습니다. Codex 창에 무엇이든 입력해 보세요.",
         "brief_live_rerouted": "Codex는 {requested}로 요청했지만 응답 {total}개 중 {bad}개는 {served}가 답했습니다.",
         "brief_live_ok": "지금까지 응답 {n}개 모두 Codex가 요청한 모델이 답했습니다.",
@@ -201,12 +213,26 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "confirm_live_title": "라이브 모니터를 시작할까요?",
         "confirm_live_body": "Codex CLI가 새 터미널 창에서 열립니다. 그 창의 통신은 이 컴퓨터 안의 로컬 프록시(127.0.0.1 전용)를 거치고, 이번 세션에만 쓰는 인증서로 서버 응답 속 모델명을 읽습니다. 프롬프트, 파일, 답변은 그대로 지나가며 저장하지 않습니다. 모니터를 중지하면 그 Codex 창도 닫힙니다.",
         "confirm_live_ok": "시작",
+        "guide_title": "라이브 모니터",
+        "guide_heading": "\U0001F44B  안녕하세요! 이 탭은 이런 일을 해요",
+        "guide_body": (
+            "\U0001F680  모니터링 시작을 누르면 Codex CLI 창이 자동으로 열려요. 그 창에서 평소처럼 작업하시면 돼요.\n\n"
+            "\U0001F50D  Codex가 모델을 호출할 때마다 실제로 어떤 모델이 답했는지 확인해서 여기에 한 줄씩 적어요. "
+            "요청한 모델, 실제로 답한 모델, 판정이 나란히 보여요.\n\n"
+            "\U0001F7E2  초록이면 고른 모델이 답한 거예요.   \U0001F534  빨강이면 몰래 다른 모델로 라우팅된 거예요.\n\n"
+            "\U0001F512  전부 내 컴퓨터 안에서만 일어나요. 프롬프트·파일·답변은 저장하지 않고, 모델명과 ID만 기억해요.\n\n"
+            "\U0001F4BB  Codex CLI에서만 돼요 (데스크톱 앱은 아직 안 돼요). 다 끝나면 중지를 눌러 주세요."
+        ),
+        "guide_ok": "알겠어요!",
+        "guide_skip": "다시 보지 않기",
     },
 }
 
 MENU: Dict[str, Dict[str, str]] = {
-    "en": {"help": "Help", "usage": "How to use", "terms": "Glossary", "about": "About", "close": "Close"},
-    "ko": {"help": "도움말", "usage": "기본 사용법", "terms": "용어 설명", "about": "정보", "close": "닫기"},
+    "en": {"help": "Help", "usage": "How to use", "terms": "Glossary", "about": "About", "close": "Close",
+           "guide": "Live monitor guide"},
+    "ko": {"help": "도움말", "usage": "기본 사용법", "terms": "용어 설명", "about": "정보", "close": "닫기",
+           "guide": "라이브 모니터 안내"},
 }
 
 HELP_USAGE = {
@@ -650,6 +676,45 @@ class ConfirmDialog:
         return dlg.result
 
 
+class GuideDialog:
+    """Friendly first-time explanation of the live monitor tab, with a don't-show-again box."""
+
+    def __init__(self, parent: tk.Misc, title: str, heading: str, body: str, checkbox: str, ok: str) -> None:
+        self.skip = False
+        self.win = tk.Toplevel(parent)
+        self.win.title(title)
+        self.win.configure(bg=PALETTE["card"])
+        self.win.transient(parent.winfo_toplevel())
+        self.win.resizable(False, False)
+        head = tk.Frame(self.win, bg=PALETTE["accent"])
+        head.pack(fill="x")
+        tk.Label(head, text=heading, bg=PALETTE["accent"], fg=PALETTE["accent_text"], font=(FONT_UI, 13, "bold"),
+                 padx=22, pady=14, anchor="w").pack(fill="x")
+        frame = ttk.Frame(self.win, style="Card.TFrame", padding=(22, 16))
+        frame.pack(fill="both", expand=True)
+        ttk.Label(frame, text=body, style="Card.TLabel", wraplength=520, justify="left",
+                  font=(FONT_UI, 10)).pack(anchor="w")
+        self.var_skip = tk.BooleanVar(value=False)
+        ttk.Checkbutton(frame, text=checkbox, variable=self.var_skip, style="Card.TCheckbutton").pack(anchor="w", pady=(14, 0))
+        self.btn_ok = tk.Button(frame, text=ok, command=self._ok, bg=PALETTE["accent"], fg=PALETTE["accent_text"],
+                                activebackground=PALETTE["accent_dark"], activeforeground=PALETTE["accent_text"],
+                                relief="flat", bd=0, padx=22, pady=7, font=(FONT_UI, 10, "bold"), cursor="hand2")
+        self.btn_ok.pack(anchor="e", pady=(14, 0))
+        self.win.bind("<Return>", lambda _e: self._ok())
+        self.win.bind("<Escape>", lambda _e: self._ok())
+        self.win.protocol("WM_DELETE_WINDOW", self._ok)
+        self.win.update_idletasks()
+        px, py = parent.winfo_rootx(), parent.winfo_rooty()
+        pw, ph = parent.winfo_width(), parent.winfo_height()
+        w, h = self.win.winfo_reqwidth(), self.win.winfo_reqheight()
+        self.win.geometry(f"+{px + max(0, (pw - w) // 2)}+{py + max(0, (ph - h) // 3)}")
+        self.btn_ok.focus_set()
+
+    def _ok(self) -> None:
+        self.skip = bool(self.var_skip.get())
+        self.win.destroy()
+
+
 def apply_theme(root: tk.Tk) -> None:
     style = ttk.Style(root)
     try:
@@ -717,6 +782,7 @@ class App:
         self.exe_path = Path(sys.executable)  # the file that gets replaced by a self-update (frozen build)
         self.update_info: Optional[dict] = None
         self.cfg_model, self.cfg_tier, _ = cmc.read_config_values()
+        self.guide_shown = False
         self.have_mitm = bool(cmc.shutil.which("mitmdump"))
         self.models = listed_models()
         apply_theme(root)
@@ -748,6 +814,7 @@ class App:
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
         self.help_menu.add_command(command=lambda: self.show_help("usage"))
         self.help_menu.add_command(command=lambda: self.show_help("terms"))
+        self.help_menu.add_command(command=lambda: self.show_guide(force=True))
         self.help_menu.add_separator()
         self.help_menu.add_command(command=lambda: self.show_help("about"))
         self.menubar.add_cascade(menu=self.help_menu)
@@ -768,6 +835,8 @@ class App:
         self.nb.add(page)
         self.page_live = ttk.Frame(self.nb)
         self.nb.add(self.page_live)
+        self.guide_window: Optional[tk.Toplevel] = None
+        self.nb.bind("<<NotebookTabChanged>>", lambda _e: self._on_tab_changed())
         page.columnconfigure(0, weight=1)
         page.rowconfigure(5, weight=3)
         page.rowconfigure(6, weight=1)
@@ -1005,7 +1074,8 @@ class App:
         self.menubar.entryconfigure(1, label=m["help"])
         self.help_menu.entryconfigure(0, label=m["usage"])
         self.help_menu.entryconfigure(1, label=m["terms"])
-        self.help_menu.entryconfigure(3, label=m["about"])
+        self.help_menu.entryconfigure(2, label=m["guide"])
+        self.help_menu.entryconfigure(4, label=m["about"])
         for kind, win in list(self.help_windows.items()):
             if win.winfo_exists():
                 self._fill_help(win, kind)
@@ -1226,6 +1296,30 @@ class App:
             self.root.after(100, self._poll)
 
     # ------------------------------------------------------------ live monitor
+    def _on_tab_changed(self) -> None:
+        if self.nb.select() == str(self.page_live):
+            self.show_guide()
+
+    def show_guide(self, force: bool = False) -> Optional[tk.Toplevel]:
+        """The friendly explanation of the live tab: once per install unless asked for again."""
+        if not force and (self.settings.get("skip_live_guide") or self.guide_shown):
+            return None
+        if self.guide_window is not None and self.guide_window.winfo_exists():
+            self.guide_window.lift()
+            return self.guide_window
+        self.guide_shown = True
+        dlg = GuideDialog(self.root, self.s("guide_title"), self.s("guide_heading"), self.s("guide_body"),
+                          self.s("guide_skip"), self.s("guide_ok"))
+        self.guide_window = dlg.win
+
+        def closed(_e=None) -> None:
+            if dlg.skip:
+                self.settings["skip_live_guide"] = True
+                save_settings(self.settings)
+
+        dlg.win.bind("<Destroy>", closed)
+        return dlg.win
+
     def _refresh_config(self, first: bool = False) -> None:
         """Mirror model / effort from ~/.codex/config.toml; re-read whenever the file changes."""
         mtime = live.config_mtime()
@@ -1338,6 +1432,7 @@ class App:
         if mon is None:
             return
         changed = False
+        exit_code: Optional[int] = None
         while True:
             try:
                 ev = mon.events.get_nowait()
@@ -1356,12 +1451,13 @@ class App:
             elif kind == "notice":
                 self._live_note(ev[1])
             elif kind == "codex_exit":
-                self._live_note(self.s("live_codex_exit", rc=ev[1]))
-                self._end_live(f"exit:{ev[1]}")
-                return
+                exit_code = ev[1]  # keep draining: frames decoded just before the exit are still queued
         if changed:
             self._render_live_summary()
             self.btn_live_copy.configure(state="normal")
+        if exit_code is not None:
+            self._live_note(self.s("live_codex_exit", rc=exit_code))
+            self._end_live(f"exit:{exit_code}")
 
     def _render_live_row(self, row: "live.LiveRow") -> None:
         kind_name = {"warmup": self.s("kind_warmup"), "turn": self.s("kind_turn"), "error": "-"}
@@ -1698,6 +1794,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                     help="show the NEW badge only; never download and replace this exe by itself")
     ap.add_argument("--updated-from", default=None, help=argparse.SUPPRESS)
     a = ap.parse_args(argv)
+    if a.fake_live and not a.fake:
+        _report_startup_error("--fake-live is a screenshot mode and needs --fake as well")
+        return 1
     if a.fake and not install_fake_runner():
         _report_startup_error("fixtures not found; --fake needs tests/fixtures next to this file")
         return 1

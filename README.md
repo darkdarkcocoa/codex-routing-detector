@@ -66,6 +66,8 @@ that starts halfway through your afternoon shows up at the moment it happens.
 
 ![Live monitor tab during a session](docs/screenshot-live.png)
 
+A short guide pops up the first time you open the tab (Help > Live monitor guide brings it back).
+
 - **Codex settings** mirrors `model` and `model_reasoning_effort` from `~/.codex/config.toml`
   and re-reads them when the file changes, so you can see what Codex is going to ask for.
 - **Working folder** is where the Codex window opens (your project). Pick it once; it is
@@ -77,9 +79,12 @@ that starts halfway through your afternoon shows up at the moment it happens.
 - It works by starting the Codex CLI with `HTTPS_PROXY` pointing at a small proxy built into
   this tool (listening on 127.0.0.1 only) and `CODEX_CA_CERTIFICATE` pointing at a certificate
   that is created for the session and deleted afterwards. Nothing is installed in the system
-  certificate store, no byte is changed, and nothing is written to disk: prompts, files and
+  certificate store, no byte is changed, and no traffic is written to disk: prompts, files and
   answers pass through and only model names, response ids, statuses and error codes are kept
-  in memory.
+  in memory. (The session certificate and its private key live in a private temp folder until
+  the monitor stops; the working folder you pick is remembered in the settings file.)
+- Tested on Windows. On macOS and Linux the terminal window is opened on a best-effort basis
+  and detaches from the monitor, so **Stop** does not close it there; close Codex yourself.
 - **The Codex desktop app cannot be watched.** It is a packaged (MSIX) application that does
   not take these settings from another program, and it keeps no record of the served model
   anywhere on disk. Desktop users get the same answer from the Check tab, one probe at a time.

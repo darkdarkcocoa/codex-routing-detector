@@ -92,9 +92,12 @@ class EchoServer(threading.Thread):
             if "websocket" not in headers.get("upgrade", "").lower():
                 body = b'{"hello":"world"}'
                 tls.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: "
-                            + str(len(body)).encode() + b"\r\nConnection: close\r\n\r\n" + body)
-                tls.close()
-                return
+                            + str(len(body)).encode() + b"\r\n\r\n" + body)
+                head, rest = crp.read_head(tls)  # keep-alive: wait for the next request on this connection
+                line, headers = crp.parse_head(head)
+                if "websocket" not in headers.get("upgrade", "").lower():
+                    tls.close()
+                    return
             accept = base64.b64encode(hashlib.sha1((headers["sec-websocket-key"] + WS_GUID).encode()).digest()).decode()
             deflate = "permessage-deflate" in headers.get("sec-websocket-extensions", "")
             resp = ("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
@@ -289,14 +292,11 @@ class ProxyEndToEnd(unittest.TestCase):
 
     def test_other_paths_and_plain_requests_are_relayed_but_not_decoded(self):
         tls = self._connect()
-        tls.sendall(b"GET /backend-api/codex/models HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
-        body = b""
-        while True:
-            data = tls.recv(4096)
-            if not data:
-                break
-            body += data
-        self.assertIn(b'{"hello":"world"}', body)
+        tls.sendall(b"GET /backend-api/codex/models HTTP/1.1\r\nHost: localhost\r\n\r\n")
+        body = recv_head(tls).split(b"\r\n\r\n", 1)[1]
+        while len(body) < 17:
+            body += tls.recv(4096)
+        self.assertEqual(body, b'{"hello":"world"}')
         tls.close()
         tls = self._connect()
         tls.sendall(b"GET /other/socket HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
@@ -326,7 +326,28 @@ class ProxyEndToEnd(unittest.TestCase):
         add, drop = self.proxy.env()
         self.assertEqual(add["HTTPS_PROXY"], f"http://127.0.0.1:{self.proxy.port}")
         self.assertEqual(add["CODEX_CA_CERTIFICATE"], str(self.proxy_ca.cert_path))
-        self.assertIn("NO_PROXY", drop)
+        self.assertNotIn("SSL_CERT_FILE", add)  # would break every other TLS client in that console
+        self.assertNotIn("HTTP_PROXY", add)  # plain http is not relayed
+        for k in ("NO_PROXY", "HTTP_PROXY", "ALL_PROXY"):
+            self.assertIn(k, drop)
+
+    def test_upgrade_after_a_plain_request_on_the_same_tunnel_is_decoded(self):
+        tls = self._connect()
+        tls.sendall(b"GET /backend-api/codex/models HTTP/1.1\r\nHost: localhost\r\n\r\n")
+        head = recv_head(tls)
+        self.assertTrue(head.startswith(b"HTTP/1.1 200"))
+        body = head.split(b"\r\n\r\n", 1)[1]
+        while len(body) < 17:
+            body += tls.recv(4096)
+        self.assertEqual(body, b'{"hello":"world"}')
+        tls.sendall(b"GET /backend-api/codex/responses HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\n"
+                    b"Connection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n")
+        self.assertTrue(recv_head(tls).startswith(b"HTTP/1.1 101"))
+        tls.sendall(frame(b'{"type":"response.create","model":"gpt-6-astra"}', mask=True))
+        self.assertEqual(crp.WsParser().feed(tls.recv(4096)), [(1, b'echo:{"type":"response.create","model":"gpt-6-astra"}')])
+        tls.close()
+        got = self._drain(2)
+        self.assertEqual(sorted(m.direction for m in got), ["c2s", "s2c"])
 
 
 # ------------------------------------------------------------------ aggregation
@@ -408,6 +429,32 @@ class AggregatorTests(unittest.TestCase):
         agg.feed(msg("s2c", {"type": "response.completed", "response": {"id": "a", "model": "gpt-5.6-luna", "status": "completed"}}, conn=1))
         agg.feed(msg("s2c", {"type": "response.completed", "response": {"id": "b", "model": "gpt-5.6-sol", "status": "completed"}}, conn=2))
         self.assertEqual([(r.requested, r.verdict()) for r in agg.rows], [("gpt-6-astra", "REROUTED"), ("gpt-5.6-sol", "ok")])
+
+    def test_failed_turn_after_good_warmup_is_not_ok(self):
+        agg = live.LiveAggregator()
+        agg.feed(msg("c2s", {"type": "response.create", "model": "gpt-6-astra"}))
+        agg.feed(msg("s2c", {"type": "response.completed", "response": {"id": "w", "model": "gpt-6-astra", "status": "completed"}}))
+        self.assertEqual(agg.overall(), "OK")  # only a good warm-up so far
+        agg.feed(msg("c2s", {"type": "response.create", "model": "gpt-6-astra", "input": [{"role": "user"}]}))
+        agg.feed(msg("s2c", {"type": "response.failed", "response": {"id": "t", "model": "gpt-6-astra", "status": "failed",
+                                                                    "error": {"code": "server_error", "message": "x"}}}))
+        self.assertEqual([r.verdict() for r in agg.rows], ["ok", "ERROR"])
+        self.assertEqual(agg.overall(), "ERROR")
+
+    def test_request_frame_decoded_after_the_response_still_sets_requested(self):
+        agg = live.LiveAggregator()
+        agg.feed(msg("s2c", {"type": "response.created", "response": {"id": "t", "model": "gpt-5.6-luna", "status": "in_progress"}}))
+        self.assertEqual(agg.rows[0].verdict(), "UNKNOWN")
+        agg.feed(msg("c2s", {"type": "response.create", "model": "gpt-6-astra"}))
+        agg.feed(msg("s2c", {"type": "response.completed", "response": {"id": "t", "model": "gpt-5.6-luna", "status": "completed"}}))
+        self.assertEqual((agg.rows[0].requested, agg.rows[0].verdict()), ("gpt-6-astra", "REROUTED"))
+
+    def test_user_input_flag_is_consumed_by_one_response(self):
+        agg = live.LiveAggregator()
+        agg.feed(msg("c2s", {"type": "response.create", "model": "gpt-6-astra", "input": [{"role": "user"}]}))
+        agg.feed(msg("s2c", {"type": "response.completed", "response": {"id": "a", "model": "gpt-6-astra", "status": "completed"}}))
+        agg.feed(msg("s2c", {"type": "response.completed", "response": {"id": "b", "model": "gpt-6-astra", "status": "completed"}}))
+        self.assertEqual([r.kind for r in agg.rows], ["turn", "warmup"])
 
     def test_garbage_is_counted_not_raised(self):
         agg = live.LiveAggregator()
