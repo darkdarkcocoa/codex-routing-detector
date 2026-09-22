@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Jua&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #e5ddf5; font-family: "Baloo 2", "Jua", system-ui, sans-serif; }
+  a { color: #574496; text-decoration: none; } a:hover { color: #7563cc; }
+  @keyframes popBubble { 0% { transform: scale(.7) translateY(10px); opacity: 0 } 60% { transform: scale(1.05) translateY(-3px); opacity: 1 } 100% { transform: scale(1) translateY(0); opacity: 1 } }
+  @keyframes cardIn { 0% { transform: translateY(16px) scale(.97); opacity: 0 } 100% { transform: translateY(0) scale(1); opacity: 1 } }
+  @keyframes hop { 0%, 100% { transform: translateY(0) rotate(-2deg) } 40% { transform: translateY(-14px) rotate(3deg) } 65% { transform: translateY(-2px) rotate(-1deg) } }
+  @keyframes wobble { 0%, 100% { transform: rotate(-2.5deg) } 50% { transform: rotate(2.5deg) } }
+  @keyframes breathe { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.03) } }
+  @keyframes drift { 0% { transform: translate(0, 6px) rotate(0deg); opacity: 0 } 30% { opacity: .9 } 100% { transform: translate(10px, -52px) rotate(40deg); opacity: 0 } }
+  @keyframes dotPulse { 0%, 100% { transform: scale(.7); opacity: .35 } 50% { transform: scale(1.15); opacity: 1 } }
+  @keyframes tabSwap { 0% { transform: translateY(10px); opacity: 0 } 100% { transform: translateY(0); opacity: 1 } }
+  @keyframes shine { 0% { transform: translateX(-120%) } 100% { transform: translateX(240%) } }
+</style>
+</helmet>
+
+<div style="position: relative; width: 1180px; margin: 0 auto; background: #faf7ff; border-radius: 28px; overflow: hidden; box-shadow: 0 26px 64px rgba(74,59,110,.2); color: #453b5c; font-family: 'Baloo 2','Jua',system-ui,sans-serif">
+
+  <div style="position: absolute; inset: 0; pointer-events: none; overflow: hidden">
+    <sc-for list="{{ sparkles }}" as="s" hint-placeholder-count="0">
+      <div style="{{ s.style }}">{{ s.glyph }}</div>
+    </sc-for>
+  </div>
+
+  <div style="position: relative; display: flex; align-items: center; gap: 14px; padding: 22px 28px 0">
+    <div style="display: flex; align-items: center; gap: 10px; margin-right: 6px">
+      <img src="assets/mascot_256.png" alt="" style="width: 38px; height: 38px; object-fit: contain">
+      <span style="font-size: 19px; font-weight: 700; letter-spacing: -.2px; color: #3b3150">Routing Detector</span>
+    </div>
+    <div style="display: flex; gap: 4px; background: #f0ebfb; border-radius: 999px; padding: 5px">
+      <div onClick="{{ selectCheck }}" style="{{ tabCheckStyle }}">{{ t.tabCheck }}</div>
+      <div onClick="{{ selectLive }}" style="{{ tabLiveStyle }}">{{ t.tabLive }}</div>
+    </div>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 8px">
+      <div onClick="{{ toggleLang }}" style="display: flex; gap: 3px; background: #f0ebfb; border-radius: 999px; padding: 5px; font-size: 13px; font-weight: 600; cursor: pointer">
+        <span style="{{ langKoStyle }}">한국어</span>
+        <span style="{{ langEnStyle }}">EN</span>
+      </div>
+      <div style="display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; background: #f0ebfb; color: #625877; font-size: 16px; font-weight: 700; cursor: pointer" style-hover="background:#e5dcf8;color:#6f5bc9">?</div>
+    </div>
+  </div>
+
+  <div style="{{ bodyStyle }}">
+
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div style="{{ bubbleStyle }}">
+        <div style="{{ bubbleChipStyle }}">{{ bubbleChip }}</div>
+        <div style="font-size: 15.5px; line-height: 1.55; color: #4c4166; text-wrap: pretty">{{ briefText }}</div>
+        <div style="position: absolute; left: 44px; bottom: -9px; width: 20px; height: 20px; background: #ffffff; transform: rotate(45deg); border-radius: 4px"></div>
+      </div>
+
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; background: #efe8fd; border-radius: 26px; padding: 22px 20px 24px; overflow: hidden">
+        <div style="position: relative; display: grid; place-items: center; width: 190px; height: 190px">
+          <div style="{{ haloStyle }}"></div>
+          <img src="assets/mascot_256.png" alt="" style="{{ catStyle }}">
+          <div style="{{ moodBadgeStyle }}"></div>
+        </div>
+
+        <div onClick="{{ primaryAction }}" style="{{ ctaStyle }}" style-hover="filter:brightness(1.06)" style-active="transform:translateY(3px) scale(.97)">
+          <span style="position: relative; z-index: 1">{{ ctaLabel }}</span>
+          <div style="position: absolute; top: 0; bottom: 0; width: 40%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.45), rgba(255,255,255,0)); animation: shine 2.6s linear infinite"></div>
+        </div>
+
+        <sc-if value="{{ isBusy }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; align-items: center; gap: 7px">
+            <span style="width: 9px; height: 9px; border-radius: 999px; background: #6f5bc9; animation: dotPulse 1s ease-in-out 0s infinite"></span>
+            <span style="width: 9px; height: 9px; border-radius: 999px; background: #6f5bc9; animation: dotPulse 1s ease-in-out .18s infinite"></span>
+            <span style="width: 9px; height: 9px; border-radius: 999px; background: #6f5bc9; animation: dotPulse 1s ease-in-out .36s infinite"></span>
+          </div>
+        </sc-if>
+
+        <div style="font-size: 13px; color: #625877; font-family: 'JetBrains Mono', monospace">{{ statusLine }}</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; background: #ffffff; border-radius: 22px; padding: 16px 18px; box-shadow: 0 2px 10px rgba(74,59,110,.07)">
+        <div style="font-size: 13px; font-weight: 700; color: #625877">{{ t.setup }}</div>
+        <sc-for list="{{ setupRows }}" as="r" hint-placeholder-count="3">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #f8f5ff; border-radius: 14px; padding: 9px 14px; font-size: 14px; cursor: pointer" style-hover="background:#f0ebfb">
+            <span style="color: #625877">{{ r.label }}</span>
+            <span style="display: flex; align-items: center; gap: 6px; font-weight: 700; color: #453b5c">{{ r.value }}<span style="font-size: 9px; color: #7a719b">▼</span></span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px; min-width: 0">
+      <div style="{{ ribbonStyle }}">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <span style="{{ ribbonChipStyle }}">{{ verdictChip }}</span>
+          <span style="font-size: 26px; font-weight: 700; letter-spacing: -.3px">{{ verdictHead }}</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 6px; margin-left: auto">
+          <span style="font-size: 30px; font-weight: 700; line-height: 1">{{ bigNumber }}</span>
+          <span style="font-size: 13px; opacity: .85">{{ bigNumberLabel }}</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; background: #ffffff; border-radius: 24px; padding: 18px 18px 20px; box-shadow: 0 2px 12px rgba(74,59,110,.07); min-height: 430px">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 0 2px 2px">
+          <span style="font-size: 15px; font-weight: 700; color: #3b3150">{{ t.feed }}</span>
+          <span style="font-size: 12.5px; font-weight: 600; color: #625877; background: #f4f0fd; border-radius: 999px; padding: 3px 10px">{{ rowCount }}</span>
+          <div style="margin-left: auto; display: flex; gap: 6px; font-size: 12.5px; font-weight: 600; color: #625877">
+            <span style="padding: 6px 12px; border-radius: 999px; background: #f8f5ff; cursor: pointer" style-hover="color:#6f5bc9;background:#f0ebfb">{{ t.copy }}</span>
+            <span style="padding: 6px 12px; border-radius: 999px; background: #f8f5ff; cursor: pointer" style-hover="color:#6f5bc9;background:#f0ebfb">{{ t.secondary }}</span>
+          </div>
+        </div>
+
+        <sc-for list="{{ rows }}" as="row" hint-placeholder-count="2">
+          <div style="{{ row.cardStyle }}">
+            <div style="{{ row.badgeStyle }}">{{ row.n }}</div>
+            <div style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+              <div style="display: flex; align-items: center; gap: 9px; flex-wrap: wrap">
+                <span style="font-size: 16px; font-weight: 700; color: #5d5478">{{ row.requested }}</span>
+                <span style="{{ row.arrowStyle }}">→</span>
+                <span style="{{ row.servedStyle }}">{{ row.served }}</span>
+                <span style="{{ row.verdictStyle }}">{{ row.verdictLabel }}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #625877; font-family: 'JetBrains Mono', monospace">
+                <span style="font-family: 'Baloo 2', sans-serif; font-weight: 600; background: #ffffff; border-radius: 999px; padding: 2px 9px">{{ row.kind }}</span>
+                <span>{{ row.time }}</span>
+                <span>·</span>
+                <span>{{ row.status }}</span>
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ row.rid }}</span>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 96px 0; color: #625877; font-size: 14px">
+            <img src="assets/mood_idle_56.png" alt="" style="width: 54px; height: 54px; animation: breathe 3s ease-in-out infinite">
+            {{ emptyText }}
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px; background: #ffffff; border-radius: 18px; padding: 12px 18px; box-shadow: 0 2px 10px rgba(74,59,110,.06); font-size: 12.5px; color: #625877; font-family: 'JetBrains Mono', monospace">
+        <span style="font-family: 'Baloo 2', sans-serif; font-weight: 700; color: #625877">{{ t.details }}</span>
+        <span>{{ detailsText }}</span>
+        <span style="margin-left: auto; font-family: 'Baloo 2', sans-serif; font-weight: 600; color: #6f5bc9; cursor: pointer">{{ t.logs }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="position: relative; display: flex; align-items: center; gap: 12px; padding: 0 30px 20px; font-size: 12px; color: #625877">
+    <span style="font-family: 'JetBrains Mono', monospace">v1.5.0</span>
+    <a href="#">GitHub</a>
+    <span style="margin-left: auto">{{ t.foot }}</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1240,&quot;height&quot;:940},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#6f5bc9&quot;,&quot;options&quot;:[&quot;#6f5bc9&quot;,&quot;#c4557a&quot;,&quot;#2a7d96&quot;,&quot;#a1620f&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;sparkles&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Look&quot;}}">
+const T = {
+  ko: {
+    tabCheck: "검사", tabLive: "라이브",
+    setup: "설정", feed: "응답 기록", copy: "보고서 복사", secondary: "JSON 저장", details: "상세", logs: "로그 폴더 열기",
+    foot: "짧은 프롬프트 하나를 보내고, 서버가 적어 보낸 모델명을 읽어요.",
+    labelModel: "모델", labelEffort: "노력", labelRepeat: "반복", labelFolder: "작업 폴더",
+    chipIdle: "대기", chipRun: "검사 중", chipOk: "정상", chipBad: "바꿔치기",
+    idleHead: "준비됐어요", runHead: "살펴보는 중", okHead: "정상이에요", badHead: "바꿔치기 감지",
+    idleBrief: "안녕! 검사 버튼을 누르면 Codex에 짧은 프롬프트 하나를 보내고, 서버 응답에 적힌 모델명을 확인해서 알려줄게요.",
+    runBrief: "프롬프트를 보냈어요. 서버가 돌려주는 응답 객체를 기다리는 중이에요. 금방 끝나요!",
+    okBrief: "요청한 gpt-6-astra가 직접 답했어요. 지금은 바꿔치기가 없어요. 플랜 pro, 사용량 10%. 이 모델로 작업하기 좋은 때예요!",
+    badBrief: "gpt-6-astra로 요청했는데 서버는 gpt-5.6-luna로 답했어요. 응답 2개 중 2개예요. 플랜 pro, 사용량 10%니까 한도 때문은 아니에요. 다른 모델을 쓰거나 잠시 뒤 다시 확인해요.",
+    cta: "검사하기", ctaRun: "검사 중...", ctaAgain: "다시 검사",
+    statusIdle: "준비됨", statusRun: "probe 1/1 · low", statusDone: "7.3초 소요",
+    empty: "아직 검사하지 않았어요.",
+    liveChipOff: "꺼짐", liveChipOn: "감시 중", liveChipBad: "바꿔치기",
+    liveIdleHead: "모니터 꺼짐", liveOnHead: "감시 중", liveBadHead: "바꿔치기 감지",
+    liveIdleBrief: "시작을 누르면 Codex CLI 창이 열려요. 거기서 평소처럼 작업하면, 요청마다 실제로 답한 모델을 확인해서 오른쪽에 쌓아줄게요. 통신 내용은 저장하지 않아요.",
+    liveOnBrief: "Codex가 자기 창에서 돌고 있어요. 서버가 답하는 즉시 한 줄씩 적을게요.",
+    liveBadBrief: "Codex는 gpt-6-astra로 요청했지만 응답 3개 중 2개는 gpt-5.6-luna가 답했어요. 플랜 pro, 사용량 9% — 한도 때문이 아니에요.",
+    liveStart: "모니터링 시작", liveStop: "중지",
+    liveStatusOff: "대기 중", liveStatusOn: "pid 21884 · 127.0.0.1:55198",
+    liveEmpty: "Codex 창에 뭐든 입력해 보세요.",
+    okLabel: "정상", badLabel: "바꿔치기",
+    countLabelBad: "개가 바꿔치기", countLabelOk: "개 모두 정상",
+  },
+  en: {
+    tabCheck: "Check", tabLive: "Live",
+    setup: "Setup", feed: "Responses", copy: "Copy report", secondary: "Save JSON", details: "Details", logs: "Open logs",
+    foot: "One short prompt goes out; we read the model name the server wrote back.",
+    labelModel: "model", labelEffort: "effort", labelRepeat: "repeat", labelFolder: "folder",
+    chipIdle: "Idle", chipRun: "Checking", chipOk: "OK", chipBad: "Rerouted",
+    idleHead: "Ready", runHead: "Sniffing around", okHead: "All good", badHead: "Rerouted",
+    idleBrief: "Hi! Press Check and I'll send one short prompt to Codex, then read the model name out of the server's own response.",
+    runBrief: "Prompt is on its way. Waiting for the server's response objects — this takes a moment.",
+    okBrief: "The gpt-6-astra you asked for answered itself. No substitution right now. Plan pro, 10% used. Good time to work with this model!",
+    badBrief: "You asked for gpt-6-astra, but the server answered with gpt-5.6-luna — 2 of 2 responses. Plan pro, 10% used, so it is not a usage-limit fallback. Try another model or check again later.",
+    cta: "Check", ctaRun: "Checking...", ctaAgain: "Check again",
+    statusIdle: "ready", statusRun: "probe 1/1 · low", statusDone: "done in 7.3s",
+    empty: "Nothing checked yet.",
+    liveChipOff: "Off", liveChipOn: "Watching", liveChipBad: "Rerouted",
+    liveIdleHead: "Monitor off", liveOnHead: "Watching", liveBadHead: "Rerouted",
+    liveIdleBrief: "Start opens a Codex CLI window. Work there as usual and I'll check every request, listing the model that really answered. Nothing is written to disk.",
+    liveOnBrief: "Codex is running in its own window. Each answer gets a line here the moment it arrives.",
+    liveBadBrief: "Codex asked for gpt-6-astra, but 2 of 3 responses were answered by gpt-5.6-luna. Plan pro, 9% used — not a usage-limit fallback.",
+    liveStart: "Start monitoring", liveStop: "Stop",
+    liveStatusOff: "idle", liveStatusOn: "pid 21884 · 127.0.0.1:55198",
+    liveEmpty: "Type anything in the Codex window.",
+    okLabel: "ok", badLabel: "rerouted",
+    countLabelBad: "rerouted", countLabelOk: "served right",
+  },
+};
+
+const CHECK_ROWS = [
+  { kind: "warm-up", requested: "gpt-6-astra", served: "gpt-5.6-luna", status: "completed", time: "09:41:13Z", rid: "resp_07be24d3…3926" },
+  { kind: "turn", requested: "gpt-6-astra", served: "gpt-5.6-luna", status: "completed", time: "09:41:14Z", rid: "resp_07be24d3…3a7c" },
+];
+const OK_ROWS = [
+  { kind: "warm-up", requested: "gpt-6-astra", served: "gpt-6-astra", status: "completed", time: "09:52:02Z", rid: "resp_07be24d3…5f01" },
+  { kind: "turn", requested: "gpt-6-astra", served: "gpt-6-astra", status: "completed", time: "09:52:04Z", rid: "resp_07be24d3…60b3" },
+];
+const LIVE_ROWS = [
+  { kind: "warm-up", requested: "gpt-6-astra", served: "gpt-5.6-luna", status: "completed", time: "18:38:39", rid: "resp_00000000…0001" },
+  { kind: "turn", requested: "gpt-6-astra", served: "gpt-5.6-luna", status: "completed", time: "18:38:40", rid: "resp_00000000…0002" },
+  { kind: "turn", requested: "gpt-6-astra", served: "gpt-6-astra", status: "completed", time: "18:39:21", rid: "resp_00000000…0003" },
+];
+
+class Component extends DCLogic {
+  state = { tab: "check", lang: "ko", phase: "done", verdict: "REROUTED", liveOn: false, liveShown: 0 };
+  componentWillUnmount() { clearTimeout(this._t); clearInterval(this._iv); }
+
+  runCheck = () => {
+    if (this.state.phase === "running") return;
+    const next = this.state.verdict === "REROUTED" ? "ok" : "REROUTED";
+    this.setState({ phase: "running" });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ phase: "done", verdict: next }), 2200);
+  };
+
+  toggleLive = () => {
+    clearInterval(this._iv);
+    if (this.state.liveOn) { this.setState({ liveOn: false, liveShown: 0 }); return; }
+    this.setState({ liveOn: true, liveShown: 0 });
+    this._iv = setInterval(() => {
+      this.setState((s) => {
+        if (s.liveShown >= LIVE_ROWS.length) { clearInterval(this._iv); return s; }
+        return { liveShown: s.liveShown + 1 };
+      });
+    }, 1100);
+  };
+
+  rows(list, count, t) {
+    return list.slice(0, count === undefined ? list.length : count).map((r, i) => {
+      const bad = r.served !== r.requested;
+      return {
+        ...r,
+        n: i + 1,
+        cardStyle: "display:flex;align-items:center;gap:14px;background:" + (bad ? "#fdf0f2" : "#f0faf5") +
+          ";border-radius:18px;padding:14px 16px;animation:cardIn .4s cubic-bezier(.2,.9,.3,1.25) both;animation-delay:" + (i * 100) + "ms",
+        badgeStyle: "display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:12px;font-size:14px;font-weight:700;color:#ffffff;background:" + (bad ? "#f4737f" : "#56c596"),
+        arrowStyle: "font-size:15px;color:" + (bad ? "#f4737f" : "#6f7d77"),
+        servedStyle: "font-size:16px;font-weight:700;color:" + (bad ? "#b23a44" : "#257a59"),
+        verdictStyle: "font-size:11.5px;font-weight:700;letter-spacing:.3px;padding:3px 10px;border-radius:999px;background:" +
+          (bad ? "#f9d7dc" : "#d7f2e6") + ";color:" + (bad ? "#a8323b" : "#1f6f52"),
+        verdictLabel: bad ? t.badLabel : t.okLabel,
+      };
+    });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const t = T[s.lang];
+    const accent = this.props.accent ?? "#6f5bc9";
+    const sparklesOn = this.props.sparkles ?? true;
+    const live = s.tab === "live";
+    const running = !live && s.phase === "running";
+    const bad = live ? s.liveOn && s.liveShown >= 2 : s.phase === "done" && s.verdict === "REROUTED";
+    const ok = live ? s.liveOn && s.liveShown === 1 : s.phase === "done" && s.verdict === "ok";
+    const busy = running || (live && s.liveOn && s.liveShown < LIVE_ROWS.length);
+
+    const rows = live ? (s.liveOn ? this.rows(LIVE_ROWS, s.liveShown, t) : [])
+      : running || s.phase === "idle" ? [] : this.rows(s.verdict === "REROUTED" ? CHECK_ROWS : OK_ROWS, undefined, t);
+    const badCount = rows.filter((r) => r.served !== r.requested).length;
+
+    const chip = (label, fill, ink) => ({ label, style: "font-size:12px;font-weight:700;letter-spacing:.4px;padding:5px 12px;border-radius:999px;background:" + fill + ";color:" + ink });
+    const vc = live
+      ? (!s.liveOn ? chip(t.liveChipOff, "#efe9fb", "#5d5480") : bad ? chip(t.liveChipBad, "#ffffff", "#b23a44") : chip(t.liveChipOn, "#ffffff", "#5b4fa8"))
+      : (running ? chip(t.chipRun, "#ffffff", "#5b4fa8") : bad ? chip(t.chipBad, "#ffffff", "#b23a44") : ok ? chip(t.chipOk, "#ffffff", "#1f6f52") : chip(t.chipIdle, "#efe9fb", "#5d5480"));
+
+    const ribbonBg = bad ? "linear-gradient(100deg,#f4737f,#d9455a)" : ok ? "linear-gradient(100deg,#4bb98c,#2d9570)" : busy ? "linear-gradient(100deg,#b0a2ef," + accent + ")" : "#ffffff";
+    const ribbonInk = bad || ok || busy ? "#ffffff" : "#5d5480";
+
+    const catAnim = busy ? "wobble .8s ease-in-out infinite" : bad ? "hop 2.4s ease-in-out infinite" : ok ? "hop 1.8s ease-in-out infinite" : "breathe 3.4s ease-in-out infinite";
+    const pill = (fill, ink) => "position:relative;overflow:hidden;background:" + fill + ";color:" + ink + ";border-radius:999px;padding:14px 38px;font-size:17px;font-weight:700;cursor:pointer;transition:transform .12s ease,filter .12s ease;box-shadow:0 6px 16px rgba(97,78,168,.24)";
+    const tabStyle = (sel) => "padding:7px 20px;border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;transition:background .18s ease;background:" +
+      (sel ? "#ffffff" : "transparent") + ";color:" + (sel ? "#3b3150" : "#625877") + (sel ? ";box-shadow:0 2px 6px rgba(74,59,110,.12)" : "");
+
+    const glyphs = ["✦", "✧", "•", "✦", "✧", "✦", "•", "✧", "✦"];
+    const sparkles = sparklesOn ? glyphs.map((g, i) => ({
+      glyph: g,
+      style: "position:absolute;left:" + (4 + i * 10.5) + "%;bottom:" + (6 + ((i * 23) % 62)) + "%;font-size:" + (10 + (i % 3) * 5) + "px;color:" + (i % 3 === 0 ? "#d7cbf6" : i % 3 === 1 ? "#f7cfdc" : "#cfeadd") +
+        ";animation:drift " + (8 + (i % 4) * 2) + "s ease-in-out " + (i * 0.8) + "s infinite",
+    })) : [];
+
+    return {
+      t, sparkles,
+      selectCheck: () => this.setState({ tab: "check" }),
+      selectLive: () => this.setState({ tab: "live" }),
+      toggleLang: () => this.setState({ lang: s.lang === "ko" ? "en" : "ko" }),
+      primaryAction: live ? this.toggleLive : this.runCheck,
+      tabCheckStyle: tabStyle(!live), tabLiveStyle: tabStyle(live),
+      langKoStyle: "padding:4px 11px;border-radius:999px;" + (s.lang === "ko" ? "background:#ffffff;color:#3b3150;box-shadow:0 1px 4px rgba(74,59,110,.12)" : "color:#625877"),
+      langEnStyle: "padding:4px 11px;border-radius:999px;" + (s.lang === "en" ? "background:#ffffff;color:#3b3150;box-shadow:0 1px 4px rgba(74,59,110,.12)" : "color:#625877"),
+      bodyStyle: "position:relative;display:grid;grid-template-columns:330px minmax(0,1fr);gap:18px;padding:20px 28px 16px;animation:tabSwap .34s ease-out both",
+
+      bubbleStyle: "position:relative;background:#ffffff;border-radius:22px;padding:18px 20px;display:flex;flex-direction:column;gap:9px;box-shadow:0 3px 14px rgba(74,59,110,.09);animation:popBubble .42s cubic-bezier(.2,.9,.3,1.3) both",
+      bubbleChip: vc.label, bubbleChipStyle: "align-self:flex-start;" + vc.style.replace("background:#ffffff", "background:#f4f0fd"),
+      briefText: live
+        ? (!s.liveOn ? t.liveIdleBrief : bad ? t.liveBadBrief : t.liveOnBrief)
+        : (running ? t.runBrief : bad ? t.badBrief : ok ? t.okBrief : t.idleBrief),
+
+      catStyle: "width:170px;height:170px;object-fit:contain;animation:" + catAnim,
+      haloStyle: "position:absolute;width:186px;height:186px;border-radius:999px;background:" + (bad ? "#fbdfe4" : ok ? "#d9f2e7" : "#e3d9fb") + ";" + (busy ? "animation:breathe 1.2s ease-in-out infinite" : ""),
+      moodBadgeStyle: "position:absolute;right:2px;bottom:6px;width:52px;height:52px;border-radius:999px;background-color:#ffffff;background-repeat:no-repeat;background-position:center;background-size:40px 40px;box-shadow:0 3px 10px rgba(74,59,110,.16);background-image:url(" +
+        (busy ? "assets/mood_idle_56.png" : bad ? "assets/mood_rerouted_56.png" : ok ? "assets/mood_ok_56.png" : "assets/mood_idle_56.png") + ");animation:" + (busy ? "breathe 1s ease-in-out infinite" : "none"),
+
+      ctaLabel: live ? (s.liveOn ? t.liveStop : t.liveStart) : running ? t.ctaRun : s.phase === "done" ? t.ctaAgain : t.cta,
+      ctaStyle: running ? pill("#ded5f6", "#625877") : live && s.liveOn ? pill("#f4737f", "#ffffff") : pill(accent, "#ffffff"),
+      isBusy: busy,
+      statusLine: live ? (s.liveOn ? t.liveStatusOn : t.liveStatusOff) : running ? t.statusRun : s.phase === "done" ? t.statusDone : t.statusIdle,
+
+      setupRows: live
+        ? [{ label: t.labelModel, value: "gpt-6-astra" }, { label: t.labelEffort, value: "high" }, { label: t.labelFolder, value: "~" }]
+        : [{ label: t.labelModel, value: "gpt-6-astra" }, { label: t.labelEffort, value: "low" }, { label: t.labelRepeat, value: "1" }],
+
+      ribbonStyle: "display:flex;align-items:center;gap:14px;background:" + ribbonBg + ";color:" + ribbonInk +
+        ";border-radius:22px;padding:18px 24px;box-shadow:0 4px 16px rgba(74,59,110,.12);animation:popBubble .44s cubic-bezier(.2,.9,.3,1.3) both",
+      ribbonChipStyle: vc.style,
+      verdictChip: vc.label,
+      verdictHead: live
+        ? (!s.liveOn ? t.liveIdleHead : bad ? t.liveBadHead : t.liveOnHead)
+        : (running ? t.runHead : bad ? t.badHead : ok ? t.okHead : t.idleHead),
+      bigNumber: rows.length === 0 ? "—" : badCount > 0 ? badCount + "/" + rows.length : rows.length,
+      bigNumberLabel: rows.length === 0 ? "" : badCount > 0 ? t.countLabelBad : t.countLabelOk,
+
+      rows, rowCount: rows.length, noRows: rows.length === 0,
+      emptyText: live ? t.liveEmpty : t.empty,
+      detailsText: "plan=pro · usage 10% · limit_reached=False · codex-cli 0.155.1 (trace)",
+    };
+  }
+}
+</script>
+</body>
+</html>

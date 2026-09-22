@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<style>
+  body { margin: 0; background: #e8e2ef; font-family: "Segoe UI", system-ui, sans-serif; }
+  a { color: #b48cff; } a:hover { color: #9b6bff; }
+</style>
+</helmet>
+<div style="width: 1196px; background: #ffffff; border: 1px solid #c9b8d6; font-family: 'Segoe UI', system-ui, sans-serif; color: #4a3b5c">
+  <div style="display: flex; align-items: center; justify-content: space-between; background: #ffd6e7; height: 31px; padding: 0 0 0 8px; border-bottom: 1px solid #5b3d6e">
+    <div style="display: flex; align-items: center; gap: 7px">
+      <img src="assets/mascot_72.png" alt="" style="width: 16px; height: 16px; object-fit: contain">
+      <span style="font-size: 12px; color: #5b3d6e">Codex Routing Detector</span>
+    </div>
+    <div style="display: flex; align-items: stretch; height: 31px">
+      <div style="width: 46px; display: grid; place-items: center; color: #5b3d6e; font-size: 13px">&#8212;</div>
+      <div style="width: 46px; display: grid; place-items: center; color: #5b3d6e; font-size: 11px">&#9633;</div>
+      <div style="width: 46px; display: grid; place-items: center; color: #5b3d6e; font-size: 14px">&#10005;</div>
+    </div>
+  </div>
+  <div style="background: #ffffff; padding: 5px 0 5px 8px; font-size: 12px; color: #1a1a1a; border-bottom: 1px solid #efe6f2">Help</div>
+
+  <div style="background: #fff5fa; padding: 8px 18px 10px">
+    <div style="display: flex; align-items: center; gap: 12px; padding: 0 0 2px">
+      <img src="assets/mascot_72.png" alt="" style="width: 72px; height: 72px">
+      <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px">
+        <div style="font-size: 24px; font-weight: 700; color: #4a3b5c; letter-spacing: -0.2px">Codex Routing Detector</div>
+        <div style="font-size: 13px; color: #9a8aae">{{ subtitle }}</div>
+      </div>
+      <img src="assets/sticker_sparkle_44.png" alt="" style="width: 44px; height: 44px">
+    </div>
+
+    <div style="display: flex; gap: 8px; padding: 6px 0 2px">
+      <div onClick="{{ selectCheck }}" style="{{ tabCheckStyle }}">{{ tabCheckLabel }}</div>
+      <div onClick="{{ selectLive }}" style="{{ tabLiveStyle }}">{{ tabLiveLabel }}</div>
+    </div>
+
+    <sc-if value="{{ isCheck }}" hint-placeholder-val="{{ true }}">
+      <div style="padding-top: 8px">
+        <!-- Options panel -->
+        <div style="position: relative; background: #ffffff; border: 2px solid #5b3d6e; border-radius: 14px; box-shadow: 4px 4px 0 #5b3d6e; margin-bottom: 12px">
+          <div style="height: 30px; background: #dcd0ff; border-bottom: 2px solid #5b3d6e; border-radius: 12px 12px 0 0; display: flex; align-items: center; padding: 0 14px; position: relative">
+            <div style="position: absolute; inset: 3px 0 1px; background-image: repeating-linear-gradient(to right, #ffffff 0 1px, transparent 1px 12px); background-position: 8px 0"></div>
+            <span style="position: relative; font-size: 13px; font-weight: 700; color: #5b3d6e">Options</span>
+            <div style="position: absolute; right: 10px; top: 0; bottom: 0; display: flex; align-items: center; gap: 6px">
+              <img src="assets/sticker_sparkle_26.png" alt="" style="width: 26px; height: 26px; margin-right: 18px">
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #cfeee5; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #fff1b8; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #ffd6e7; border: 2px solid #5b3d6e"></div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; padding: 14px 22px 16px; font-size: 13px">
+            <span style="color: #9a8aae; margin-right: 6px">Model</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 178px; background: #fff1b8; border: 1px solid #5b3d6e; padding: 5px 6px 5px 9px; font-size: 13px; color: #4a3b5c">
+              <span>gpt-6-astra</span>
+              <span style="display: grid; place-items: center; width: 16px; height: 18px; background: #fff1b8; border-left: 1px solid #5b3d6e; color: #5b3d6e; font-size: 9px">&#9660;</span>
+            </div>
+            <span style="color: #9a8aae; margin: 0 6px 0 18px">Effort</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 78px; background: #fff1b8; border: 1px solid #5b3d6e; padding: 5px 6px 5px 9px; font-size: 13px">
+              <span>low</span>
+              <span style="display: grid; place-items: center; width: 16px; height: 18px; background: #fff1b8; border-left: 1px solid #5b3d6e; color: #5b3d6e; font-size: 9px">&#9660;</span>
+            </div>
+            <span style="color: #9a8aae; margin: 0 6px 0 18px">Repeat</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 46px; background: #fff1b8; border: 1px solid #5b3d6e; padding: 5px 4px 5px 9px; font-size: 13px">
+              <span>1</span>
+              <span style="display: flex; flex-direction: column; line-height: 6px; color: #5b3d6e; font-size: 7px">&#9650;<br>&#9660;</span>
+            </div>
+            <label style="display: flex; align-items: center; gap: 7px; margin-left: 24px; color: #4a3b5c">
+              <span style="width: 13px; height: 13px; border: 1px solid #9a8aae; background: #ffffff; display: inline-block"></span>
+              <span>Wire mode (mitmproxy)</span>
+            </label>
+            <div style="margin-left: 24px; background: #ffd6e7; border: 2px solid #5b3d6e; border-radius: 999px; box-shadow: 3px 3px 0 #5b3d6e; padding: 5px 15px; font-size: 12px; font-weight: 700; color: #7a3b5c">Codex...</div>
+            <span style="color: #9a8aae; margin-left: 12px">auto-detect</span>
+          </div>
+        </div>
+
+        <!-- Action row -->
+        <div style="display: flex; align-items: center; gap: 12px; padding: 4px 0 10px">
+          <div style="background: #dcd0ff; border: 2px solid #5b3d6e; border-radius: 999px; box-shadow: 3px 3px 0 #5b3d6e; padding: 11px 35px; font-size: 16px; font-weight: 700; color: #4a3b5c">Check</div>
+          <div style="background: #efe9f5; border: 2px solid #d8cfe3; border-radius: 999px; padding: 9px 19px; font-size: 13px; font-weight: 700; color: #b8adc9">Cancel</div>
+          <span style="font-size: 13px; color: #9a8aae">Done in 7.3s. Raw logs: ~\AppData\Local\Temp\codex-routing-detector-bc3r15ix</span>
+        </div>
+
+        <!-- Banner -->
+        <div style="border: 2px solid #5b3d6e; background: #ffe1e6; display: flex; align-items: center; gap: 6px; padding: 8px 14px; margin-bottom: 10px">
+          <img src="assets/mood_rerouted_56.png" alt="" style="width: 44px; height: 44px">
+          <span style="font-size: 20px; font-weight: 700; color: #c0304f">REROUTED: gpt-6-astra -&gt; gpt-5.6-luna</span>
+        </div>
+
+        <!-- Briefing -->
+        <div style="background: #ffffff; border: 2px solid #5b3d6e; border-radius: 14px; box-shadow: 4px 4px 0 #5b3d6e; margin-bottom: 12px">
+          <div style="height: 30px; background: #ffd6e7; border-bottom: 2px solid #5b3d6e; border-radius: 12px 12px 0 0; display: flex; align-items: center; padding: 0 14px; position: relative">
+            <div style="position: absolute; inset: 3px 0 1px; background-image: repeating-linear-gradient(to right, #ffffff 0 1px, transparent 1px 12px); background-position: 8px 0"></div>
+            <span style="position: relative; font-size: 13px; font-weight: 700; color: #5b3d6e">Briefing</span>
+            <div style="position: absolute; right: 10px; top: 0; bottom: 0; display: flex; align-items: center; gap: 6px">
+              <img src="assets/sticker_flower_26.png" alt="" style="width: 26px; height: 26px; margin-right: 18px">
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #cfeee5; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #fff1b8; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #ffd6e7; border: 2px solid #5b3d6e"></div>
+            </div>
+          </div>
+          <div style="padding: 14px 22px 16px; font-size: 13px; line-height: 1.55; color: #4a3b5c">You asked for gpt-6-astra, but the server answered with gpt-5.6-luna (2 of 2 responses). Plan pro, 10% of the usage window used. So this is not a usage-limit fallback. Use another model for now, or check again in a while; the routing state changes over time. Copy the report if you want to file it.</div>
+        </div>
+
+        <!-- Results -->
+        <div style="background: #ffffff; border: 2px solid #5b3d6e; border-radius: 14px; box-shadow: 4px 4px 0 #5b3d6e; margin-bottom: 12px">
+          <div style="height: 30px; background: #cfeee5; border-bottom: 2px solid #5b3d6e; border-radius: 12px 12px 0 0; display: flex; align-items: center; padding: 0 14px; position: relative">
+            <div style="position: absolute; inset: 3px 0 1px; background-image: repeating-linear-gradient(to right, #ffffff 0 1px, transparent 1px 12px); background-position: 8px 0"></div>
+            <span style="position: relative; font-size: 13px; font-weight: 700; color: #5b3d6e">Results</span>
+            <div style="position: absolute; right: 10px; top: 0; bottom: 0; display: flex; align-items: center; gap: 6px">
+              <img src="assets/sticker_leaf_26.png" alt="" style="width: 26px; height: 26px; margin-right: 18px">
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #cfeee5; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #fff1b8; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #ffd6e7; border: 2px solid #5b3d6e"></div>
+            </div>
+          </div>
+          <div style="padding: 12px 12px 10px; display: flex">
+            <div style="flex: 1; min-width: 0; overflow: hidden">
+              <div style="display: grid; grid-template-columns: 36px 160px 80px 160px 90px 100px 110px 430px; background: #dcd0ff; color: #5b3d6e; font-size: 12px; font-weight: 700; height: 28px; align-items: center; text-align: center">
+                <div>#</div><div>Requested</div><div>Kind</div><div>Served by</div><div>Status</div><div>Created (UTC)</div><div>Verdict</div><div>Response id</div>
+              </div>
+              <sc-for list="{{ rows }}" as="row" hint-placeholder-count="2">
+                <div style="display: grid; grid-template-columns: 36px 160px 80px 160px 90px 100px 110px 430px; background: #ffe1e6; color: #c0304f; font-size: 13px; height: 28px; align-items: center; padding-left: 0">
+                  <div style="padding-left: 8px">{{ row.n }}</div>
+                  <div style="padding-left: 8px">{{ row.requested }}</div>
+                  <div style="padding-left: 8px">{{ row.kind }}</div>
+                  <div style="padding-left: 8px">{{ row.served }}</div>
+                  <div style="padding-left: 8px">{{ row.status }}</div>
+                  <div style="padding-left: 8px">{{ row.created }}</div>
+                  <div style="padding-left: 8px">{{ row.verdict }}</div>
+                  <div style="padding-left: 8px; white-space: nowrap; overflow: hidden">{{ row.rid }}</div>
+                </div>
+              </sc-for>
+              <div style="height: 62px; background: #ffffff"></div>
+              <div style="height: 14px; background: #fff5fa; border: 1px solid #f2d6e6; display: flex; align-items: center">
+                <div style="width: 12px; height: 12px; background: #ffd6e7; color: #9a8aae; font-size: 8px; display: grid; place-items: center">&#9664;</div>
+                <div style="flex: 1; height: 12px; background: #ffd6e7; position: relative">
+                  <div style="position: absolute; left: 40%; top: 0; width: 8px; height: 12px; background: #f2d6e6"></div>
+                </div>
+                <div style="width: 12px; height: 12px; background: #ffd6e7; color: #9a8aae; font-size: 8px; display: grid; place-items: center">&#9654;</div>
+              </div>
+            </div>
+            <div style="width: 14px; margin-left: 2px; background: #fff5fa; border: 1px solid #f2d6e6; display: flex; flex-direction: column; align-items: center">
+              <div style="width: 12px; height: 12px; background: #ffd6e7; color: #9a8aae; font-size: 8px; display: grid; place-items: center">&#9650;</div>
+              <div style="flex: 1; width: 12px; background: #ffd6e7"></div>
+              <div style="width: 12px; height: 12px; background: #ffd6e7; color: #9a8aae; font-size: 8px; display: grid; place-items: center">&#9660;</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Details -->
+        <div style="background: #ffffff; border: 2px solid #5b3d6e; border-radius: 14px; box-shadow: 4px 4px 0 #5b3d6e; margin-bottom: 14px">
+          <div style="height: 30px; background: #fff1b8; border-bottom: 2px solid #5b3d6e; border-radius: 12px 12px 0 0; display: flex; align-items: center; padding: 0 14px; position: relative">
+            <div style="position: absolute; inset: 3px 0 1px; background-image: repeating-linear-gradient(to right, #ffffff 0 1px, transparent 1px 12px); background-position: 8px 0"></div>
+            <span style="position: relative; font-size: 13px; font-weight: 700; color: #5b3d6e">Details</span>
+            <div style="position: absolute; right: 10px; top: 0; bottom: 0; display: flex; align-items: center; gap: 6px">
+              <img src="assets/sticker_heart_26.png" alt="" style="width: 26px; height: 26px; margin-right: 18px">
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #cfeee5; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #fff1b8; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #ffd6e7; border: 2px solid #5b3d6e"></div>
+            </div>
+          </div>
+          <div style="padding: 12px 14px 12px 22px; display: flex; gap: 6px">
+            <pre style="flex: 1; margin: 0; font-family: Consolas, monospace; font-size: 13px; line-height: 1.5; color: #4a3b5c; white-space: pre-wrap">Account: plan=pro  primary usage=10% of 7-day window  limit_reached=False
+Codex: ~\AppData\Roaming\npm\node_modules\@openai\codex\node_modules\@openai\codex-win32-x64\vendor\x86_64-pc-windows-msvc\bin\codex.exe  (codex-cli
+0.155.1, trace)</pre>
+            <div style="width: 14px; background: #fff5fa; border: 1px solid #f2d6e6; display: flex; flex-direction: column; align-items: center">
+              <div style="width: 12px; height: 12px; background: #ffd6e7; color: #9a8aae; font-size: 8px; display: grid; place-items: center">&#9650;</div>
+              <div style="flex: 1; width: 12px; background: #f2d6e6"></div>
+              <div style="width: 12px; height: 12px; background: #ffd6e7; color: #9a8aae; font-size: 8px; display: grid; place-items: center">&#9660;</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; padding-bottom: 8px">
+          <div style="background: #ffd6e7; border: 2px solid #5b3d6e; border-radius: 999px; box-shadow: 3px 3px 0 #5b3d6e; padding: 7px 17px; font-size: 13px; font-weight: 700; color: #7a3b5c">Copy report</div>
+          <div style="background: #ffd6e7; border: 2px solid #5b3d6e; border-radius: 999px; box-shadow: 3px 3px 0 #5b3d6e; padding: 7px 17px; font-size: 13px; font-weight: 700; color: #7a3b5c">Save JSON...</div>
+          <div style="background: #ffd6e7; border: 2px solid #5b3d6e; border-radius: 999px; box-shadow: 3px 3px 0 #5b3d6e; padding: 7px 17px; font-size: 13px; font-weight: 700; color: #7a3b5c">Open log folder</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isLive }}" hint-placeholder-val="{{ false }}">
+      <div style="padding-top: 8px">
+        <div style="background: #ffffff; border: 2px solid #5b3d6e; border-radius: 14px; box-shadow: 4px 4px 0 #5b3d6e; margin-bottom: 12px">
+          <div style="height: 30px; background: #dcd0ff; border-bottom: 2px solid #5b3d6e; border-radius: 12px 12px 0 0; display: flex; align-items: center; padding: 0 14px; position: relative">
+            <div style="position: absolute; inset: 3px 0 1px; background-image: repeating-linear-gradient(to right, #ffffff 0 1px, transparent 1px 12px); background-position: 8px 0"></div>
+            <span style="position: relative; font-size: 13px; font-weight: 700; color: #5b3d6e">Session</span>
+            <div style="position: absolute; right: 10px; top: 0; bottom: 0; display: flex; align-items: center; gap: 6px">
+              <img src="assets/sticker_sparkle_26.png" alt="" style="width: 26px; height: 26px; margin-right: 18px">
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #cfeee5; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #fff1b8; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #ffd6e7; border: 2px solid #5b3d6e"></div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: max-content 1fr max-content; align-items: center; gap: 8px 14px; padding: 14px 22px 16px; font-size: 13px">
+            <span style="color: #9a8aae">Codex settings</span>
+            <span style="color: #4a3b5c">model gpt-6-astra  &#183;  effort high   (config.toml)</span>
+            <span></span>
+            <span style="color: #9a8aae">Working folder</span>
+            <span style="color: #4a3b5c">~</span>
+            <div style="background: #efe9f5; border: 2px solid #d8cfe3; border-radius: 999px; padding: 5px 15px; font-size: 12px; font-weight: 700; color: #b8adc9">Folder...</div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px; padding: 4px 0 10px">
+          <div style="background: #efe9f5; border: 2px solid #d8cfe3; border-radius: 999px; padding: 11px 35px; font-size: 16px; font-weight: 700; color: #b8adc9">Start monitoring</div>
+          <div style="background: #ffd6e7; border: 2px solid #5b3d6e; border-radius: 999px; box-shadow: 3px 3px 0 #5b3d6e; padding: 9px 19px; font-size: 13px; font-weight: 700; color: #7a3b5c">Stop</div>
+          <span style="flex: 1; font-size: 13px; color: #9a8aae">Watching Codex (pid ?) through 127.0.0.1:55198. Work in the Codex window as usual.</span>
+          <div style="width: 200px; height: 8px; background: #ffd6e7; position: relative">
+            <div style="position: absolute; left: 45%; top: 0; width: 48px; height: 8px; background: #b48cff"></div>
+          </div>
+        </div>
+
+        <div style="border: 2px solid #5b3d6e; background: #ffe1e6; display: flex; align-items: center; gap: 6px; padding: 8px 14px; margin-bottom: 10px">
+          <img src="assets/mood_rerouted_56.png" alt="" style="width: 44px; height: 44px">
+          <span style="font-size: 20px; font-weight: 700; color: #c0304f">REROUTED: gpt-6-astra -&gt; gpt-5.6-luna (2 of 3)</span>
+        </div>
+
+        <div style="background: #ffffff; border: 2px solid #5b3d6e; border-radius: 14px; box-shadow: 4px 4px 0 #5b3d6e; margin-bottom: 12px">
+          <div style="height: 30px; background: #ffd6e7; border-bottom: 2px solid #5b3d6e; border-radius: 12px 12px 0 0; display: flex; align-items: center; padding: 0 14px; position: relative">
+            <div style="position: absolute; inset: 3px 0 1px; background-image: repeating-linear-gradient(to right, #ffffff 0 1px, transparent 1px 12px); background-position: 8px 0"></div>
+            <span style="position: relative; font-size: 13px; font-weight: 700; color: #5b3d6e">Briefing</span>
+            <div style="position: absolute; right: 10px; top: 0; bottom: 0; display: flex; align-items: center; gap: 6px">
+              <img src="assets/sticker_flower_26.png" alt="" style="width: 26px; height: 26px; margin-right: 18px">
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #cfeee5; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #fff1b8; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #ffd6e7; border: 2px solid #5b3d6e"></div>
+            </div>
+          </div>
+          <div style="padding: 14px 22px 16px; font-size: 13px; line-height: 1.55; color: #4a3b5c">Codex is running in its own window. Each request appears here as soon as the server answers; no traffic is written to disk. 2 of 3 responses were answered by gpt-5.6-luna although Codex asked for gpt-6-astra. Plan pro, 9% of the usage window used. So this is not a usage-limit fallback. Use another model for now, or check again in a while; the routing state changes over time. Copy the report if you want to file it.</div>
+        </div>
+
+        <div style="background: #ffffff; border: 2px solid #5b3d6e; border-radius: 14px; box-shadow: 4px 4px 0 #5b3d6e; margin-bottom: 12px">
+          <div style="height: 30px; background: #cfeee5; border-bottom: 2px solid #5b3d6e; border-radius: 12px 12px 0 0; display: flex; align-items: center; padding: 0 14px; position: relative">
+            <div style="position: absolute; inset: 3px 0 1px; background-image: repeating-linear-gradient(to right, #ffffff 0 1px, transparent 1px 12px); background-position: 8px 0"></div>
+            <span style="position: relative; font-size: 13px; font-weight: 700; color: #5b3d6e">Results</span>
+            <div style="position: absolute; right: 10px; top: 0; bottom: 0; display: flex; align-items: center; gap: 6px">
+              <img src="assets/sticker_leaf_26.png" alt="" style="width: 26px; height: 26px; margin-right: 18px">
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #cfeee5; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #fff1b8; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #ffd6e7; border: 2px solid #5b3d6e"></div>
+            </div>
+          </div>
+          <div style="padding: 12px 12px 10px; display: flex">
+            <div style="flex: 1; min-width: 0; overflow: hidden">
+              <div style="display: grid; grid-template-columns: 36px 100px 150px 80px 150px 90px 110px 430px; background: #dcd0ff; color: #5b3d6e; font-size: 12px; font-weight: 700; height: 28px; align-items: center; text-align: center">
+                <div>#</div><div>Time</div><div>Requested</div><div>Kind</div><div>Served by</div><div>Status</div><div>Verdict</div><div>Response id</div>
+              </div>
+              <sc-for list="{{ liveRows }}" as="row" hint-placeholder-count="2">
+                <div style="display: grid; grid-template-columns: 36px 100px 150px 80px 150px 90px 110px 430px; background: #ffe1e6; color: #c0304f; font-size: 13px; height: 28px; align-items: center">
+                  <div style="padding-left: 8px">{{ row.n }}</div>
+                  <div style="padding-left: 8px">{{ row.time }}</div>
+                  <div style="padding-left: 8px">{{ row.requested }}</div>
+                  <div style="padding-left: 8px">{{ row.kind }}</div>
+                  <div style="padding-left: 8px">{{ row.served }}</div>
+                  <div style="padding-left: 8px">{{ row.status }}</div>
+                  <div style="padding-left: 8px">{{ row.verdict }}</div>
+                  <div style="padding-left: 8px; white-space: nowrap; overflow: hidden">{{ row.rid }}</div>
+                </div>
+              </sc-for>
+              <div style="height: 62px; background: #ffffff"></div>
+              <div style="height: 14px; background: #fff5fa; border: 1px solid #f2d6e6; display: flex; align-items: center">
+                <div style="width: 12px; height: 12px; background: #ffd6e7; color: #9a8aae; font-size: 8px; display: grid; place-items: center">&#9664;</div>
+                <div style="flex: 1; height: 12px; background: #ffd6e7; position: relative">
+                  <div style="position: absolute; left: 44%; top: 0; width: 8px; height: 12px; background: #f2d6e6"></div>
+                </div>
+                <div style="width: 12px; height: 12px; background: #ffd6e7; color: #9a8aae; font-size: 8px; display: grid; place-items: center">&#9654;</div>
+              </div>
+            </div>
+            <div style="width: 14px; margin-left: 2px; background: #fff5fa; border: 1px solid #f2d6e6; display: flex; flex-direction: column; align-items: center">
+              <div style="width: 12px; height: 12px; background: #ffd6e7; color: #9a8aae; font-size: 8px; display: grid; place-items: center">&#9650;</div>
+              <div style="flex: 1; width: 12px; background: #ffd6e7"></div>
+              <div style="width: 12px; height: 12px; background: #ffd6e7; color: #9a8aae; font-size: 8px; display: grid; place-items: center">&#9660;</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #ffffff; border: 2px solid #5b3d6e; border-radius: 14px; box-shadow: 4px 4px 0 #5b3d6e; margin-bottom: 14px">
+          <div style="height: 30px; background: #fff1b8; border-bottom: 2px solid #5b3d6e; border-radius: 12px 12px 0 0; display: flex; align-items: center; padding: 0 14px; position: relative">
+            <div style="position: absolute; inset: 3px 0 1px; background-image: repeating-linear-gradient(to right, #ffffff 0 1px, transparent 1px 12px); background-position: 8px 0"></div>
+            <span style="position: relative; font-size: 13px; font-weight: 700; color: #5b3d6e">Details</span>
+            <div style="position: absolute; right: 10px; top: 0; bottom: 0; display: flex; align-items: center; gap: 6px">
+              <img src="assets/sticker_heart_26.png" alt="" style="width: 26px; height: 26px; margin-right: 18px">
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #cfeee5; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #fff1b8; border: 2px solid #5b3d6e"></div>
+              <div style="width: 12px; height: 12px; border-radius: 50%; background: #ffd6e7; border: 2px solid #5b3d6e"></div>
+            </div>
+          </div>
+          <div style="padding: 12px 14px 12px 22px; display: flex; gap: 6px">
+            <pre style="flex: 1; margin: 0; font-family: Consolas, monospace; font-size: 13px; line-height: 1.5; color: #4a3b5c; white-space: pre-wrap; max-height: 44px; overflow: hidden">18:38:38  Codex: codex-fake  (fixture runner)
+18:38:39  proxy listening on 127.0.0.1:55198, CA certificate: ~\AppData\Local\Temp\crd-ca-gtecbfec\ca.pem
+18:38:39  started codex-fake in ~ (pid 0)</pre>
+            <div style="width: 14px; background: #fff5fa; border: 1px solid #f2d6e6; display: flex; flex-direction: column; align-items: center">
+              <div style="width: 12px; height: 12px; background: #ffd6e7; color: #9a8aae; font-size: 8px; display: grid; place-items: center">&#9650;</div>
+              <div style="flex: 1; width: 12px; background: #f2d6e6"></div>
+              <div style="width: 12px; height: 12px; background: #ffd6e7; color: #9a8aae; font-size: 8px; display: grid; place-items: center">&#9660;</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; padding-bottom: 8px">
+          <div style="background: #ffd6e7; border: 2px solid #5b3d6e; border-radius: 999px; box-shadow: 3px 3px 0 #5b3d6e; padding: 7px 17px; font-size: 13px; font-weight: 700; color: #7a3b5c">Copy live report</div>
+          <div style="background: #efe9f5; border: 2px solid #d8cfe3; border-radius: 999px; padding: 7px 17px; font-size: 13px; font-weight: 700; color: #b8adc9">Clear</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 6px 0 10px">
+      <div style="background: #ffd6e7; border: 2px solid #5b3d6e; border-radius: 999px; box-shadow: 3px 3px 0 #5b3d6e; padding: 7px 17px; font-size: 13px; font-weight: 700; color: #7a3b5c">한국어</div>
+      <div style="display: flex; align-items: center; gap: 4px; margin-left: 6px; color: #b48cff; font-size: 12px">
+        <span style="width: 16px; height: 16px; border-radius: 50%; background: #24292f; display: inline-block"></span>
+        <span>GitHub</span>
+      </div>
+      <span style="color: #9a8aae; font-size: 12px; margin-left: 8px">v1.5.0</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1240,&quot;height&quot;:1060}}">
+class Component extends DCLogic {
+  state = { tab: "check" };
+  renderVals() {
+    const tab = this.state.tab;
+    const pill = (sel) =>
+      "border:2px solid " + (sel ? "#5b3d6e" : "#e2d4ea") +
+      ";border-radius:999px;padding:7px 23px;font-size:13px;font-weight:700;cursor:pointer;background:" +
+      (sel ? "#cfeee5" : "#ffffff") + ";color:" + (sel ? "#4a3b5c" : "#9a8aae") +
+      (sel ? ";box-shadow:3px 3px 0 #5b3d6e" : "");
+    return {
+      subtitle: "Which model really answered your Codex request?",
+      isCheck: tab === "check",
+      isLive: tab === "live",
+      tabCheckLabel: "Check",
+      tabLiveLabel: "Live monitor (CLI)",
+      tabCheckStyle: pill(tab === "check"),
+      tabLiveStyle: pill(tab === "live"),
+      selectCheck: () => this.setState({ tab: "check" }),
+      selectLive: () => this.setState({ tab: "live" }),
+      rows: [
+        { n: 1, requested: "gpt-6-astra", kind: "warm-up", served: "gpt-5.6-luna", status: "completed",
+          created: "09:41:13Z", verdict: "REROUTED", rid: "resp_07be24d3b9c279a1016ab24d39260487d0bb5a5beb" },
+        { n: 1, requested: "gpt-6-astra", kind: "turn", served: "gpt-5.6-luna", status: "completed",
+          created: "09:41:14Z", verdict: "REROUTED", rid: "resp_07be24d3b9c279a1016ab24d3a7c4087d0b86a58bc4" },
+      ],
+      liveRows: [
+        { n: 1, time: "18:38:39", requested: "gpt-6-astra", kind: "warm-up", served: "gpt-5.6-luna",
+          status: "completed", verdict: "REROUTED", rid: "resp_00000000000000000000000000000000000000000001" },
+        { n: 2, time: "18:38:40", requested: "gpt-6-astra", kind: "turn", served: "gpt-5.6-luna",
+          status: "completed", verdict: "REROUTED", rid: "resp_00000000000000000000000000000000000000000002" },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

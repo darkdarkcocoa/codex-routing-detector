@@ -33,7 +33,9 @@ same account went REROUTED -> OK -> REROUTED within an hour), so check whenever 
   (SmartScreen warns once: "More info" -> "Run anyway").
 - **Python 3.8+**: `pipx install git+https://github.com/darkdarkcocoa/codex-routing-detector`,
   then `codex-routing-detector-gui` (window) or `codex-routing-detector` (terminal). The only
-  dependency, `cryptography`, is pulled in for the live monitor's certificates.
+  dependency, `cryptography`, is pulled in for the live monitor's certificates. The window uses
+  pywebview (`pipx inject codex-routing-detector pywebview`); without it, a simpler tkinter
+  window opens instead (also available on demand with `--tk`).
 
 Either way you need a Codex CLI or Codex Desktop that is signed in with ChatGPT (the live
 monitor needs the CLI, see below).
@@ -301,11 +303,13 @@ Both print the served model once for the warm-up and once for the turn. A turn t
 
 ## Look and feel
 
-The window is drawn in a pastel "retro window" style: every panel is a small window of its own
-with a coloured title bar, sticker-style buttons and a lavender cat detective as the mascot, who
-reacts in the result banner (happy, shocked, sleepy, worried). The pictures were made with
-Codex's own image generation and are embedded in the program (`codex_routing_assets.py`);
-`tools/make_assets.py` rebuilds them from the source PNGs and writes `docs/icon.ico`.
+The window is a single soft sheet ("Soft Sheet" design, `design_handoff_routing_detector_ui/`):
+one large verdict card with the lavender cat detective in it, pill-shaped controls, an airy
+result list, and one teal accent on a sage-tinted paper ground. It is rendered by pywebview
+(an embedded browser view) while all checking stays in Python; the mascot pictures and the two
+webfonts (Quicksand, JetBrains Mono) are embedded in the program (`codex_routing_assets.py`,
+`codex_routing_fonts.py`), so the window loads nothing from the network.
+`tools/make_assets.py` rebuilds the pictures from the source PNGs and writes `docs/icon.ico`.
 
 ![Live monitor guide](docs/screenshot-guide.png)
 
@@ -315,10 +319,12 @@ Codex's own image generation and are embedded in the program (`codex_routing_ass
 python -m unittest discover -s tests -v
 ```
 
-`tests/test_gui.py` builds the window off-screen and drives it with the fixture runs; it is
-skipped where tkinter has no display. `python codex_routing_detector_gui.py --fake --auto-check`
-shows the window with the fixture data instead of a live check, and `--fake --fake-live` fills
-the live tab with sample rows (development only; the exe does not include the fixtures).
+`tests/test_webui.py` drives the web window's logic headlessly (no window) through its view
+model; `tests/test_gui.py` builds the fallback tkinter window off-screen and drives it with the
+fixture runs (skipped where tkinter has no display). `python codex_routing_webui.py --fake
+--auto-check` shows the window with the fixture data instead of a live check, and
+`--fake --fake-live` fills the live tab with sample rows (development only; the exe does not
+include the fixtures).
 `tests/test_live.py` runs the built-in proxy end to end against a local TLS WebSocket echo
 server (CONNECT, throw-away CA, masked and deflated frames) and checks the live aggregation;
 `tests/test_gui_live.py` drives the live tab with a fake Codex process.

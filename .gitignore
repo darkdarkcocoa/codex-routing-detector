@@ -3,5 +3,8 @@ __pycache__/
 *.egg-info/
 build/
 *.spec
+!codex-routing-detector.spec
 # The 10 MB exe is attached to GitHub Releases instead of being committed; remove this line to commit it.
 dist/
+# Local Claude session helpers (preview server config etc.)
+.claude/

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "codex-routing-detector"
-version = "1.5.0"
+version = "1.6.0"
 description = "Find out which model actually answers your Codex requests (detects silent model substitution), one probe at a time or live."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -20,12 +20,13 @@ dependencies = ["cryptography>=41"]  # certificates for the live monitor; the pr
 
 [project.optional-dependencies]
 wire = ["mitmproxy>=7"]
+gui = ["pywebview>=5"]  # the redesigned window; without it the tkinter window is used
 
 [project.scripts]
 codex-routing-detector = "codex_routing_detector:main"
 
 [project.gui-scripts]
-codex-routing-detector-gui = "codex_routing_detector_gui:main"
+codex-routing-detector-gui = "codex_routing_webui:main"
 
 [tool.setuptools]
-py-modules = ["codex_routing_detector", "codex_routing_detector_gui", "codex_routing_proxy", "codex_routing_live", "codex_routing_assets"]
+py-modules = ["codex_routing_detector", "codex_routing_detector_gui", "codex_routing_webui", "codex_routing_proxy", "codex_routing_live", "codex_routing_assets", "codex_routing_fonts"]
