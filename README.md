@@ -40,11 +40,16 @@ Either way you need a Codex CLI or Codex Desktop that is signed in with ChatGPT.
 No setup. Open it and press **Check**.
 
 1. Start `codex-routing-detector.exe` (or `codex-routing-detector-gui`).
-2. Press **Check**. It already knows your model from `~/.codex/config.toml` and your Codex login.
+2. Press **Check** and confirm the small dialog (it explains that one short prompt goes to Codex;
+   tick "Don't ask again" to skip it next time). The app already knows your model from
+   `~/.codex/config.toml` and your Codex login.
 3. About 30 seconds later, read the banner:
    - **REROUTED: gpt-6-astra -> gpt-5.6-luna** (red): the server answered with a different model.
    - **OK** (green): the model you chose answered.
    - **Could not check** (orange): a server error such as "at capacity". Press Check again.
+
+Under the banner, the **Briefing** card says in plain words what happened and what to do next;
+the table and the details underneath carry the evidence (response ids, plan, usage).
 
 That is the whole check. Everything below is optional.
 

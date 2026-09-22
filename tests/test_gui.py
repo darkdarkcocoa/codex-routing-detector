@@ -37,9 +37,11 @@ class GuiSmoke(unittest.TestCase):
         cmc.run_capture, cmc.find_codex = cls.orig_capture, cls.orig_find
 
     def setUp(self):
+        import os, tempfile
+        os.environ[gui.SETTINGS_ENV] = str(pathlib.Path(tempfile.mkdtemp()) / "settings.json")
         self.root = tk.Toplevel(_root)
         self.root.withdraw()
-        self.app = gui.App(self.root, lang="en", fake=True, update_check=False)
+        self.app = gui.App(self.root, lang="en", fake=True, update_check=False, confirm=False)
 
     def tearDown(self):
         self.root.destroy()
@@ -95,7 +97,38 @@ class GuiSmoke(unittest.TestCase):
         self.app.result = res
         self.app._render_result(res)
         self.assertIn("not available on this account (plan: free)", self.app.banner.cget("text"))
-        self.assertEqual(self.app.banner.cget("bg"), "#fff4e5")
+        self.assertEqual(self.app.banner.cget("bg"), gui.VERDICT_STYLE["UNSUPPORTED"][0])
+        self.assertIn("plan gating", self.app.lbl_brief.cget("text"))
+
+    def test_briefing_text_in_both_languages(self):
+        self.app.start_check()
+        self._pump(15)
+        en = self.app.lbl_brief.cget("text")
+        self.assertIn("You asked for gpt-6-astra, but the server answered with gpt-5.6-luna (2 of 2 responses).", en)
+        self.assertIn("Plan pro, 8%", en)
+        self.assertIn("not a usage-limit fallback", en)
+        self.app.toggle_language()
+        ko = self.app.lbl_brief.cget("text")
+        self.assertIn("gpt-6-astra로 요청했지만 서버는 gpt-5.6-luna로 응답했습니다(응답 2개 중 2개).", ko)
+        self.assertIn("플랜 pro", ko)
+
+    def test_confirm_dialog_cancel_does_not_start_and_skip_is_remembered(self):
+        asked = []
+        original = gui.ConfirmDialog.ask
+        gui.ConfirmDialog.ask = classmethod(lambda cls, *a: asked.append(a) or (False, False))
+        try:
+            self.app.start_check(confirm=True)
+            self.assertIsNone(self.app.worker)
+            self.assertEqual(len(asked), 1)
+            self.assertIn("pong", asked[0][2])
+            gui.ConfirmDialog.ask = classmethod(lambda cls, *a: asked.append(a) or (True, True))
+            self.app.start_check(confirm=True)
+            self._pump(15)
+            self.assertIsNotNone(self.app.result)
+            self.assertFalse(self.app.confirm_before_check)
+            self.assertTrue(gui.load_settings().get("skip_confirm"))
+        finally:
+            gui.ConfirmDialog.ask = original
 
     def test_repeat_is_clamped(self):
         self.app.var_repeat.set("99")
@@ -277,7 +310,7 @@ class GuiSmoke(unittest.TestCase):
         self.assertIn("NEW v9.9.9", self.app.lbl_version.cget("text"))
 
     def test_updated_from_shows_confirmation(self):
-        app = gui.App(tk.Toplevel(_root), lang="en", fake=True, update_check=False, updated_from="1.0.0")
+        app = gui.App(tk.Toplevel(_root), lang="en", fake=True, update_check=False, updated_from="1.0.0", confirm=False)
         self.assertEqual(app.var_status.get(), f"Updated to v{cmc.__version__}.")
         app.root.destroy()
 

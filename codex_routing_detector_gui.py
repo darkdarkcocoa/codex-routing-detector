@@ -66,6 +66,29 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "update_restarting": "Update downloaded. Restarting as v{new}...",
         "update_failed": "Automatic update to v{new} failed ({err}). Click NEW at the bottom right to download it.",
         "updated": "Updated to v{current}.",
+        "subtitle": "Which model really answered your Codex request?",
+        "brief": "Briefing",
+        "brief_idle": "Press Check. One short prompt goes to Codex; the server's reply tells us which model actually answered.",
+        "brief_running": "Sending a short prompt to Codex and waiting for the server's response objects...",
+        "brief_rerouted": "You asked for {models}, but the server answered with {served} ({bad} of {total} responses).",
+        "brief_ok": "{models} answered your request itself; no substitution right now.",
+        "brief_unsupported": "Your account (plan: {plan}) cannot use {models}: the server refused it. This is plan gating, not a substitution.",
+        "brief_error": "The check of {models} did not complete: the server returned {errors}.",
+        "brief_nodata": "No response from the server for {models}; see the details below for what Codex reported.",
+        "brief_cancelled": "Cancelled after {n} probe(s).",
+        "brief_fatal": "The check could not start: {error}",
+        "brief_account": "Plan {plan}, {used}% of the usage window used.",
+        "brief_not_limit": "So this is not a usage-limit fallback.",
+        "brief_limit": "The usage limit is reached, which can trigger a fallback model.",
+        "brief_advice_rerouted": "Use another model for now, or check again in a while; the routing state changes over time. Copy the report if you want to file it.",
+        "brief_advice_ok": "Good time to work with this model. Check again later if answers start to feel off.",
+        "brief_advice_unsupported": "Pick a model your plan includes and press Check again.",
+        "brief_advice_error": "Press Check again in a moment; capacity errors usually pass.",
+        "confirm_title": "Run the check?",
+        "confirm_body": "Codex Routing Detector will send one short prompt to Codex as {model} (\"Reply with exactly the single word: pong\") and read the server's response objects to see which model really answered. That is {n} small requests.",
+        "confirm_skip": "Don't ask again",
+        "confirm_ok": "Check",
+        "confirm_cancel": "Cancel",
     },
     "ko": {
         "model": "모델", "effort": "Effort", "repeat": "반복",
@@ -93,6 +116,29 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "update_restarting": "다운로드 완료. v{new}로 다시 시작합니다...",
         "update_failed": "v{new} 자동 업데이트 실패 ({err}). 오른쪽 아래 NEW를 눌러 직접 받으세요.",
         "updated": "v{current}로 업데이트됨.",
+        "subtitle": "내 Codex 요청에 실제로 어떤 모델이 응답했을까?",
+        "brief": "브리핑",
+        "brief_idle": "Check를 누르세요. Codex에 짧은 프롬프트 하나를 보내고, 서버의 응답에서 실제로 답한 모델을 읽습니다.",
+        "brief_running": "Codex에 짧은 프롬프트를 보내고 서버의 응답 객체를 기다리는 중...",
+        "brief_rerouted": "{models}로 요청했지만 서버는 {served}로 응답했습니다(응답 {total}개 중 {bad}개).",
+        "brief_ok": "{models}가 직접 응답했습니다. 지금은 바꿔치기가 없습니다.",
+        "brief_unsupported": "이 계정(플랜 {plan})에서는 {models}를 쓸 수 없어 서버가 거절했습니다. 요금제 제한이지 바꿔치기가 아닙니다.",
+        "brief_error": "{models} 검사가 끝나지 못했습니다. 서버 오류: {errors}.",
+        "brief_nodata": "{models}에 대한 서버 응답이 없습니다. 아래 상세에 Codex가 남긴 내용이 있습니다.",
+        "brief_cancelled": "검사 {n}개 후 취소했습니다.",
+        "brief_fatal": "검사를 시작하지 못했습니다: {error}",
+        "brief_account": "플랜 {plan}, 사용량 창의 {used}% 사용.",
+        "brief_not_limit": "따라서 한도 소진 때문에 예비 모델로 넘어간 것이 아닙니다.",
+        "brief_limit": "사용량 한도에 도달한 상태라 예비 모델로 넘어갔을 수 있습니다.",
+        "brief_advice_rerouted": "당분간 다른 모델을 쓰거나 잠시 뒤 다시 확인하세요. 라우팅 상태는 시간에 따라 바뀝니다. 제보하려면 보고서 복사를 누르세요.",
+        "brief_advice_ok": "지금 이 모델로 작업하기 좋은 때입니다. 답이 이상해지면 다시 확인하세요.",
+        "brief_advice_unsupported": "요금제에 포함된 모델을 고르고 다시 Check를 누르세요.",
+        "brief_advice_error": "잠시 뒤 다시 Check를 누르세요. capacity 오류는 대개 곧 지나갑니다.",
+        "confirm_title": "검사를 실행할까요?",
+        "confirm_body": "Codex Routing Detector가 {model} 모델로 Codex에 짧은 프롬프트 하나(\"Reply with exactly the single word: pong\")를 보내고, 서버가 돌려준 응답 객체를 읽어 실제로 어떤 모델이 답했는지 확인합니다. 작은 요청 {n}개가 나갑니다.",
+        "confirm_skip": "다시 묻지 않기",
+        "confirm_ok": "검사 시작",
+        "confirm_cancel": "취소",
     },
 }
 
@@ -278,11 +324,43 @@ Source and updates: {repo}
 """,
 }
 
-VERDICT_COLORS = {
-    "ok": ("#e6f4ea", "#1e7e34"), "REROUTED": ("#fdecea", "#b3261e"), "ERROR": ("#fff4e5", "#9a5b00"),
-    "UNKNOWN": ("#eeeeee", "#555555"), "NO_DATA": ("#eeeeee", "#555555"), "CANCELLED": ("#eeeeee", "#555555"),
-    "UNSUPPORTED": ("#fff4e5", "#9a5b00"),
+# ------------------------------------------------------------------ theme
+PALETTE = {
+    "bg": "#f4f6fb", "card": "#ffffff", "border": "#e2e8f0", "text": "#0f172a", "muted": "#64748b",
+    "accent": "#2563eb", "accent_dark": "#1e40af", "accent_text": "#ffffff", "head": "#eef2f7",
+    "row_alt": "#f8fafc",
 }
+FONT_UI = "Segoe UI" if os.name == "nt" else "TkDefaultFont"
+FONT_MONO = "Consolas" if os.name == "nt" else "TkFixedFont"
+VERDICT_STYLE = {  # verdict: (background, foreground, glyph)
+    "ok": ("#dcfce7", "#166534", "✔"), "REROUTED": ("#fee2e2", "#991b1b", "✖"),
+    "ERROR": ("#fef3c7", "#92400e", "⚠"), "UNSUPPORTED": ("#fef3c7", "#92400e", "⚠"),
+    "UNKNOWN": ("#e5e7eb", "#374151", "•"), "NO_DATA": ("#e5e7eb", "#374151", "•"),
+    "CANCELLED": ("#e5e7eb", "#374151", "•"), "RUNNING": ("#dbeafe", "#1e3a8a", "…"),
+    "IDLE": ("#e5e7eb", "#475569", "•"),
+}
+VERDICT_COLORS = {k: (v[0], v[1]) for k, v in VERDICT_STYLE.items()}
+
+SETTINGS_ENV = "CODEX_ROUTING_DETECTOR_SETTINGS"
+
+
+def settings_path() -> Path:
+    return Path(os.environ.get(SETTINGS_ENV) or (Path.home() / ".codex-routing-detector.json"))
+
+
+def load_settings() -> dict:
+    try:
+        data = json.loads(settings_path().read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def save_settings(data: dict) -> None:
+    try:
+        settings_path().write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception:
+        pass  # a read-only home directory must not break the app
 
 
 def listed_models() -> List[str]:
@@ -334,13 +412,152 @@ def install_fake_runner() -> bool:
     return True
 
 
+def build_brief(res: cmc.CheckResult, lang: str) -> str:
+    """Two to four plain sentences about the result, in the interface language."""
+    t = STRINGS[lang if lang in STRINGS else "en"]
+    main = [p for p in res.probes if not p.is_control]
+    models = ", ".join(sorted({p.requested for p in main})) or "?"
+    parts: List[str] = []
+    if res.error:
+        parts.append(t["brief_fatal"].format(error=res.error))
+        return " ".join(parts)
+    rl = next((p.rate_limits for p in res.probes if p.rate_limits), None)
+    plan = rl.get("plan_type") if rl else None
+    prim = ((rl or {}).get("rate_limits") or {}).get("primary") or {}
+    used = prim.get("used_percent")
+    reached = ((rl or {}).get("rate_limits") or {}).get("limit_reached")
+    if res.overall == "REROUTED":
+        served, bad, total = set(), 0, 0
+        for p in main:
+            for r in p.responses:
+                v = r.verdict(p.requested)
+                if v in ("ok", "REROUTED"):
+                    total += 1
+                if v == "REROUTED":
+                    bad += 1
+                    served.update(m for m in r.models_seen if not cmc.models_match(p.requested, m)[0])
+        parts.append(t["brief_rerouted"].format(models=models, served=", ".join(sorted(served)) or "?", bad=bad, total=total))
+        if plan:
+            parts.append(t["brief_account"].format(plan=plan, used=used if used is not None else "?"))
+            parts.append(t["brief_not_limit"] if reached is False else t["brief_limit"])
+        parts.append(t["brief_advice_rerouted"])
+    elif res.overall == "OK":
+        parts.append(t["brief_ok"].format(models=models))
+        if plan:
+            parts.append(t["brief_account"].format(plan=plan, used=used if used is not None else "?"))
+        parts.append(t["brief_advice_ok"])
+    elif res.overall == "UNSUPPORTED":
+        parts.append(t["brief_unsupported"].format(models=models, plan=plan or "?"))
+        parts.append(t["brief_advice_unsupported"])
+    elif res.cancelled:
+        parts.append(t["brief_cancelled"].format(n=len(res.probes)))
+    else:
+        errs = sorted({r.error_code or "?" for p in main for r in p.responses if r.error_code} |
+                      {c or "?" for p in main for c, _ in p.stream_errors})
+        if errs:
+            parts.append(t["brief_error"].format(models=models, errors=", ".join(errs)))
+        else:
+            parts.append(t["brief_nodata"].format(models=models))
+        parts.append(t["brief_advice_error"])
+    return " ".join(parts)
+
+
+class ConfirmDialog:
+    """Modal 'we are about to send one prompt to Codex' box with a don't-ask-again checkbox."""
+
+    def __init__(self, parent: tk.Misc, title: str, message: str, checkbox: str, ok: str, cancel: str) -> None:
+        self.result = (False, False)
+        self.win = tk.Toplevel(parent)
+        self.win.title(title)
+        self.win.configure(bg=PALETTE["card"])
+        self.win.transient(parent.winfo_toplevel())
+        self.win.resizable(False, False)
+        body = ttk.Frame(self.win, style="Card.TFrame", padding=(22, 18))
+        body.pack(fill="both", expand=True)
+        ttk.Label(body, text=title, style="CardTitle.TLabel").pack(anchor="w")
+        ttk.Label(body, text=message, style="Card.TLabel", wraplength=460, justify="left").pack(anchor="w", pady=(8, 14))
+        self.var_skip = tk.BooleanVar(value=False)
+        ttk.Checkbutton(body, text=checkbox, variable=self.var_skip, style="Card.TCheckbutton").pack(anchor="w")
+        row = ttk.Frame(body, style="Card.TFrame")
+        row.pack(fill="x", pady=(16, 0))
+        self.btn_ok = tk.Button(row, text=ok, command=self._ok, bg=PALETTE["accent"], fg=PALETTE["accent_text"],
+                                activebackground=PALETTE["accent_dark"], activeforeground=PALETTE["accent_text"],
+                                relief="flat", bd=0, padx=18, pady=6, font=(FONT_UI, 10, "bold"), cursor="hand2")
+        self.btn_ok.pack(side="right")
+        ttk.Button(row, text=cancel, command=self._cancel).pack(side="right", padx=(0, 8))
+        self.win.bind("<Return>", lambda _e: self._ok())
+        self.win.bind("<Escape>", lambda _e: self._cancel())
+        self.win.protocol("WM_DELETE_WINDOW", self._cancel)
+        self.win.update_idletasks()
+        px, py = parent.winfo_rootx(), parent.winfo_rooty()
+        pw, ph = parent.winfo_width(), parent.winfo_height()
+        w, h = self.win.winfo_reqwidth(), self.win.winfo_reqheight()
+        self.win.geometry(f"+{px + max(0, (pw - w) // 2)}+{py + max(0, (ph - h) // 3)}")
+        self.win.grab_set()
+        self.btn_ok.focus_set()
+
+    def _ok(self) -> None:
+        self.result = (True, bool(self.var_skip.get()))
+        self.win.destroy()
+
+    def _cancel(self) -> None:
+        self.result = (False, False)
+        self.win.destroy()
+
+    @classmethod
+    def ask(cls, parent: tk.Misc, title: str, message: str, checkbox: str, ok: str, cancel: str):
+        dlg = cls(parent, title, message, checkbox, ok, cancel)
+        parent.wait_window(dlg.win)
+        return dlg.result
+
+
+def apply_theme(root: tk.Tk) -> None:
+    style = ttk.Style(root)
+    try:
+        style.theme_use("clam")
+    except tk.TclError:
+        pass
+    p = PALETTE
+    root.configure(bg=p["bg"])
+    style.configure(".", background=p["bg"], foreground=p["text"], font=(FONT_UI, 10))
+    style.configure("TFrame", background=p["bg"])
+    style.configure("Card.TFrame", background=p["card"])
+    style.configure("TLabel", background=p["bg"], foreground=p["text"])
+    style.configure("Card.TLabel", background=p["card"], foreground=p["text"])
+    style.configure("Muted.TLabel", background=p["bg"], foreground=p["muted"])
+    style.configure("CardMuted.TLabel", background=p["card"], foreground=p["muted"])
+    style.configure("Title.TLabel", background=p["bg"], foreground=p["text"], font=(FONT_UI, 16, "bold"))
+    style.configure("CardTitle.TLabel", background=p["card"], foreground=p["text"], font=(FONT_UI, 11, "bold"))
+    style.configure("TCheckbutton", background=p["bg"], foreground=p["text"])
+    style.configure("Card.TCheckbutton", background=p["card"], foreground=p["text"])
+    style.configure("TButton", padding=(12, 5), background=p["card"], foreground=p["text"], borderwidth=1,
+                    bordercolor=p["border"], lightcolor=p["card"], darkcolor=p["card"], relief="flat")
+    style.map("TButton", background=[("active", p["head"]), ("disabled", p["bg"])],
+              foreground=[("disabled", p["muted"])])
+    style.configure("TCombobox", fieldbackground=p["card"], background=p["card"], bordercolor=p["border"],
+                    arrowcolor=p["muted"], padding=3)
+    style.configure("TSpinbox", fieldbackground=p["card"], background=p["card"], bordercolor=p["border"],
+                    arrowcolor=p["muted"], padding=3)
+    style.configure("Treeview", background=p["card"], fieldbackground=p["card"], foreground=p["text"],
+                    rowheight=26, borderwidth=0, font=(FONT_UI, 10))
+    style.configure("Treeview.Heading", background=p["head"], foreground=p["muted"], font=(FONT_UI, 9, "bold"),
+                    relief="flat", padding=(6, 6))
+    style.map("Treeview.Heading", background=[("active", p["head"])])
+    style.map("Treeview", background=[("selected", "#dbeafe")], foreground=[("selected", p["text"])])
+    style.configure("TProgressbar", troughcolor=p["head"], background=p["accent"], borderwidth=0, thickness=6)
+    style.configure("TScrollbar", troughcolor=p["bg"], background=p["border"], arrowcolor=p["muted"], borderwidth=0)
+
+
 class App:
     def __init__(self, root: tk.Tk, lang: str = "en", fake: bool = False, exit_after: Optional[float] = None,
-                 update_check: bool = True, auto_update: bool = True, updated_from: Optional[str] = None) -> None:
+                 update_check: bool = True, auto_update: bool = True, updated_from: Optional[str] = None,
+                 confirm: bool = True) -> None:
         self.root = root
+        self.settings = load_settings()
         self.lang = lang if lang in STRINGS else "en"
         self.fake = fake
         self.exit_after = exit_after
+        self.confirm_before_check = confirm and not bool(self.settings.get("skip_confirm"))
         self.q: "queue.Queue[tuple]" = queue.Queue()
         self.worker: Optional[threading.Thread] = None
         self.cancel: Optional[cmc.Canceller] = None
@@ -354,9 +571,11 @@ class App:
         self.updating = False
         self.updated_from = updated_from
         self.exe_path = Path(sys.executable)  # the file that gets replaced by a self-update (frozen build)
+        self.update_info: Optional[dict] = None
         self.cfg_model, self.cfg_tier, _ = cmc.read_config_values()
         self.have_mitm = bool(cmc.shutil.which("mitmdump"))
         self.models = listed_models()
+        apply_theme(root)
         self._build()
         self._apply_language()
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -365,15 +584,22 @@ class App:
             threading.Thread(target=lambda: self.q.put(("update", cmc.check_for_update())), daemon=True).start()
 
     # ---------------------------------------------------------------- layout
+    def _card(self, parent: tk.Misc, **grid) -> ttk.Frame:
+        outer = tk.Frame(parent, bg=PALETTE["border"], bd=0)
+        outer.grid(**grid)
+        inner = ttk.Frame(outer, style="Card.TFrame", padding=(14, 10))
+        inner.pack(fill="both", expand=True, padx=1, pady=1)
+        return inner
+
     def _build(self) -> None:
         r = self.root
+        p = PALETTE
         r.title(APP_TITLE)
-        r.geometry("1180x680")
-        r.minsize(1000, 600)
+        r.geometry("1180x780")
+        r.minsize(1000, 680)
         r.columnconfigure(0, weight=1)
-        r.rowconfigure(3, weight=3)
-        r.rowconfigure(4, weight=2)
-        pad = {"padx": 6, "pady": 4}
+        r.rowconfigure(5, weight=3)
+        r.rowconfigure(6, weight=2)
 
         self.menubar = tk.Menu(r)
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
@@ -385,95 +611,121 @@ class App:
         r.configure(menu=self.menubar)
         self.help_windows: Dict[str, tk.Toplevel] = {}
 
-        top = ttk.Frame(r)
-        top.grid(row=0, column=0, columnspan=2, sticky="ew", padx=8, pady=(8, 0))
-        self.lbl_model = ttk.Label(top)
+        header = ttk.Frame(r)
+        header.grid(row=0, column=0, sticky="ew", padx=18, pady=(14, 6))
+        header.columnconfigure(0, weight=1)
+        self.lbl_title = ttk.Label(header, text=APP_TITLE, style="Title.TLabel")
+        self.lbl_title.grid(row=0, column=0, sticky="w")
+        self.lbl_subtitle = ttk.Label(header, style="Muted.TLabel")
+        self.lbl_subtitle.grid(row=1, column=0, sticky="w")
+
+        opts = self._card(r, row=1, column=0, sticky="ew", padx=18, pady=(4, 6))
+        pad = {"padx": (0, 6), "pady": 2}
+        self.lbl_model = ttk.Label(opts, style="CardMuted.TLabel")
         self.lbl_model.grid(row=0, column=0, **pad)
         self.var_model = tk.StringVar(value=self.cfg_model or self.models[0])
-        self.cb_model = ttk.Combobox(top, textvariable=self.var_model, values=self.models, width=20)
-        self.cb_model.grid(row=0, column=1, **pad)
-        self.lbl_effort = ttk.Label(top)
-        self.lbl_effort.grid(row=0, column=4, **pad)
+        self.cb_model = ttk.Combobox(opts, textvariable=self.var_model, values=self.models, width=22)
+        self.cb_model.grid(row=0, column=1, padx=(0, 18), pady=2)
+        self.lbl_effort = ttk.Label(opts, style="CardMuted.TLabel")
+        self.lbl_effort.grid(row=0, column=2, **pad)
         self.var_effort = tk.StringVar(value="low")
-        ttk.Combobox(top, textvariable=self.var_effort, values=EFFORTS, width=8, state="readonly").grid(row=0, column=5, **pad)
-        self.lbl_repeat = ttk.Label(top)
-        self.lbl_repeat.grid(row=0, column=6, **pad)
+        ttk.Combobox(opts, textvariable=self.var_effort, values=EFFORTS, width=8, state="readonly").grid(row=0, column=3, padx=(0, 18), pady=2)
+        self.lbl_repeat = ttk.Label(opts, style="CardMuted.TLabel")
+        self.lbl_repeat.grid(row=0, column=4, **pad)
         self.var_repeat = tk.StringVar(value="1")
         vcmd = (r.register(lambda s: s == "" or (s.isdigit() and len(s) <= 2)), "%P")
-        ttk.Spinbox(top, from_=1, to=MAX_REPEAT, textvariable=self.var_repeat, width=4,
-                    validate="key", validatecommand=vcmd).grid(row=0, column=7, **pad)
+        ttk.Spinbox(opts, from_=1, to=MAX_REPEAT, textvariable=self.var_repeat, width=4,
+                    validate="key", validatecommand=vcmd).grid(row=0, column=5, padx=(0, 18), pady=2)
         self.var_wire = tk.BooleanVar(value=False)
-        self.chk_wire = ttk.Checkbutton(top, variable=self.var_wire)
-        self.chk_wire.grid(row=0, column=8, **pad)
+        self.chk_wire = ttk.Checkbutton(opts, variable=self.var_wire, style="Card.TCheckbutton")
+        self.chk_wire.grid(row=0, column=6, padx=(0, 18), pady=2)
         if not self.have_mitm:
             self.chk_wire.state(["disabled"])
-        self.btn_codex = ttk.Button(top, command=self.pick_codex)
-        self.btn_codex.grid(row=0, column=9, padx=(14, 2), pady=4)
+        self.btn_codex = ttk.Button(opts, command=self.pick_codex)
+        self.btn_codex.grid(row=0, column=7, padx=(0, 6), pady=2)
         self.var_codex = tk.StringVar()
-        ttk.Label(top, textvariable=self.var_codex, foreground="#555555").grid(row=0, column=10, **pad)
+        ttk.Label(opts, textvariable=self.var_codex, style="CardMuted.TLabel").grid(row=0, column=8, pady=2)
 
         act = ttk.Frame(r)
-        act.grid(row=1, column=0, columnspan=2, sticky="ew", padx=8, pady=(2, 0))
+        act.grid(row=2, column=0, sticky="ew", padx=18, pady=(2, 4))
         act.columnconfigure(2, weight=1)
-        style = ttk.Style(r)
-        style.configure("Check.TButton", font=("TkDefaultFont", 11, "bold"), padding=(22, 6))
-        self.btn_check = ttk.Button(act, style="Check.TButton", command=self.start_check)
-        self.btn_check.grid(row=0, column=0, padx=6, pady=4)
+        self.btn_check = tk.Button(act, command=self.start_check, bg=p["accent"], fg=p["accent_text"],
+                                   activebackground=p["accent_dark"], activeforeground=p["accent_text"],
+                                   disabledforeground="#bfdbfe", relief="flat", bd=0, padx=30, pady=8,
+                                   font=(FONT_UI, 12, "bold"), cursor="hand2")
+        self.btn_check.grid(row=0, column=0, padx=(0, 10), pady=4)
+        self.btn_check.bind("<Enter>", lambda _e: self.btn_check.configure(bg=p["accent_dark"]) if self.btn_check["state"] == "normal" else None)
+        self.btn_check.bind("<Leave>", lambda _e: self.btn_check.configure(bg=p["accent"]))
         self.btn_cancel = ttk.Button(act, command=self.cancel_check, state="disabled")
-        self.btn_cancel.grid(row=0, column=1, padx=6, pady=4)
+        self.btn_cancel.grid(row=0, column=1, padx=(0, 12), pady=4)
         self.var_status = tk.StringVar()
-        ttk.Label(act, textvariable=self.var_status, anchor="w").grid(row=0, column=2, sticky="ew", padx=10)
-        self.progress = ttk.Progressbar(act, mode="indeterminate", length=180)
-        self.progress.grid(row=0, column=3, padx=6)
+        ttk.Label(act, textvariable=self.var_status, style="Muted.TLabel", anchor="w").grid(row=0, column=2, sticky="ew")
+        self.progress = ttk.Progressbar(act, mode="indeterminate", length=200)
+        self.progress.grid(row=0, column=3, padx=(10, 0))
         self.progress.grid_remove()
 
-        self.banner = tk.Label(r, font=("TkDefaultFont", 15, "bold"), anchor="w", padx=14, pady=10,
-                               bg=VERDICT_COLORS["UNKNOWN"][0], fg=VERDICT_COLORS["UNKNOWN"][1])
-        self.banner.grid(row=2, column=0, columnspan=2, sticky="ew", padx=8, pady=6)
+        self.banner_frame = tk.Frame(r, bg=VERDICT_STYLE["IDLE"][0], bd=0)
+        self.banner_frame.grid(row=3, column=0, sticky="ew", padx=18, pady=(4, 6))
+        self.banner_glyph = tk.Label(self.banner_frame, text=VERDICT_STYLE["IDLE"][2], font=(FONT_UI, 18, "bold"),
+                                     bg=VERDICT_STYLE["IDLE"][0], fg=VERDICT_STYLE["IDLE"][1], padx=14, pady=8)
+        self.banner_glyph.pack(side="left")
+        self.banner = tk.Label(self.banner_frame, font=(FONT_UI, 15, "bold"), anchor="w",
+                               bg=VERDICT_STYLE["IDLE"][0], fg=VERDICT_STYLE["IDLE"][1], padx=4, pady=10)
+        self.banner.pack(side="left", fill="x", expand=True)
 
+        brief = self._card(r, row=4, column=0, sticky="ew", padx=18, pady=(0, 6))
+        brief.columnconfigure(0, weight=1)
+        self.lbl_brief_title = ttk.Label(brief, style="CardTitle.TLabel")
+        self.lbl_brief_title.grid(row=0, column=0, sticky="w")
+        self.lbl_brief = ttk.Label(brief, style="Card.TLabel", justify="left", anchor="w", wraplength=1080)
+        self.lbl_brief.grid(row=1, column=0, sticky="ew", pady=(4, 0))
+        brief.bind("<Configure>", lambda e: self.lbl_brief.configure(wraplength=max(300, e.width - 30)))
+
+        table = self._card(r, row=5, column=0, sticky="nsew", padx=18, pady=(0, 6))
+        table.columnconfigure(0, weight=1)
+        table.rowconfigure(0, weight=1)
         cols = ("n", "requested", "kind", "served", "status", "created", "verdict", "rid")
-        self.tree = ttk.Treeview(r, columns=cols, show="headings", height=8)
-        widths = {"n": 36, "requested": 160, "kind": 80, "served": 160, "status": 90, "created": 100, "verdict": 100, "rid": 430}
+        self.tree = ttk.Treeview(table, columns=cols, show="headings", height=6)
+        widths = {"n": 36, "requested": 160, "kind": 80, "served": 160, "status": 90, "created": 100, "verdict": 110, "rid": 430}
         for c in cols:
             self.tree.column(c, width=widths[c], minwidth=widths[c], anchor="w", stretch=(c == "rid"))
-        for v, (bg, fg) in VERDICT_COLORS.items():
+        for v, (bg, fg, _g) in VERDICT_STYLE.items():
             self.tree.tag_configure(v, background=bg, foreground=fg)
-        ysb = ttk.Scrollbar(r, orient="vertical", command=self.tree.yview)
-        xsb = ttk.Scrollbar(r, orient="horizontal", command=self.tree.xview)
+        ysb = ttk.Scrollbar(table, orient="vertical", command=self.tree.yview)
+        xsb = ttk.Scrollbar(table, orient="horizontal", command=self.tree.xview)
         self.tree.configure(yscrollcommand=ysb.set, xscrollcommand=xsb.set)
-        self.tree.grid(row=3, column=0, sticky="nsew", padx=(8, 0))
-        ysb.grid(row=3, column=1, sticky="ns", padx=(0, 8))
-        xsb.grid(row=4, column=0, sticky="ew", padx=(8, 0))
-        r.rowconfigure(4, weight=0)
-        r.rowconfigure(5, weight=2)
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        ysb.grid(row=0, column=1, sticky="ns")
+        xsb.grid(row=1, column=0, sticky="ew")
 
-        self.notes_frame = ttk.LabelFrame(r)
-        self.notes_frame.grid(row=5, column=0, columnspan=2, sticky="nsew", padx=8, pady=6)
-        self.notes_frame.columnconfigure(0, weight=1)
-        self.notes_frame.rowconfigure(0, weight=1)
-        self.notes = tk.Text(self.notes_frame, height=8, wrap="word", font=("TkFixedFont", 10), state="disabled")
-        self.notes.grid(row=0, column=0, sticky="nsew")
-        nsb = ttk.Scrollbar(self.notes_frame, orient="vertical", command=self.notes.yview)
+        details = self._card(r, row=6, column=0, sticky="nsew", padx=18, pady=(0, 6))
+        details.columnconfigure(0, weight=1)
+        details.rowconfigure(1, weight=1)
+        self.lbl_notes_title = ttk.Label(details, style="CardTitle.TLabel")
+        self.lbl_notes_title.grid(row=0, column=0, sticky="w")
+        self.notes = tk.Text(details, height=6, wrap="word", font=(FONT_MONO, 10), state="disabled",
+                             bg=PALETTE["card"], fg=PALETTE["text"], relief="flat", bd=0, highlightthickness=0)
+        self.notes.grid(row=1, column=0, sticky="nsew", pady=(4, 0))
+        nsb = ttk.Scrollbar(details, orient="vertical", command=self.notes.yview)
         self.notes.configure(yscrollcommand=nsb.set)
-        nsb.grid(row=0, column=1, sticky="ns")
+        nsb.grid(row=1, column=1, sticky="ns")
 
         bottom = ttk.Frame(r)
-        bottom.grid(row=6, column=0, columnspan=2, sticky="ew", padx=8, pady=(0, 8))
+        bottom.grid(row=7, column=0, sticky="ew", padx=18, pady=(0, 12))
         self.btn_copy = ttk.Button(bottom, command=self.copy_report, state="disabled")
-        self.btn_copy.pack(side="left", padx=4)
+        self.btn_copy.pack(side="left", padx=(0, 6))
         self.btn_json = ttk.Button(bottom, command=self.save_json, state="disabled")
-        self.btn_json.pack(side="left", padx=4)
+        self.btn_json.pack(side="left", padx=(0, 6))
         self.btn_logs = ttk.Button(bottom, command=self.open_logs, state="disabled")
-        self.btn_logs.pack(side="left", padx=4)
-        self.lbl_version = tk.Label(bottom, text=f"v{cmc.__version__}")
-        self.lbl_version.pack(side="right", padx=8)
-        self.update_info: Optional[dict] = None
+        self.btn_logs.pack(side="left", padx=(0, 6))
+        self.lbl_version = tk.Label(bottom, text=f"v{cmc.__version__}", bg=p["bg"], fg=p["muted"], font=(FONT_UI, 9))
+        self.lbl_version.pack(side="right", padx=(8, 0))
         try:
             self.github_icon = tk.PhotoImage(data=GITHUB_ICON_PNG_B64)
         except tk.TclError:  # very old Tk without PNG support: text-only link
             self.github_icon = None
         self.link_github = tk.Label(bottom, text="GitHub", image=self.github_icon, compound="left",
-                                    fg="#0969da", cursor="hand2", padx=4)
+                                    bg=p["bg"], fg=p["accent"], cursor="hand2", padx=4, font=(FONT_UI, 9))
         self.link_github.pack(side="right", padx=6)
         self.link_github.bind("<Button-1>", lambda _e: self.open_repo())
         self.btn_lang = ttk.Button(bottom, command=self.toggle_language)
@@ -481,6 +733,12 @@ class App:
 
     def s(self, key: str, **kw) -> str:
         return STRINGS[self.lang][key].format(**kw)
+
+    def _set_banner(self, key: str, text: str) -> None:
+        bg, fg, glyph = VERDICT_STYLE.get(key, VERDICT_STYLE["IDLE"])
+        self.banner_frame.configure(bg=bg)
+        self.banner_glyph.configure(text=glyph, bg=bg, fg=fg)
+        self.banner.configure(text=text, bg=bg, fg=fg)
 
     def _apply_language(self) -> None:
         m = MENU[self.lang]
@@ -491,6 +749,7 @@ class App:
         for kind, win in list(self.help_windows.items()):
             if win.winfo_exists():
                 self._fill_help(win, kind)
+        self.lbl_subtitle.configure(text=self.s("subtitle"))
         self.lbl_model.configure(text=self.s("model"))
         self.lbl_effort.configure(text=self.s("effort"))
         self.lbl_repeat.configure(text=self.s("repeat"))
@@ -504,7 +763,8 @@ class App:
         self.btn_json.configure(text=self.s("save_json"))
         self.btn_logs.configure(text=self.s("open_logs"))
         self.btn_lang.configure(text=self.s("lang"))
-        self.notes_frame.configure(text=self.s("notes"))
+        self.lbl_notes_title.configure(text=self.s("notes"))
+        self.lbl_brief_title.configure(text=self.s("brief"))
         if self.update_info:
             self.show_update(self.update_info)
         for c, key in (("n", "col_n"), ("requested", "col_requested"), ("kind", "col_kind"), ("served", "col_served"),
@@ -515,7 +775,7 @@ class App:
         elif self.result is not None:
             self._render_result(self.result)
         elif self.worker is not None:  # mid-run: relabel what is on screen so far
-            self.banner.configure(text=self.s("banner_running"))
+            self._set_banner("RUNNING", self.s("banner_running"))
             self.tree.delete(*self.tree.get_children())
             for p in self.live_probes:
                 self._add_probe_rows(p)
@@ -523,10 +783,13 @@ class App:
                 self._show_progress(*self.last_progress)
         else:
             self.var_status.set(self.s("updated", current=cmc.__version__) if self.updated_from else self.s("idle"))
-            self.banner.configure(text=self.s("banner_idle"))
+            self._set_banner("IDLE", self.s("banner_idle"))
+            self.lbl_brief.configure(text=self.s("brief_idle"))
 
     def toggle_language(self) -> None:
         self.lang = "ko" if self.lang == "en" else "en"
+        self.settings["lang"] = self.lang
+        save_settings(self.settings)
         self._apply_language()
 
     # ------------------------------------------------------------------- help
@@ -541,20 +804,21 @@ class App:
             win.lift()
             return win
         win = tk.Toplevel(self.root)
-        win.geometry("760x560" if kind != "about" else "620x260")
+        win.configure(bg=PALETTE["bg"])
+        win.geometry("760x560" if kind != "about" else "640x300")
         win.transient(self.root)
-        frame = ttk.Frame(win)
-        frame.pack(fill="both", expand=True, padx=8, pady=8)
+        frame = ttk.Frame(win, padding=8)
+        frame.pack(fill="both", expand=True)
         frame.rowconfigure(0, weight=1)
         frame.columnconfigure(0, weight=1)
-        text = tk.Text(frame, wrap="word", font=("TkDefaultFont", 10), state="disabled",
-                       padx=10, pady=8, spacing1=2, spacing3=2)
+        text = tk.Text(frame, wrap="word", font=(FONT_UI, 10), state="disabled", bg=PALETTE["card"],
+                       fg=PALETTE["text"], relief="flat", padx=12, pady=10, spacing1=2, spacing3=2)
         text.grid(row=0, column=0, sticky="nsew")
         sb = ttk.Scrollbar(frame, orient="vertical", command=text.yview)
         text.configure(yscrollcommand=sb.set)
         sb.grid(row=0, column=1, sticky="ns")
         btn = ttk.Button(frame, command=win.destroy)
-        btn.grid(row=1, column=0, columnspan=2, pady=(6, 0))
+        btn.grid(row=1, column=0, columnspan=2, pady=(8, 0))
         win.help_text = text  # type: ignore[attr-defined]
         win.help_button = btn  # type: ignore[attr-defined]
         self.help_windows[kind] = win
@@ -589,10 +853,20 @@ class App:
             self.codex_path = path
             self.var_codex.set(Path(path).name)  # full path is shown in the details after a run
 
-    def start_check(self) -> None:
+    def start_check(self, confirm: Optional[bool] = None) -> None:
         if self.worker is not None or self.updating:
             return
         opts = self.options()
+        if self.confirm_before_check if confirm is None else confirm:
+            ok, skip = ConfirmDialog.ask(self.root, self.s("confirm_title"),
+                                         self.s("confirm_body", model=opts.models[0], n=2 * opts.repeat),
+                                         self.s("confirm_skip"), self.s("confirm_ok"), self.s("confirm_cancel"))
+            if skip:
+                self.settings["skip_confirm"] = True
+                save_settings(self.settings)
+                self.confirm_before_check = False
+            if not ok:
+                return
         self.cancel = cmc.Canceller()
         self.result = None
         self.live_probes = []
@@ -601,7 +875,8 @@ class App:
         self._set_running(True)
         self.tree.delete(*self.tree.get_children())
         self._set_notes("")
-        self.banner.configure(text=self.s("banner_running"), bg=VERDICT_COLORS["UNKNOWN"][0], fg=VERDICT_COLORS["UNKNOWN"][1])
+        self._set_banner("RUNNING", self.s("banner_running"))
+        self.lbl_brief.configure(text=self.s("brief_running"))
         self.var_status.set(self.s("starting", version="..."))
         cancel = self.cancel
 
@@ -629,7 +904,8 @@ class App:
         self.root.destroy()
 
     def _set_running(self, running: bool) -> None:
-        self.btn_check.configure(state="disabled" if running else "normal")
+        self.btn_check.configure(state="disabled" if running else "normal",
+                                 bg=PALETTE["accent"] if not running else "#93c5fd")
         self.btn_cancel.configure(state="normal" if running else "disabled")
         have = self.result is not None and not running
         self.btn_copy.configure(state="normal" if have else "disabled")
@@ -714,10 +990,11 @@ class App:
             self.tree.insert("", "end", values=(p.index, p.requested, kind_name.get(r.kind, r.kind), r.model or "?",
                                                 r.status or "?", cmc.fmt_time(r.created_at), v, r.response_id), tags=(v,))
         for _code, _msg in p.stream_errors:
-            self.tree.insert("", "end", values=(p.index, p.requested, "-", "-", "-", "-", "ERROR", "-"), tags=("ERROR",))
+            v = "UNSUPPORTED" if cmc.is_unsupported_error(_code, _msg) else "ERROR"
+            self.tree.insert("", "end", values=(p.index, p.requested, "-", "-", "-", "-", v, "-"), tags=(v,))
 
     def _render_result(self, res: cmc.CheckResult) -> None:
-        """Table, banner and details for a finished check (status line untouched)."""
+        """Table, banner, briefing and details for a finished check (status line untouched)."""
         self.tree.delete(*self.tree.get_children())
         for p in res.probes:
             self._add_probe_rows(p)
@@ -743,8 +1020,8 @@ class App:
             text, key = self.s("banner_error", models=models), "ERROR"
         if self.fake:
             text += "  " + self.s("fake")
-        bg, fg = VERDICT_COLORS[key]
-        self.banner.configure(text=text, bg=bg, fg=fg)
+        self._set_banner(key, text)
+        self.lbl_brief.configure(text=build_brief(res, self.lang))
 
         lines: List[str] = []
         if res.error:
@@ -809,6 +1086,7 @@ class App:
         import webbrowser
         webbrowser.open(REPO_URL)
 
+    # ----------------------------------------------------------------- updates
     def show_update(self, info: Optional[dict]) -> None:
         """Red NEW badge that opens the release page; the frozen build also updates itself."""
         self.update_info = info
@@ -816,7 +1094,7 @@ class App:
             return
         new = info["version"]
         self.lbl_version.configure(text=self.s("update_new", new=new), fg="#b3261e",
-                                   font=("TkDefaultFont", 10, "bold"), cursor="hand2")
+                                   font=(FONT_UI, 10, "bold"), cursor="hand2")
         self.lbl_version.bind("<Button-1>", lambda _e: self.open_update())
         if self.updating or self.worker is not None or self.result is not None:
             return  # a check is running or already done: do not restart the app under the user
@@ -829,7 +1107,7 @@ class App:
 
     def _start_auto_update(self, info: dict) -> None:
         self.updating = True
-        self.btn_check.configure(state="disabled")
+        self.btn_check.configure(state="disabled", bg="#93c5fd")
         self.progress.grid()
         asset, new = info["asset"], info["version"]
         dest = self.exe_path.with_name(self.exe_path.stem + ".new.exe")
@@ -856,7 +1134,7 @@ class App:
         self.progress.stop()
         self.progress.configure(mode="indeterminate", value=0)
         self.progress.grid_remove()
-        self.btn_check.configure(state="normal")
+        self.btn_check.configure(state="normal", bg=PALETTE["accent"])
         self.var_status.set(self.s("update_failed", new=new, err=err))
 
     def open_update(self) -> None:
@@ -885,7 +1163,7 @@ def _report_startup_error(msg: str) -> None:
 
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(prog="codex-routing-detector-gui", add_help=True)
-    ap.add_argument("--lang", default="en", choices=["en", "ko"], help="interface language")
+    ap.add_argument("--lang", default=None, choices=["en", "ko"], help="interface language (remembered)")
     ap.add_argument("--fake", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--auto-check", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--exit-after", type=float, default=None, help=argparse.SUPPRESS)
@@ -900,13 +1178,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         _report_startup_error("fixtures not found; --fake needs tests/fixtures next to this file")
         return 1
     _enable_dpi_awareness()
+    lang = a.lang or load_settings().get("lang") or "en"
     try:
         root = tk.Tk()
-        app = App(root, lang=a.lang, fake=a.fake, exit_after=a.exit_after,
+        app = App(root, lang=lang, fake=a.fake, exit_after=a.exit_after,
                   update_check=not a.no_update_check and not a.fake,
                   auto_update=not a.no_auto_update, updated_from=a.updated_from)
         if a.auto_check:
-            root.after(300, app.start_check)
+            root.after(300, lambda: app.start_check(confirm=False))
         if a.show_help:
             root.after(300, lambda: app.show_help(a.show_help))
         if a.exit_after is not None and not a.auto_check:
