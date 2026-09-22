@@ -47,7 +47,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-__version__ = "1.2.6"
+__version__ = "1.2.8"
 
 FALLBACK_MODEL = "gpt-6-astra"
 DEFAULT_CONTROL = "gpt-5.6-sol"
@@ -1060,21 +1060,18 @@ def self_update_script(target: Path, new: Path, pid: int, relaunch_args: List[st
     """cmd script: wait for `pid` to exit, swap the exe, start the new one, delete itself."""
     args = " ".join(f'"{a}"' for a in relaunch_args)
     log = new.with_suffix(".update.log")  # a short trace of what the helper did, for support
+    # No pipelines here: in a console-less (DETACHED_PROCESS) cmd.exe, `tasklist | find` hangs
+    # forever. Windows refuses to overwrite a running exe, so retrying `move` until it succeeds
+    # is both the wait-for-exit and the swap (about a minute at most).
     return "\r\n".join([
         "@echo off",
-        f'echo helper started, waiting for pid {pid} > "{log}"',
+        f'echo helper started for pid {pid} > "{log}"',
         "set N=0",
-        ":wait",
-        f'tasklist /FI "PID eq {pid}" 2>nul | find " {pid} " >nul',
-        "if errorlevel 1 goto swap",
-        "ping -n 2 127.0.0.1 >nul",
-        "goto wait",
         ":swap",
-        f'echo swapping (attempt %N%) >> "{log}"',
         f'move /y "{new}" "{target}" >> "{log}" 2>&1',
         "if not errorlevel 1 goto run",
         "set /a N+=1",
-        "if %N% geq 30 goto fail",
+        "if %N% geq 60 goto fail",
         "ping -n 2 127.0.0.1 >nul",
         "goto swap",
         ":run",
