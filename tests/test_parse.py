@@ -566,6 +566,31 @@ class RunProbeNotes(unittest.TestCase):
         self.assertTrue(any("rests on the warm-up" in n for n in p.notes), p.notes)
 
 
+class UpdateCheck(unittest.TestCase):
+    def test_version_tuple(self):
+        self.assertEqual(cmc.version_tuple("v1.2.10"), (1, 2, 10))
+        self.assertEqual(cmc.version_tuple("garbage"), (0,))
+        self.assertLess(cmc.version_tuple("v1.2.9"), cmc.version_tuple("v1.2.10"))
+
+    def test_newer_release_is_reported(self):
+        info = cmc.check_for_update(current="1.2.1", fetch=lambda: {"tag_name": "v1.3.0", "html_url": "https://x/rel"})
+        self.assertEqual(info, {"version": "1.3.0", "url": "https://x/rel"})
+
+    def test_same_or_older_release_is_ignored(self):
+        self.assertIsNone(cmc.check_for_update(current="1.2.1", fetch=lambda: {"tag_name": "v1.2.1"}))
+        self.assertIsNone(cmc.check_for_update(current="1.2.1", fetch=lambda: {"tag_name": "v1.0.0"}))
+
+    def test_errors_and_opt_out_are_silent(self):
+        def boom():
+            raise OSError("offline")
+        self.assertIsNone(cmc.check_for_update(current="1.2.1", fetch=boom))
+        os.environ[cmc.NO_UPDATE_ENV] = "1"
+        try:
+            self.assertIsNone(cmc.check_for_update(current="0.0.1", fetch=lambda: {"tag_name": "v9.9.9"}))
+        finally:
+            del os.environ[cmc.NO_UPDATE_ENV]
+
+
 class ProcessControl(unittest.TestCase):
     def test_timeout_kills_the_whole_tree(self):
         # parent python spawns a grandchild that keeps the pipe open; the timeout must still be enforced

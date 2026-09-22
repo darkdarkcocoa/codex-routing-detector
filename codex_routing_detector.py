@@ -47,7 +47,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-__version__ = "1.2.1"
+__version__ = "1.2.2"
 
 FALLBACK_MODEL = "gpt-6-astra"
 DEFAULT_CONTROL = "gpt-5.6-sol"
@@ -968,6 +968,40 @@ def to_json(probes: List[Probe], codex_desc: str, codex_version: str, method: st
     }
 
 
+# --------------------------------------------------------------- update check
+REPO = "darkdarkcocoa/codex-routing-detector"
+RELEASES_URL = f"https://github.com/{REPO}/releases"
+LATEST_API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
+NO_UPDATE_ENV = "CODEX_ROUTING_DETECTOR_NO_UPDATE"
+
+
+def version_tuple(v: str) -> Tuple[int, ...]:
+    """'v1.2.10' -> (1, 2, 10); anything non-numeric is ignored."""
+    return tuple(int(x) for x in re.findall(r"\d+", v)) or (0,)
+
+
+def check_for_update(current: str = __version__, timeout: float = 4.0, fetch=None) -> Optional[dict]:
+    """Return {"version", "url"} when GitHub has a newer release, None otherwise (also on any
+    error). One anonymous GET to api.github.com; disabled when NO_UPDATE_ENV is set."""
+    if os.environ.get(NO_UPDATE_ENV):
+        return None
+    try:
+        if fetch is None:
+            import urllib.request
+            req = urllib.request.Request(LATEST_API_URL, headers={"User-Agent": f"codex-routing-detector/{current}",
+                                                                   "Accept": "application/vnd.github+json"})
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                data = json.loads(resp.read().decode("utf-8", "replace"))
+        else:
+            data = fetch()
+        tag = str(data.get("tag_name") or data.get("name") or "")
+        if not tag or version_tuple(tag) <= version_tuple(current):
+            return None
+        return {"version": tag.lstrip("vV"), "url": data.get("html_url") or RELEASES_URL}
+    except Exception:
+        return None
+
+
 # ------------------------------------------------------------------ run_check
 @dataclass
 class CheckOptions:
@@ -1151,6 +1185,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--json", dest="json_path", metavar="FILE", help="write a machine-readable report")
     ap.add_argument("--out", dest="out_dir", metavar="DIR", help="where to keep raw logs (default: a new temp dir)")
     ap.add_argument("--full-ids", action="store_true", help="print full response ids in the table")
+    ap.add_argument("--no-update-check", action="store_true",
+                    help=f"skip the one request to api.github.com that looks for a newer release (or set {NO_UPDATE_ENV}=1)")
     ap.add_argument("--version", action="version", version=f"codex-routing-detector {__version__}")
     a = ap.parse_args(argv)
     if a.repeat < 1:
@@ -1169,6 +1205,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     opts = CheckOptions(models=a.models or [], control=None if a.no_control else a.control, effort=a.effort,
                         tier=a.tier, repeat=a.repeat, prompt=a.prompt, timeout=a.timeout, codex=a.codex,
                         wire=a.wire, out_dir=a.out_dir)
+    update_box: List[Optional[dict]] = [None]
+    if not a.no_update_check:
+        t = threading.Thread(target=lambda: update_box.__setitem__(0, check_for_update()), daemon=True)
+        t.start()  # runs while the probes do; never delays the check itself
     res = run_check(opts, progress=progress)
     if res.error:
         print(res.error, file=sys.stderr)
@@ -1178,6 +1218,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     if a.json_path:
         Path(a.json_path).write_text(json.dumps(res.json(), indent=2), encoding="utf-8")
         print(f"json report  : {display_path(a.json_path)}")
+    upd = update_box[0]
+    if upd:
+        print(f"update       : version {upd['version']} is available (you have {__version__}): {upd['url']}")
     return res.exit_code
 
 

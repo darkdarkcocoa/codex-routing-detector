@@ -59,6 +59,7 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "codex_hint": "Use the \"Codex...\" button to pick the codex binary by hand (codex.exe inside the npm package, or the Codex Desktop bundle).",
         "copied": "Report copied to the clipboard.", "saved": "Saved {path}", "fake": "(fixture data, not a live check)",
         "control_none": "(none)",
+        "update_new": "v{current}  ->  NEW v{new} available, click to download",
     },
     "ko": {
         "model": "모델", "control": "대조군", "effort": "Effort", "repeat": "반복",
@@ -79,6 +80,7 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "codex_hint": "\"Codex...\" 버튼으로 codex 실행 파일을 직접 고를 수 있습니다 (npm 패키지 안의 codex.exe 또는 Codex Desktop 번들).",
         "copied": "보고서를 클립보드에 복사했습니다.", "saved": "저장함: {path}", "fake": "(샘플 데이터, 실제 검사 아님)",
         "control_none": "(없음)",
+        "update_new": "v{current}  ->  NEW v{new} 나옴, 클릭해서 받기",
     },
 }
 NONE_WORDS = {"", "(none)"} | {v["control_none"] for v in STRINGS.values()}
@@ -321,7 +323,8 @@ def install_fake_runner() -> bool:
 
 
 class App:
-    def __init__(self, root: tk.Tk, lang: str = "en", fake: bool = False, exit_after: Optional[float] = None) -> None:
+    def __init__(self, root: tk.Tk, lang: str = "en", fake: bool = False, exit_after: Optional[float] = None,
+                 update_check: bool = True) -> None:
         self.root = root
         self.lang = lang if lang in STRINGS else "en"
         self.fake = fake
@@ -342,6 +345,8 @@ class App:
         self._apply_language()
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.after(100, self._poll)
+        if update_check:
+            threading.Thread(target=lambda: self.q.put(("update", cmc.check_for_update())), daemon=True).start()
 
     # ---------------------------------------------------------------- layout
     def _build(self) -> None:
@@ -449,7 +454,9 @@ class App:
         self.btn_json.pack(side="left", padx=4)
         self.btn_logs = ttk.Button(bottom, command=self.open_logs, state="disabled")
         self.btn_logs.pack(side="left", padx=4)
-        ttk.Label(bottom, text=f"v{cmc.__version__}").pack(side="right", padx=8)
+        self.lbl_version = tk.Label(bottom, text=f"v{cmc.__version__}")
+        self.lbl_version.pack(side="right", padx=8)
+        self.update_info: Optional[dict] = None
         try:
             self.github_icon = tk.PhotoImage(data=GITHUB_ICON_PNG_B64)
         except tk.TclError:  # very old Tk without PNG support: text-only link
@@ -488,6 +495,8 @@ class App:
         self.btn_logs.configure(text=self.s("open_logs"))
         self.btn_lang.configure(text=self.s("lang"))
         self.notes_frame.configure(text=self.s("notes"))
+        if self.update_info:
+            self.show_update(self.update_info)
         none_word = self.s("control_none")
         self.cb_control.configure(values=[none_word] + self.models)
         if self.var_control.get().strip() in NONE_WORDS:
@@ -653,6 +662,8 @@ class App:
             else:
                 self.last_progress = (ev, info)
                 self._show_progress(ev, info)
+        elif msg[0] == "update":
+            self.show_update(msg[1])
         elif msg[0] in ("done", "fatal"):
             self.worker = None
             self.done_secs = round(time.time() - self.t0, 1)
@@ -771,6 +782,19 @@ class App:
         import webbrowser
         webbrowser.open(REPO_URL)
 
+    def show_update(self, info: Optional[dict]) -> None:
+        """Turn the version label into a red NEW badge that opens the release page."""
+        self.update_info = info
+        if not info:
+            return
+        self.lbl_version.configure(text=self.s("update_new", current=cmc.__version__, new=info["version"]),
+                                   fg="#b3261e", font=("TkDefaultFont", 10, "bold"), cursor="hand2")
+        self.lbl_version.bind("<Button-1>", lambda _e: self.open_update())
+
+    def open_update(self) -> None:
+        import webbrowser
+        webbrowser.open((self.update_info or {}).get("url") or cmc.RELEASES_URL)
+
 
 def _enable_dpi_awareness() -> None:
     if os.name == "nt":
@@ -798,6 +822,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--auto-check", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--exit-after", type=float, default=None, help=argparse.SUPPRESS)
     ap.add_argument("--show-help", choices=["usage", "terms", "about"], default=None, help=argparse.SUPPRESS)
+    ap.add_argument("--no-update-check", action="store_true",
+                    help=f"do not ask api.github.com for a newer release at startup (or set {cmc.NO_UPDATE_ENV}=1)")
     a = ap.parse_args(argv)
     if a.fake and not install_fake_runner():
         _report_startup_error("fixtures not found; --fake needs tests/fixtures next to this file")
@@ -805,7 +831,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     _enable_dpi_awareness()
     try:
         root = tk.Tk()
-        app = App(root, lang=a.lang, fake=a.fake, exit_after=a.exit_after)
+        app = App(root, lang=a.lang, fake=a.fake, exit_after=a.exit_after,
+                  update_check=not a.no_update_check and not a.fake)
         if a.auto_check:
             root.after(300, app.start_check)
         if a.show_help:

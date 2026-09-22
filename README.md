@@ -154,8 +154,13 @@ model is not, the substitution is specific to that model, not a broken account o
 - The `--json` report contains no paths with your username. It does contain the rate-limit
   block (plan, usage, credit balance) because that is useful in a bug report; remove it if
   you would rather not share it.
-- In trace mode the tool only runs the Codex binary you already have and makes no network
-  calls of its own. In `--wire` mode every HTTPS request Codex makes during the probe
+- On startup the tool makes one anonymous request to `api.github.com` to see whether a newer
+  release exists; if so, the version label in the window turns into a red NEW badge that opens
+  the release page, and the command line prints an `update` line after the report. Nothing
+  about you is sent. Disable it with `--no-update-check` or the environment variable
+  `CODEX_ROUTING_DETECTOR_NO_UPDATE=1`.
+- Apart from that, in trace mode the tool only runs the Codex binary you already have and makes
+  no network calls of its own. In `--wire` mode every HTTPS request Codex makes during the probe
   (including token refresh and telemetry) passes through the local mitmproxy process the tool
   launched on your machine; only the responses WebSocket is recorded.
 - The probe runs with the sandbox in `read-only` mode, but a custom `--prompt` can still make
@@ -255,6 +260,10 @@ python codex_routing_detector.py --wire         # mitmproxy로 패킷 수준 확
 - 서버 쪽 상태는 시간에 따라 바뀝니다. 같은 계정이 20분 사이에 REROUTED에서 OK로 바뀐 기록이
   있으니, 필요할 때마다 다시 돌려 보세요.
 - 비용: 실행 한 번에 기본 4개 요청(모델 2개 × 웜업+턴). 일반 사용량으로 차감됩니다.
+- 업데이트 확인: 시작할 때 `api.github.com`에 익명 요청 하나를 보내 새 릴리스가 있는지
+  봅니다. 있으면 창 오른쪽 아래 버전 표시가 빨간 NEW 배지로 바뀌고(클릭하면 릴리스 페이지),
+  터미널 버전은 보고서 끝에 한 줄로 알립니다. `--no-update-check` 또는
+  `CODEX_ROUTING_DETECTOR_NO_UPDATE=1`로 끌 수 있습니다.
 - 로그: 마지막 줄에 찍힌 폴더에 서버 프레임 원문이 남습니다. 스레드 ID, 계정 사용자 ID
   (`safety_identifier`), 프롬프트, 플랜/사용량이 들어 있고, 토큰·쿠키·요청 본문(작업 폴더
   경로 포함)은 기록되지 않습니다. `--json` 보고서에는 사용자 이름이 든 경로가 없습니다.

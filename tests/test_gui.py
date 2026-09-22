@@ -39,7 +39,7 @@ class GuiSmoke(unittest.TestCase):
     def setUp(self):
         self.root = tk.Toplevel(_root)
         self.root.withdraw()
-        self.app = gui.App(self.root, lang="en", fake=True)
+        self.app = gui.App(self.root, lang="en", fake=True, update_check=False)
 
     def tearDown(self):
         self.root.destroy()
@@ -187,6 +187,30 @@ class GuiSmoke(unittest.TestCase):
         self.assertEqual(opened, [gui.REPO_URL])
         self.assertIsNotNone(self.app.github_icon)
         self.assertIn(gui.REPO_URL, self.app.show_help("about").help_text.get("1.0", "end"))
+
+    def test_update_badge_appears_and_opens_release_page(self):
+        import webbrowser
+        self.assertEqual(self.app.lbl_version.cget("text"), f"v{cmc.__version__}")
+        self.app.q.put(("update", {"version": "9.9.9", "url": "https://example.test/rel"}))
+        self._pump(1)
+        text = self.app.lbl_version.cget("text")
+        self.assertIn("NEW v9.9.9", text)
+        self.assertEqual(self.app.lbl_version.cget("fg"), "#b3261e")
+        opened = []
+        original = webbrowser.open
+        webbrowser.open = lambda url, *a, **k: opened.append(url) or True
+        try:
+            self.app.open_update()
+        finally:
+            webbrowser.open = original
+        self.assertEqual(opened, ["https://example.test/rel"])
+        self.app.toggle_language()
+        self.assertIn("NEW v9.9.9", self.app.lbl_version.cget("text"))  # badge survives relabelling
+
+    def test_no_update_leaves_version_label_alone(self):
+        self.app.q.put(("update", None))
+        self._pump(1)
+        self.assertEqual(self.app.lbl_version.cget("text"), f"v{cmc.__version__}")
 
     def test_poll_survives_a_bad_message(self):
         self.app.q.put(("progress", "probe_done", {"probe": object()}))  # malformed probe
