@@ -54,7 +54,6 @@ class GuiSmoke(unittest.TestCase):
 
     def test_check_button_runs_and_fills_the_table(self):
         self.app.var_model.set("gpt-6-astra")
-        self.app.var_control.set("gpt-5.6-sol")
         self.app.start_check()
         self.assertEqual(str(self.app.btn_check["state"]), "disabled")
         self._pump(15)
@@ -62,17 +61,15 @@ class GuiSmoke(unittest.TestCase):
         self.assertIsNotNone(res)
         self.assertEqual(res.overall, "REROUTED")
         rows = [self.app.tree.item(i, "values") for i in self.app.tree.get_children()]
-        self.assertEqual(len(rows), 4)  # warm-up + turn for astra and for the control
+        self.assertEqual(len(rows), 2)  # warm-up + turn (the window runs no control probe)
         self.assertEqual(rows[0][1], "gpt-6-astra")
         self.assertEqual(rows[0][3], "gpt-5.6-luna")
         self.assertEqual(rows[0][6], "REROUTED")
-        self.assertEqual(rows[3][6], "ERROR")  # control fixture ends in server_is_overloaded
         self.assertIn("REROUTED", self.app.banner.cget("text"))
         self.assertIn("gpt-6-astra -> gpt-5.6-luna", self.app.banner.cget("text"))
         self.assertEqual(str(self.app.btn_check["state"]), "normal")
         notes = self.app.notes.get("1.0", "end")
         self.assertIn("plan=pro", notes)
-        self.assertIn("server_is_overloaded", notes)
 
     def test_language_toggle_relabels_without_losing_the_result(self):
         self.app.start_check()
@@ -81,20 +78,24 @@ class GuiSmoke(unittest.TestCase):
         self.assertEqual(self.app.btn_cancel.cget("text"), "취소")
         self.assertEqual(self.app.tree.heading("served")["text"], "실제 응답 모델")
         self.assertIn("바꿔치기 감지", self.app.banner.cget("text"))
-        self.assertEqual(len(self.app.tree.get_children()), 4)
+        self.assertEqual(len(self.app.tree.get_children()), 2)
         self.app.toggle_language()
         self.assertEqual(self.app.btn_cancel.cget("text"), "Cancel")
 
-    def test_no_control_option_in_either_language(self):
-        self.app.var_control.set("(none)")
-        opts = self.app.options()
-        self.assertIsNone(opts.control)
-        self.assertEqual(opts.models, [self.app.var_model.get()])
-        self.app.var_control.set("(없음)")
+    def test_window_runs_no_control_probe(self):
         self.assertIsNone(self.app.options().control)
-        self.app.toggle_language()
-        self.assertEqual(self.app.var_control.get(), "(없음)")
-        self.assertEqual(self.app.cb_control.cget("values")[0], "(없음)")
+        self.assertEqual(self.app.options().models, [self.app.var_model.get()])
+
+    def test_unsupported_banner(self):
+        p = cmc.Probe(index=1, requested="gpt-5.6-sol", effort="low", tier=None, is_control=False, method="trace")
+        p.stream_errors = [("invalid_request_error", "The 'gpt-5.6-sol' model is not supported when using Codex with a ChatGPT account.")]
+        p.rate_limits = {"plan_type": "free", "rate_limits": {"primary": {"used_percent": 0, "window_minutes": 43200}}}
+        res = cmc.CheckResult(probes=[p], outdir=pathlib.Path("."))
+        res.overall, res.exit_code, res.summary_lines = cmc.summarize([p])
+        self.app.result = res
+        self.app._render_result(res)
+        self.assertIn("not available on this account (plan: free)", self.app.banner.cget("text"))
+        self.assertEqual(self.app.banner.cget("bg"), "#fff4e5")
 
     def test_repeat_is_clamped(self):
         self.app.var_repeat.set("99")

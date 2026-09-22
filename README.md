@@ -50,10 +50,9 @@ That is the whole check. Everything below is optional.
 
 ## More details (optional)
 
-- **Model / Control**: *Model* is the one you want to test. *Control* is a second model checked
-  right after it for comparison (default `gpt-5.6-sol`). If the control is fine while your model
-  is not, the substitution is specific to that model, not to your account or client. Set it to
-  `(none)` for a quicker, cheaper run.
+- **Model**: the one you want to test. (The command line can also check a *control* model right
+  after it with `--control`; if that one is fine while yours is not, the substitution is specific
+  to your model. The window keeps things simple and does not do this.)
 - **Repeat**: run the check N times (1 to 10). The server's behaviour changes over time, so
   three runs tell you whether it is stable or flickering.
 - **Effort**: reasoning effort sent with the probe. `low` is the cheapest; the substitution seen
@@ -97,7 +96,7 @@ python codex_routing_detector.py --wire               # packet-level capture wit
 | Option | Meaning |
 |---|---|
 | `-m/--model MODEL` | model to check (repeatable). Default: top-level `model` in `~/.codex/config.toml`, else `gpt-6-astra` |
-| `--control MODEL` / `--no-control` | control model run alongside (default `gpt-5.6-sol`) |
+| `--control MODEL` / `--no-control` | control model run alongside (default `gpt-5.6-sol`; skipped when it equals the checked model) |
 | `-e/--effort LEVEL` | `model_reasoning_effort` for the probes. Default `low` (cheapest); the value in `config.toml` is **not** used |
 | `-t/--tier TIER` | `service_tier` override. Default: whatever `config.toml` says, if anything |
 | `-r/--repeat N` | run every probe N times |
@@ -148,6 +147,9 @@ so a probe whose turn failed is `ERROR`, not `ok`.
   (`gpt-6-astra-2026-09-01`) is accepted and noted under the row. A model whose name changes
   between `response.created` and `response.completed` is `REROUTED` and noted.
 - `ok` - served as requested.
+- `UNSUPPORTED` - the server refused the model for this account ("not supported when using Codex
+  with a ChatGPT account" and similar): your plan does not include it. A warm-up answered by the
+  plan's default model in that situation is not counted as a substitution.
 - `ERROR` - the server answered with an error (for example `server_is_overloaded`, which Codex
   shows as "Selected model is at capacity") and the response object, if there was one, named
   the requested model. Run again. (A response that named another model and then failed is

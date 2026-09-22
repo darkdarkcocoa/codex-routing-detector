@@ -47,7 +47,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-__version__ = "1.2.10"
+__version__ = "1.2.11"
 
 FALLBACK_MODEL = "gpt-6-astra"
 DEFAULT_CONTROL = "gpt-5.6-sol"
@@ -78,6 +78,14 @@ REDACT_RES = [
 C2S_KEEP = ("type", "model", "service_tier", "reasoning", "previous_response_id", "store", "stream", "text")
 
 TERMINAL_STATUSES = {"completed", "failed", "incomplete", "cancelled"}
+# The server refusing a model for this account/plan is not a substitution.
+UNSUPPORTED_RE = re.compile(r"(?i)not supported|not available|unsupported model|does not have access|"
+                            r"model_not_found|no access to|not entitled|not enabled for")
+
+
+def is_unsupported_error(code: Optional[str], message: Optional[str]) -> bool:
+    text = f"{code or ''} {message or ''}"
+    return bool(UNSUPPORTED_RE.search(text)) and ("model" in text.lower() or "access" in text.lower())
 MITMPROXY_MIN_MAJOR = 7
 # Child processes never get a console window of their own (matters when the GUI build,
 # which has no console, launches codex.exe or mitmdump.exe).
@@ -112,6 +120,8 @@ class ResponseRecord:
     usage: Optional[dict] = None
 
     def verdict(self, requested: str) -> str:
+        if is_unsupported_error(self.error_code, self.error_message):
+            return "UNSUPPORTED"
         # A response object naming another model is evidence even if the response then failed.
         if any(not models_match(requested, m)[0] for m in self.models_seen):
             return "REROUTED"
@@ -158,10 +168,19 @@ class Probe:
     def turns(self) -> List[ResponseRecord]:
         return [r for r in self.responses if r.kind == "turn"]
 
+    def unsupported(self) -> bool:
+        """The server said this account cannot use the requested model."""
+        return any(r.verdict(self.requested) == "UNSUPPORTED" for r in self.responses) or \
+            any(is_unsupported_error(c, m) for c, m in self.stream_errors)
+
     def verdict(self) -> str:
         """REROUTED if any response object (warm-up or turn) names another model: that is direct
         evidence. `ok` only if the real turn was served as requested; a warm-up alone cannot
-        stand in for a turn that failed or never started."""
+        stand in for a turn that failed or never started. UNSUPPORTED when the server refused
+        the model for this account (a warm-up answered by the plan's default model is then not
+        counted as a substitution)."""
+        if self.unsupported():
+            return "UNSUPPORTED"
         verdicts = [r.verdict(self.requested) for r in self.responses]
         if "REROUTED" in verdicts:
             return "REROUTED"
@@ -751,6 +770,9 @@ def run_probe(codex: List[str], probe: Probe, prompt: str, timeout: float, ephem
         probe.notes.append("cancelled by the user")
     elif timed_out:
         probe.notes.append(f"codex exec did not finish within {timeout:.0f}s and was killed")
+    if probe.unsupported():
+        probe.notes.append(f"the server refused {probe.requested} for this account; a warm-up answered by "
+                           "another model here is the plan's default, not a substitution")
     if was_cancelled:
         pass  # a killed process explains everything below; no diagnosis needed
     elif not probe.responses and not probe.stream_errors:
@@ -835,8 +857,11 @@ def summarize(probes: List[Probe]) -> Tuple[str, int, List[str]]:
         return "ERROR", 1, ["VERDICT: nothing was checked."]
     rerouted = sorted({p.requested for p in main if p.verdict() == "REROUTED"})
     ok = sorted({p.requested for p in main if p.verdict() == "ok"} - set(rerouted))
-    unchecked = sorted({p.requested for p in main} - set(rerouted) - set(ok))
+    unsupported = sorted({p.requested for p in main if p.verdict() == "UNSUPPORTED"} - set(rerouted) - set(ok))
+    unchecked = sorted({p.requested for p in main} - set(rerouted) - set(ok) - set(unsupported))
     ctrl_rerouted = [p for p in ctrl if p.verdict() == "REROUTED"]
+    plan = next((p.rate_limits.get("plan_type") for p in probes if p.rate_limits), None)
+    plan_s = f" (plan: {plan})" if plan else ""
 
     if rerouted:
         parts = []
@@ -853,9 +878,17 @@ def summarize(probes: List[Probe]) -> Tuple[str, int, List[str]]:
         lines.append("VERDICT: REROUTED - the control model " + ", ".join(sorted({p.requested for p in ctrl_rerouted}))
                      + " was served by a different model" + (f"; {', '.join(ok)} was fine." if ok else "."))
         overall, code = "REROUTED", 2
-    elif unchecked:
-        lines.append("VERDICT: could not check " + ", ".join(unchecked) + " (see notes / ERROR rows)"
-                     + (f"; {', '.join(ok)} was served as requested." if ok else "."))
+    elif unsupported and not ok and not unchecked:
+        lines.append(f"VERDICT: UNSUPPORTED - this account cannot use {', '.join(unsupported)}{plan_s}; "
+                     "the server refused the model, which is not a substitution. Check a model your plan includes.")
+        overall, code = "UNSUPPORTED", 1
+    elif unchecked or unsupported:
+        parts = []
+        if unchecked:
+            parts.append("could not check " + ", ".join(unchecked) + " (see notes / ERROR rows)")
+        if unsupported:
+            parts.append(f"{', '.join(unsupported)} is not available on this account{plan_s}")
+        lines.append("VERDICT: " + "; ".join(parts) + (f"; {', '.join(ok)} was served as requested." if ok else "."))
         overall, code = "ERROR", 1
     else:
         lines.append(f"VERDICT: OK - {', '.join(ok)} was served as requested.")
@@ -888,6 +921,8 @@ def summarize(probes: List[Probe]) -> Tuple[str, int, List[str]]:
         elif n_ok:
             others = ", ".join(sorted({v for v in cvs if v != "ok"}))
             lines.append(f"control: {model} was served correctly in {n_ok} of {n} probes; the rest ended with {others}.")
+        elif "UNSUPPORTED" in cvs:
+            lines.append(f"control: {model} is not available on this account{plan_s}; pick a control model your plan includes.")
         else:
             lines.append(f"control: {model} probe ended with {', '.join(sorted(set(cvs)))}.")
     return overall, code, lines
@@ -1237,10 +1272,11 @@ def run_check(opts: CheckOptions, progress=None, cancel: Optional[Canceller] = N
         res.method = "wire"
 
     plan: List[Tuple[str, bool]] = []
+    control = opts.control if opts.control and opts.control.lower() not in {m.lower() for m in models} else None
     for _ in range(max(1, opts.repeat)):
         plan += [(m, False) for m in models]
-        if opts.control:
-            plan.append((opts.control, True))
+        if control:
+            plan.append((control, True))
     emit("start", n=len(plan), codex_version=res.codex_version, how=how, codex_desc=res.codex_desc)
     try:
         for i, (model, is_control) in enumerate(plan, 1):
@@ -1293,7 +1329,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                     help=f"model to check (repeatable). Default: `model` from config.toml ({cfg_model or 'not set'}), "
                          f"else {FALLBACK_MODEL}")
     ap.add_argument("--control", default=DEFAULT_CONTROL, metavar="MODEL",
-                    help=f"control model checked alongside (default {DEFAULT_CONTROL}); use --no-control to skip")
+                    help=f"control model checked alongside (default {DEFAULT_CONTROL}; skipped when it equals the "
+                         "checked model); use --no-control to skip")
     ap.add_argument("--no-control", action="store_true", help="do not run the control probe")
     ap.add_argument("-e", "--effort", default="low", metavar="LEVEL",
                     help="model_reasoning_effort for the probes (default low, the cheapest; config.toml is not used)")

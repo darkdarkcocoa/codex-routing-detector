@@ -41,7 +41,7 @@ MAX_REPEAT = 10
 
 STRINGS: Dict[str, Dict[str, str]] = {
     "en": {
-        "model": "Model", "control": "Control", "effort": "Effort", "repeat": "Repeat",
+        "model": "Model", "effort": "Effort", "repeat": "Repeat",
         "wire": "Wire mode (mitmproxy)", "no_mitm": "Wire mode (mitmproxy missing)",
         "codex_btn": "Codex...", "codex_auto": "auto-detect", "codex_pick_title": "Pick the codex binary",
         "check": "Check", "cancel": "Cancel", "copy": "Copy report", "save_json": "Save JSON...", "open_logs": "Open log folder",
@@ -55,10 +55,10 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "banner_idle": "No result yet", "banner_running": "Checking...",
         "banner_rerouted": "REROUTED: {pairs}", "banner_ok": "OK: {models} served as requested",
         "banner_error": "Could not check {models}", "banner_cancelled": "Cancelled", "banner_fatal": "Error",
+        "banner_unsupported": "{models} is not available on this account (plan: {plan})",
         "notes": "Details", "account": "Account", "codex": "Codex",
         "codex_hint": "Use the \"Codex...\" button to pick the codex binary by hand (codex.exe inside the npm package, or the Codex Desktop bundle).",
         "copied": "Report copied to the clipboard.", "saved": "Saved {path}", "fake": "(fixture data, not a live check)",
-        "control_none": "(none)",
         "update_new": "NEW v{new}",
         "update_pip": "Version {new} is available: pipx upgrade codex-routing-detector  (or pip install -U git+{repo})",
         "update_manual": "Version {new} is available. Click NEW at the bottom right to download it.",
@@ -68,7 +68,7 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "updated": "Updated to v{current}.",
     },
     "ko": {
-        "model": "모델", "control": "대조군", "effort": "Effort", "repeat": "반복",
+        "model": "모델", "effort": "Effort", "repeat": "반복",
         "wire": "Wire 모드 (mitmproxy)", "no_mitm": "Wire 모드 (mitmproxy 없음)",
         "codex_btn": "Codex...", "codex_auto": "자동 탐지", "codex_pick_title": "codex 실행 파일 선택",
         "check": "Check", "cancel": "취소", "copy": "보고서 복사", "save_json": "JSON 저장...", "open_logs": "로그 폴더 열기",
@@ -82,10 +82,10 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "banner_idle": "아직 결과 없음", "banner_running": "검사 중...",
         "banner_rerouted": "바꿔치기 감지: {pairs}", "banner_ok": "정상: {models} 요청대로 응답",
         "banner_error": "확인 실패: {models}", "banner_cancelled": "취소됨", "banner_fatal": "오류",
+        "banner_unsupported": "{models}은(는) 이 계정(플랜 {plan})에서 쓸 수 없는 모델입니다",
         "notes": "상세", "account": "계정", "codex": "Codex",
         "codex_hint": "\"Codex...\" 버튼으로 codex 실행 파일을 직접 고를 수 있습니다 (npm 패키지 안의 codex.exe 또는 Codex Desktop 번들).",
         "copied": "보고서를 클립보드에 복사했습니다.", "saved": "저장함: {path}", "fake": "(샘플 데이터, 실제 검사 아님)",
-        "control_none": "(없음)",
         "update_new": "NEW v{new}",
         "update_pip": "새 버전 {new}: pipx upgrade codex-routing-detector  (또는 pip install -U git+{repo})",
         "update_manual": "새 버전 {new}이 있습니다. 오른쪽 아래 NEW를 눌러 받으세요.",
@@ -95,7 +95,6 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "updated": "v{current}로 업데이트됨.",
     },
 }
-NONE_WORDS = {"", "(none)"} | {v["control_none"] for v in STRINGS.values()}
 
 MENU: Dict[str, Dict[str, str]] = {
     "en": {"help": "Help", "usage": "How to use", "terms": "Glossary", "about": "About", "close": "Close"},
@@ -107,16 +106,15 @@ HELP_USAGE = {
 
 1. Pick the model to check. The default is the model in ~/.codex/config.toml.
 
-2. Leave the control model on (gpt-5.6-sol) unless you want a quicker, cheaper run. The control tells the cases apart: if it is served correctly while your model is not, the substitution is specific to that model, not to your account or client.
+2. Press Check. Each probe is one short Codex turn ("Reply with exactly the single word: pong"). The table fills in as probes finish; Cancel stops the run.
 
-3. Press Check. Each probe is one short Codex turn ("Reply with exactly the single word: pong"). The table fills in as probes finish; Cancel stops the run.
-
-4. Read the banner.
+3. Read the banner.
 REROUTED: the server answered with a different model than you asked for.
 OK: the model you asked for answered.
+Not available on this account: your plan does not include that model (the server refused it). Pick another model.
 Could not check: a server error or a missing response. Press Check again.
 
-5. Copy report puts the full text report (with response ids) on the clipboard, ready for a bug report or a support ticket. Save JSON writes the same data as JSON. Open log folder shows the raw server frames.
+4. Copy report puts the full text report (with response ids) on the clipboard, ready for a bug report or a support ticket. Save JSON writes the same data as JSON. Open log folder shows the raw server frames.
 
 OPTIONS
 
@@ -134,16 +132,15 @@ Logs contain your thread ids, account user id and the probe prompt, but no token
 
 1. 검사할 모델을 고릅니다. 기본값은 ~/.codex/config.toml에 적힌 모델입니다.
 
-2. 대조군(gpt-5.6-sol)은 켜 두는 것을 권합니다. 대조군이 정상인데 검사 모델만 다르게 응답하면 "그 모델만 바꿔치기"라는 뜻이고, 계정이나 클라이언트 문제와 구분됩니다.
+2. Check를 누릅니다. 검사 하나는 아주 짧은 Codex 턴 하나입니다 ("Reply with exactly the single word: pong"). 끝나는 대로 표에 행이 추가되고, 취소 버튼으로 중단할 수 있습니다.
 
-3. Check를 누릅니다. 검사 하나는 아주 짧은 Codex 턴 하나입니다 ("Reply with exactly the single word: pong"). 끝나는 대로 표에 행이 추가되고, 취소 버튼으로 중단할 수 있습니다.
-
-4. 배너를 읽습니다.
+3. 배너를 읽습니다.
 바꿔치기 감지: 서버가 요청한 것과 다른 모델로 응답했습니다.
 정상: 요청한 모델이 응답했습니다.
+이 계정에서 쓸 수 없는 모델: 요금제에 그 모델이 없어 서버가 거절했습니다. 다른 모델을 고르세요.
 확인 실패: 서버 오류나 응답 누락입니다. 다시 Check를 눌러 보세요.
 
-5. 보고서 복사는 응답 ID가 든 전체 보고서를 클립보드에 복사합니다 (이슈 제출·지원 문의용). JSON 저장은 같은 내용을 JSON으로 저장하고, 로그 폴더 열기는 서버 프레임 원문 폴더를 엽니다.
+4. 보고서 복사는 응답 ID가 든 전체 보고서를 클립보드에 복사합니다 (이슈 제출·지원 문의용). JSON 저장은 같은 내용을 JSON으로 저장하고, 로그 폴더 열기는 서버 프레임 원문 폴더를 엽니다.
 
 옵션
 
@@ -174,8 +171,8 @@ Your real request: the prompt goes to the server and the model answers. Its resp
 Warm-up
 A request Codex sends by itself just before the turn, with no user input, to open the connection and pre-load the system prompt (internally "prewarm"). It is a real request for the chosen model, so a warm-up answered by another model is evidence too.
 
-Control
-A second model checked alongside (default gpt-5.6-sol) for comparison.
+Control (command line only)
+The terminal version can check a second model right after yours (--control, default gpt-5.6-sol): if that one is served correctly while yours is not, the substitution is specific to your model. The window does not use it.
 
 Effort
 model_reasoning_effort: low / medium / high / xhigh.
@@ -197,6 +194,7 @@ VERDICTS
 ok: served as requested and the turn completed.
 REROUTED: a response object named another model (warm-up or turn, even if it then failed).
 ERROR: the server answered with an error, e.g. server_is_overloaded, which Codex shows as "Selected model is at capacity". Not a substitution; try again.
+UNSUPPORTED: the server refused the model for this account ("not supported when using Codex with a ChatGPT account" and similar). Your plan does not include it; not a substitution.
 UNKNOWN: could not be confirmed. No model field, a turn that never completed, or only the warm-up was seen.
 NO_DATA: no WebSocket frames at all. Codex is not signed in, could not start, or uses a transport this tool cannot read (see the note under the row).
 
@@ -222,8 +220,8 @@ The "Account" line: plan type and the share of the usage window already used. If
 웜업
 Codex가 턴 직전에 스스로 보내는 요청입니다. 사용자 입력 없이 연결을 열고 시스템 프롬프트를 미리 올려 둡니다 (내부 이름 prewarm). 고른 모델로 보내는 진짜 요청이라, 웜업이 다른 모델로 응답돼도 바꿔치기의 증거가 됩니다.
 
-대조군
-비교용으로 같이 검사하는 두 번째 모델입니다 (기본 gpt-5.6-sol).
+대조군 (터미널 전용)
+터미널 버전은 내 모델 바로 뒤에 비교용 모델을 하나 더 검사할 수 있습니다(--control, 기본 gpt-5.6-sol). 그쪽은 정상인데 내 모델만 다르면 "내 모델만 바꿔치기"라는 뜻입니다. 창에서는 쓰지 않습니다.
 
 Effort
 model_reasoning_effort: low / medium / high / xhigh.
@@ -245,6 +243,7 @@ completed / failed / in_progress. 서버가 보고한 값입니다.
 ok: 요청대로 응답했고 턴이 정상 완료됨.
 REROUTED: 응답 객체에 다른 모델명이 있음 (웜업이든 턴이든, 이후 실패했더라도).
 ERROR: 서버 오류. 예: server_is_overloaded, Codex 화면의 "Selected model is at capacity". 바꿔치기가 아니니 다시 시도.
+UNSUPPORTED: 서버가 이 계정에서는 그 모델을 쓸 수 없다고 거절함("not supported when using Codex with a ChatGPT account" 등). 요금제에 없는 모델이며 바꿔치기가 아님.
 UNKNOWN: 확인 불가. model 필드 없음, 턴이 완료 전에 끊김, 웜업만 보임.
 NO_DATA: WebSocket 프레임이 전혀 없음. 로그인 안 됨, Codex 시작 실패, 또는 이 도구가 읽지 못하는 전송 방식 (행 아래 note 참고).
 
@@ -282,6 +281,7 @@ Source and updates: {repo}
 VERDICT_COLORS = {
     "ok": ("#e6f4ea", "#1e7e34"), "REROUTED": ("#fdecea", "#b3261e"), "ERROR": ("#fff4e5", "#9a5b00"),
     "UNKNOWN": ("#eeeeee", "#555555"), "NO_DATA": ("#eeeeee", "#555555"), "CANCELLED": ("#eeeeee", "#555555"),
+    "UNSUPPORTED": ("#fff4e5", "#9a5b00"),
 }
 
 
@@ -392,11 +392,6 @@ class App:
         self.var_model = tk.StringVar(value=self.cfg_model or self.models[0])
         self.cb_model = ttk.Combobox(top, textvariable=self.var_model, values=self.models, width=20)
         self.cb_model.grid(row=0, column=1, **pad)
-        self.lbl_control = ttk.Label(top)
-        self.lbl_control.grid(row=0, column=2, **pad)
-        self.var_control = tk.StringVar(value=cmc.DEFAULT_CONTROL)
-        self.cb_control = ttk.Combobox(top, textvariable=self.var_control, width=16)
-        self.cb_control.grid(row=0, column=3, **pad)
         self.lbl_effort = ttk.Label(top)
         self.lbl_effort.grid(row=0, column=4, **pad)
         self.var_effort = tk.StringVar(value="low")
@@ -497,7 +492,6 @@ class App:
             if win.winfo_exists():
                 self._fill_help(win, kind)
         self.lbl_model.configure(text=self.s("model"))
-        self.lbl_control.configure(text=self.s("control"))
         self.lbl_effort.configure(text=self.s("effort"))
         self.lbl_repeat.configure(text=self.s("repeat"))
         self.chk_wire.configure(text=self.s("wire") if self.have_mitm else self.s("no_mitm"))
@@ -513,10 +507,6 @@ class App:
         self.notes_frame.configure(text=self.s("notes"))
         if self.update_info:
             self.show_update(self.update_info)
-        none_word = self.s("control_none")
-        self.cb_control.configure(values=[none_word] + self.models)
-        if self.var_control.get().strip() in NONE_WORDS:
-            self.var_control.set(none_word)
         for c, key in (("n", "col_n"), ("requested", "col_requested"), ("kind", "col_kind"), ("served", "col_served"),
                        ("status", "col_status"), ("created", "col_created"), ("verdict", "col_verdict"), ("rid", "col_id")):
             self.tree.heading(c, text=self.s(key))
@@ -582,16 +572,13 @@ class App:
 
     # ----------------------------------------------------------------- actions
     def options(self) -> cmc.CheckOptions:
-        control = self.var_control.get().strip()
-        if control in NONE_WORDS:
-            control = None
         try:
             repeat = int(self.var_repeat.get())
         except (tk.TclError, ValueError):
             repeat = 1
         repeat = min(MAX_REPEAT, max(1, repeat))
         self.var_repeat.set(str(repeat))
-        return cmc.CheckOptions(models=[self.var_model.get().strip() or cmc.FALLBACK_MODEL], control=control,
+        return cmc.CheckOptions(models=[self.var_model.get().strip() or cmc.FALLBACK_MODEL], control=None,
                                 effort=self.var_effort.get() or "low", repeat=repeat,
                                 wire=bool(self.var_wire.get()) and self.have_mitm, codex=self.codex_path)
 
@@ -747,6 +734,9 @@ class App:
             text, key = self.s("banner_rerouted", pairs="; ".join(sorted(set(pairs)))), "REROUTED"
         elif res.cancelled:
             text, key = self.s("banner_cancelled"), "CANCELLED"
+        elif res.overall == "UNSUPPORTED":
+            plan = next((p.rate_limits.get("plan_type") for p in res.probes if p.rate_limits), None) or "?"
+            text, key = self.s("banner_unsupported", models=models, plan=plan), "UNSUPPORTED"
         elif res.overall == "OK":
             text, key = self.s("banner_ok", models=models), "ok"
         else:

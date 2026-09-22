@@ -170,6 +170,50 @@ class ServedModelDetection(unittest.TestCase):
         self.assertEqual(headers.get("x-codex-safety-buffering-faster-model"), "gpt-5.6-luna")
 
 
+class UnsupportedModel(unittest.TestCase):
+    MSG = "The 'gpt-5.6-sol' model is not supported when using Codex with a ChatGPT account."
+
+    def test_free_plan_refusal_is_unsupported_not_rerouted(self):
+        # warm-up answered by the plan's default model, then the turn refused: what a Free account sees
+        frames = [
+            {"type": "codex.rate_limits", "plan_type": "free", "rate_limits": {"limit_reached": False, "primary": {"used_percent": 0, "window_minutes": 43200}}},
+            {"type": "response.created", "response": {"id": "resp_w", "model": "gpt-5.6-luna", "status": "in_progress"}},
+            {"type": "response.completed", "response": {"id": "resp_w", "model": "gpt-5.6-luna", "status": "completed"}},
+            {"type": "error", "error": {"type": "invalid_request_error", "code": None, "message": self.MSG}},
+            {"type": "error", "error": {"type": "invalid_request_error", "code": None, "message": self.MSG}},
+        ]
+        responses, errors = cmc.collect_responses(frames)
+        p = probe("gpt-5.6-sol", responses, errors)
+        p.rate_limits = cmc.collect_rate_limits(frames)
+        self.assertTrue(p.unsupported())
+        self.assertEqual(p.verdict(), "UNSUPPORTED")
+        overall, code, lines = cmc.summarize([p])
+        self.assertEqual((overall, code), ("UNSUPPORTED", 1))
+        self.assertIn("cannot use gpt-5.6-sol (plan: free)", lines[0])
+        self.assertNotIn("REROUTED", lines[0])
+
+    def test_unsupported_control_gets_its_own_line(self):
+        c = probe("gpt-5.6-sol", [], [("invalid_request_error", self.MSG)], is_control=True, index=2)
+        m = probe("gpt-5.6-luna", [rec("resp_a", "gpt-5.6-luna")])
+        overall, code, lines = cmc.summarize([m, c])
+        self.assertEqual((overall, code), ("OK", 0))
+        self.assertTrue(any("control: gpt-5.6-sol is not available on this account" in l for l in lines), lines)
+
+    def test_matcher(self):
+        self.assertTrue(cmc.is_unsupported_error("invalid_request_error", self.MSG))
+        self.assertTrue(cmc.is_unsupported_error("model_not_found", None))
+        self.assertFalse(cmc.is_unsupported_error("server_is_overloaded", "Our servers are currently overloaded."))
+
+    def test_control_equal_to_model_is_skipped(self):
+        import codex_routing_detector_gui as g
+        assert g.install_fake_runner()
+        try:
+            res = cmc.run_check(cmc.CheckOptions(models=["gpt-6-astra"], control="GPT-6-ASTRA"))
+        finally:
+            pass
+        self.assertEqual([p.is_control for p in res.probes], [False])
+
+
 class Summary(unittest.TestCase):
     def test_rerouted_summary_names_only_the_rerouted_model_and_counts_responses(self):
         probes = [probe("gpt-5.5", [rec("resp_a", "gpt-5.5", kind="warmup"), rec("resp_b", "gpt-5.5")], index=1),
