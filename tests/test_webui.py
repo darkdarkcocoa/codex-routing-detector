@@ -341,7 +341,7 @@ class Regressions(WebUiBase):
         self.assertNotIn("http://", page.split("<body>")[0])
         self.assertIn("data:font/woff2;base64,", page)
         # the Korean face ships as Google Fonts' unicode-range slices, all embedded
-        self.assertGreater(page.count('font-family: "Gowun Dodum"'), 50)
+        self.assertGreater(page.count('font-family: "Jua"'), 50)
         self.assertNotIn("__FONT_GOWUN_FACES__", page)
 
 

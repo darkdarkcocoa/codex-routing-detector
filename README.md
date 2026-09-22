@@ -307,7 +307,7 @@ The window is a single soft sheet ("Soft Sheet" design, `design_handoff_routing_
 one large verdict card with the lavender cat detective in it, pill-shaped controls, an airy
 result list, and one teal accent on a sage-tinted paper ground. It is rendered by pywebview
 (an embedded browser view) while all checking stays in Python; the mascot pictures and the two
-webfonts (Quicksand, JetBrains Mono, Gowun Dodum) are embedded in the program (`codex_routing_assets.py`,
+webfonts (Fredoka, Jua, JetBrains Mono) are embedded in the program (`codex_routing_assets.py`,
 `codex_routing_fonts.py`), so the window loads nothing from the network.
 `tools/make_assets.py` rebuilds the pictures from the source PNGs and writes `docs/icon.ico`.
 

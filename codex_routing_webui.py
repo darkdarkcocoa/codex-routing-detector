@@ -131,17 +131,17 @@ PAGE = r"""<!DOCTYPE html>
 <title>Codex Routing Detector</title>
 <style>
 /* Embedded fonts (codex_routing_fonts): no request leaves the machine for a font CDN. */
-@font-face { font-family: "Quicksand"; font-style: normal; font-weight: 300 700;
-  src: url(__FONT_QUICKSAND__) format("woff2"); }
+@font-face { font-family: "Fredoka"; font-style: normal; font-weight: 300 700;
+  src: url(__FONT_LATIN__) format("woff2"); }
 @font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 100 800;
   src: url(__FONT_MONO__) format("woff2"); }
-__FONT_GOWUN_FACES__
+__FONT_KO_FACES__
 :root {
   --paper: #f4f6f2; --card: #ffffff; --hairline: #e4e9e2; --chipground: #f2f5f1;
   --quiet: #f4f6f2; --ctrl: #f1f4f0; --pre: #f6f8f5; --disabled: #e7ece6;
   --ink: #2f3a36; --body: #55605b; --muted: #5f6b65; --faint: #6b7671; --caret: #7a857f;
   --accent: #2a7d96; --accent-link: #1f6070;
-  --sans: "Quicksand", "Segoe UI Variable", "Segoe UI", "Gowun Dodum", "Malgun Gothic", system-ui, sans-serif;
+  --sans: "Fredoka", "Segoe UI Variable", "Segoe UI", "Jua", "Malgun Gothic", system-ui, sans-serif;
   --mono: "JetBrains Mono", Consolas, monospace;
 }
 * { box-sizing: border-box; }
@@ -911,21 +911,21 @@ window.addEventListener("pywebviewready", () => {
 """
 
 
-def _gowun_faces() -> str:
+def _korean_faces() -> str:
     """One @font-face per Google Fonts slice: the unicode-range keeps the browser from decoding
     slices the page never uses."""
-    rule = ('@font-face {{ font-family: "Gowun Dodum"; font-style: normal; font-weight: 400;\n'
+    rule = ('@font-face {{ font-family: "Jua"; font-style: normal; font-weight: 400;\n'
             '  src: url(data:font/woff2;base64,{b64}) format("woff2"); unicode-range: {ur}; }}')
-    return "\n".join(rule.format(b64=b64, ur=ur) for ur, b64 in fonts.GOWUN_DODUM)
+    return "\n".join(rule.format(b64=b64, ur=ur) for ur, b64 in fonts.JUA)
 
 
 def build_page() -> str:
     return (PAGE
             .replace("__MASCOT__", _data_uri("mascot_256"))
             .replace("__MOOD_IDLE__", _data_uri("mood_idle_56"))
-            .replace("__FONT_QUICKSAND__", "data:font/woff2;base64," + fonts.FONTS["quicksand"])
+            .replace("__FONT_LATIN__", "data:font/woff2;base64," + fonts.FONTS["fredoka"])
             .replace("__FONT_MONO__", "data:font/woff2;base64," + fonts.FONTS["jetbrains_mono"])
-            .replace("__FONT_GOWUN_FACES__", _gowun_faces()))
+            .replace("__FONT_KO_FACES__", _korean_faces()))
 
 
 # ------------------------------------------------------------------ view model
