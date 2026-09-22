@@ -602,6 +602,31 @@ class UpdateCheck(unittest.TestCase):
         self.assertIn('start "" "C:\\a b\\app.exe" "--updated-from" "1.0"', script)
         self.assertIn('del "%~f0"', script)
 
+    def test_helper_is_started_without_pyinstaller_child_markers(self):
+        import tempfile
+        os.environ["_PYI_PARENT_PROCESS_LEVEL"] = "1"
+        os.environ["_MEIPASS2"] = r"C:\tmp\_MEI1"
+        captured = {}
+
+        class FakeProc:
+            pid = 1
+            returncode = None
+            def poll(self):
+                return None
+
+        real_popen = cmc.subprocess.Popen
+        cmc.subprocess.Popen = lambda *a, **kw: captured.update(kw) or FakeProc()
+        try:
+            d = pathlib.Path(tempfile.mkdtemp())
+            cmc.launch_replacer(d / "app.exe", d / "app.new.exe", ["--updated-from", "1.0"])
+        finally:
+            cmc.subprocess.Popen = real_popen
+            del os.environ["_PYI_PARENT_PROCESS_LEVEL"], os.environ["_MEIPASS2"]
+        env = captured["env"]
+        self.assertNotIn("_PYI_PARENT_PROCESS_LEVEL", env)
+        self.assertNotIn("_MEIPASS2", env)
+        self.assertIn("PATH", env)
+
     def test_same_or_older_release_is_ignored(self):
         self.assertIsNone(cmc.check_for_update(current="1.2.1", fetch=lambda: {"tag_name": "v1.2.1"}))
         self.assertIsNone(cmc.check_for_update(current="1.2.1", fetch=lambda: {"tag_name": "v1.0.0"}))

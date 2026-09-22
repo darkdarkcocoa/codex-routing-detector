@@ -47,7 +47,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-__version__ = "1.2.8"
+__version__ = "1.2.10"
 
 FALLBACK_MODEL = "gpt-6-astra"
 DEFAULT_CONTROL = "gpt-5.6-sol"
@@ -1093,10 +1093,11 @@ def launch_replacer(target: Path, new: Path, relaunch_args: List[str]) -> Path:
     script.write_text(self_update_script(target, new, os.getpid(), relaunch_args), encoding="utf-8")
     base = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NO_WINDOW", 0)
     breakaway = 0x01000000  # CREATE_BREAKAWAY_FROM_JOB: survive a job object that kills children with us
+    env = clean_child_env()
     last_error: Optional[Exception] = None
     for flags in (base | breakaway, base):
         try:
-            p = subprocess.Popen(["cmd.exe", "/c", str(script)], creationflags=flags, close_fds=True,
+            p = subprocess.Popen(["cmd.exe", "/c", str(script)], creationflags=flags, close_fds=True, env=env,
                                  stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except OSError as e:  # breakaway refused by the job: retry without it
             last_error = e
@@ -1106,6 +1107,13 @@ def launch_replacer(target: Path, new: Path, relaunch_args: List[str]) -> Path:
             return script
         last_error = RuntimeError(f"update helper exited at once (code {p.returncode})")
     raise RuntimeError(f"could not start the update helper: {last_error}")
+
+
+def clean_child_env() -> dict:
+    """The environment for the update helper and the relaunched exe. A PyInstaller one-file
+    app marks its own child process with _PYI_* / _MEIPASS2 variables; a new instance that
+    inherits them believes it is that child and never shows a window."""
+    return {k: v for k, v in os.environ.items() if not k.upper().startswith(("_PYI", "_MEIPASS"))}
 
 
 def dir_writable(path: Path) -> bool:
