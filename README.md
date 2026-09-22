@@ -168,13 +168,15 @@ so a probe whose turn failed is `ERROR`, not `ok`.
   streams over HTTP). A custom `model_provider` (Bedrock, OSS) never reaches `chatgpt.com` and
   shows up the same way; it cannot be checked with this tool.
 
-The control probe tells the cases apart: if the control model is served correctly while your
-model is not, the substitution is specific to that model, not a broken account or client.
+On the command line, the optional control probe (`--control`) tells the cases apart: if the
+control model is served correctly while your model is not, the substitution is specific to that
+model, not a broken account or client. The window runs no control probe.
 
 ## Cost and privacy
 
 - Each probe is two small requests (roughly 12-16k input tokens of system prompt and tool
-  definitions, a few output tokens). With the default control that is four requests per run.
+  definitions, a few output tokens). The window sends two requests per check; the command line
+  sends four when its default control model is on.
   They count against your Codex usage like any other turn.
 - Raw logs are kept in the directory printed at the end (a private temp directory unless
   `--out` is given). They contain the server frames: your thread/session ids, the account user
