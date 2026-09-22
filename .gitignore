@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+*.spec
+# The 10 MB exe is attached to GitHub Releases instead of being committed; remove this line to commit it.
+dist/

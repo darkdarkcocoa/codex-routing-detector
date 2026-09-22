@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codex-model-check"
+version = "1.1.2"
+description = "Find out which model actually answers your Codex requests (detects silent model substitution)."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+keywords = ["codex", "openai", "model", "routing", "diagnostics"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+    "Topic :: Utilities",
+]
+dependencies = []
+
+[project.optional-dependencies]
+wire = ["mitmproxy>=7"]
+
+[project.scripts]
+codex-model-check = "codex_model_check:main"
+
+[project.gui-scripts]
+codex-model-check-gui = "codex_model_check_gui:main"
+
+[tool.setuptools]
+py-modules = ["codex_model_check", "codex_model_check_gui"]
