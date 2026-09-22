@@ -1,115 +1,59 @@
 # Codex Routing Detector
 
-`codex-routing-detector`
+Shows which model **actually** answers your Codex requests. Run it, press Check, and it tells
+you whether the `gpt-6-astra` you selected was really served by `gpt-6-astra` or quietly by
+`gpt-5.6-luna`.
 
-Find out which model **actually** answers your Codex requests.
+![Codex Routing Detector after a live check](docs/screenshot.png)
 
-Codex lets you pick a model such as `gpt-6-astra`. The server may answer with a different
-one (for example `gpt-5.6-luna`) without telling the client. The Codex UI and the local
-session logs only record the model you *asked* for, so they cannot show this. This tool runs
-one tiny Codex turn per model and reads the model name that the **server** wrote into its own
-response object (`response.created` / `response.completed`). That field is the model that
-served the request.
+## Why this exists
 
-A run where the substitution was happening (real capture, 2026-09-22 02:24 UTC, re-rendered
-in the current layout; binary path shortened, temp directory name illustrative):
+In September 2026 many Codex users noticed that `gpt-6-astra` suddenly felt like a smaller
+model, alongside bursts of "Selected model is at capacity" errors. Capturing the traffic between
+the Codex client and `chatgpt.com` showed why: the request said `model: gpt-6-astra`, but the
+server's own response object said `model: gpt-5.6-luna`. Requests for `gpt-5.6-sol`, `terra` and
+`luna` in the same minutes were served correctly, the account was nowhere near its usage limit,
+and the client was never told. Codex has a `model/rerouted` notification and a "switched
+because of usage limits" banner in its protocol, and neither fired. The UI kept saying astra;
+the usage meter charged for astra; the answers came from luna. The same thing was reproduced
+independently by other people on ordinary Plus and Pro accounts
+(openai/codex#46632).
 
-```
-$ python codex_routing_detector.py
-running 2 probe(s) with codex-cli 0.153.4 [npm package (native binary)] ...
-  [1/2] gpt-6-astra (low, priority) ... REROUTED (17.2s)
-  [2/2] gpt-5.6-sol (low, priority) ... ERROR (19.7s)
-
-codex-routing-detector 1.1.2   2026-09-22 11:25:26 +0900   method=trace
-codex binary : ~\...\codex.exe  (codex-cli 0.153.4)
-models       : gpt-6-astra (from config.toml); control gpt-5.6-sol
-account      : plan=pro  primary usage=8% of 7-day window  limit_reached=False
-
- # requested        eff    tier      kind    served           status     created    verdict   response id
----------------------------------------------------------------------------------------------------------
- 1 gpt-6-astra      low    priority  warmup  gpt-5.6-luna     completed  02:24:52Z  REROUTED  resp_0b635f3bc..95131c
- 1 gpt-6-astra      low    priority  turn    gpt-5.6-luna     completed  02:24:54Z  REROUTED  resp_0b635f3bc..f051a1
- 2 gpt-5.6-sol      low    priority  warmup  gpt-5.6-sol      completed  02:25:09Z  ok        resp_043668f54..2b27f7
- 2 gpt-5.6-sol      low    priority  turn    gpt-5.6-sol      failed     02:25:11Z  ERROR     resp_043668f54..4f7e6c
-     error server_is_overloaded: Our servers are currently overloaded. Please try again later.
-
-VERDICT: REROUTED - served by a different model: gpt-6-astra -> gpt-5.6-luna (2 of 2 responses).
-control: gpt-5.6-sol probe ended with ERROR.
-raw logs     : ~\AppData\Local\Temp\codex-routing-detector-k3j2x1ab
-```
-
-Twenty minutes later the same account was served correctly (the server-side state changes over
-time, so repeat the check when it matters):
-
-```
- # requested        eff    tier      kind    served           status     created    verdict   response id
----------------------------------------------------------------------------------------------------------
- 1 gpt-6-astra      low    priority  warmup  gpt-6-astra      completed  02:42:38Z  ok        resp_08d709874..f2e677
- 1 gpt-6-astra      low    priority  turn    gpt-6-astra      completed  02:42:39Z  ok        resp_08d709874..94ac0d
- 2 gpt-5.6-sol      low    priority  warmup  gpt-5.6-sol      completed  02:42:46Z  ok        resp_065f40412..5829ee
- 2 gpt-5.6-sol      low    priority  turn    gpt-5.6-sol      completed  02:42:49Z  ok        resp_065f40412..e987f0
-
-VERDICT: OK - gpt-6-astra was served as requested.
-control: gpt-5.6-sol was served correctly.
-```
-
-## Window version (double-click)
+You cannot see this from inside Codex: the UI and the local session logs only record the model
+you *asked for*. This tool reads the model name the **server** puts into its response objects,
+which is the model that actually ran, and reports the mismatch. The state flips over time (the
+same account went REROUTED -> OK -> REROUTED within an hour), so check whenever it matters.
 
 ## Install
 
-Pick one:
+- **Windows, no Python**: download `codex-routing-detector.exe` from
+  [Releases](https://github.com/darkdarkcocoa/codex-routing-detector/releases) and double-click it
+  (SmartScreen warns once: "More info" -> "Run anyway").
+- **Python 3.8+**: `pipx install git+https://github.com/darkdarkcocoa/codex-routing-detector`,
+  then `codex-routing-detector-gui` (window) or `codex-routing-detector` (terminal).
 
-- **Windows, no Python**: download `codex-routing-detector.exe` from the
-  [Releases page](https://github.com/darkdarkcocoa/codex-routing-detector/releases) and double-click it.
-  SmartScreen will warn once ("More info" -> "Run anyway"); the file is not code-signed.
-- **With Python 3.8+** (any OS):
-  ```
-  pipx install git+https://github.com/darkdarkcocoa/codex-routing-detector
-  codex-routing-detector          # command line
-  codex-routing-detector-gui      # window
-  ```
-  (`pip install git+https://github.com/darkdarkcocoa/codex-routing-detector` works too; add
-  `[wire]`, i.e. `...codex-routing-detector[wire]`, to pull in mitmproxy for `--wire`.)
-- **Just the files**: `git clone https://github.com/darkdarkcocoa/codex-routing-detector`, then
-  `python codex_routing_detector.py` or `run_gui.bat`.
+Either way you need a Codex CLI or Codex Desktop that is signed in with ChatGPT.
 
-All three need a Codex install (CLI or Desktop) that is signed in with ChatGPT.
+## The window
 
-![codex-routing-detector window after a live check](docs/screenshot.png)
-
-`codex_routing_detector_gui.py` is the same check behind one **Check** button: pick the model
-(defaults to the one in your `config.toml`), press Check, and the table fills in as each probe
-finishes, with a colored verdict banner and the details underneath. Buttons copy the text
-report, save the JSON report or open the raw-log folder; the button in the corner switches the
-labels between English and Korean (`--lang ko` starts in Korean). If the tool cannot find
-Codex, the details panel says so; the **Codex...** button lets you pick the binary by hand.
-The **Help** menu has the basic instructions, a glossary (warm-up, turn, control, the
-verdicts, trace vs wire mode) and an About box, in the current language.
-
-- **Standalone Windows exe** (no Python needed on the PC that runs it): run `build_exe.bat`
-  once on a PC with Python (it installs PyInstaller) to produce `dist\codex-routing-detector.exe`,
-  a single file you can copy anywhere and double-click. It still needs a signed-in Codex
-  install. Windows SmartScreen warns about unsigned downloads: choose "More info" -> "Run
-  anyway"; some antivirus products also flag PyInstaller one-file executables, in which case
-  use the next option.
-- **With Python installed**: double-click `run_gui.bat` (it starts `pythonw`), or run
-  `python codex_routing_detector_gui.py`.
+Pick the model (defaults to the one in your `config.toml`), press **Check**, and the table
+fills in as each probe finishes, with a colored verdict banner and the details underneath.
+Buttons copy the text report, save it as JSON or open the raw-log folder; the corner button
+switches between English and Korean (`--lang ko` starts in Korean). The **Help** menu holds
+the instructions and a glossary. If Codex is not found, the details say so and the
+**Codex...** button lets you pick the binary by hand.
 
 The window uses the same verdicts, logs and privacy rules as the command line (below), with the
-default prompt, the 240 s timeout and the service tier from `config.toml`; the process exit
-code is not meaningful for the window, read the banner instead.
+default prompt, the 240 s timeout and the service tier from `config.toml`. `run_gui.bat`
+starts the window with an installed Python; `build_exe.bat` rebuilds the exe.
+## How Codex is found
 
-## Requirements
-
-- Python 3.8 or newer. No packages.
-- Codex CLI (`npm i -g @openai/codex`) **or** the Codex Desktop app, signed in with ChatGPT.
-  The tool looks for `codex` on `PATH` and runs the native binary inside the npm package
-  directly (npm and yarn layouts; pnpm only when its `codex` shim is a symlink; falls back to
-  `node codex.js`, and on Windows resolves the `codex.cmd` shim to the binary). Without a CLI it tries
-  the Windows Desktop bundle (`%LOCALAPPDATA%\OpenAI\Codex\bin\*\codex.exe`) and, unverified,
-  `/Applications/Codex.app/Contents/Resources/codex` on macOS. Otherwise pass `--codex PATH`
-  or set `CODEX_BIN`.
-- Optional, for `--wire`: `pip install mitmproxy` (7.0 or newer).
+The tool looks for `codex` on `PATH` and runs the native binary inside the npm package (npm,
+yarn, pnpm-as-symlink; `codex.cmd` on Windows is resolved to the binary). Without a CLI it
+tries the Windows Desktop bundle (`%LOCALAPPDATA%\OpenAI\Codexin\*\codex.exe`) and, unverified,
+`/Applications/Codex.app/Contents/Resources/codex` on macOS. Otherwise pass `--codex PATH`, set
+`CODEX_BIN`, or use the window's **Codex...** button. `--wire` additionally needs
+`pip install mitmproxy` (7.0 or newer).
 
 ## Usage
 
@@ -271,18 +215,23 @@ tree.
 
 ## 한국어 요약
 
-Codex에서 `gpt-6-astra`를 골라도 서버가 `gpt-5.6-luna`로 응답하는 경우가 있습니다. 화면과
-로컬 세션 로그는 "요청한 모델"만 기록하기 때문에 이걸 보여주지 못합니다. 이 도구는 모델마다
-아주 짧은 Codex 턴을 하나 돌리고, **서버가 직접 써서 보낸 응답 객체**(`response.created` /
-`response.completed`)의 `model` 값을 읽어서 실제로 응답한 모델을 알려줍니다.
+**왜 만들었나.** 2026년 9월, Codex에서 `gpt-6-astra`를 골라 쓰는데 답이 갑자기 하위 모델
+수준으로 떨어지고 "Selected model is at capacity" 오류가 잦아졌습니다. 통신을 캡처해 보니
+요청은 `model: gpt-6-astra`였는데 서버가 돌려준 응답 객체에는 `model: gpt-5.6-luna`가
+적혀 있었습니다. 같은 시간에 sol·terra·luna 요청은 정상이었고, 사용량 한도도 한참 남아
+있었고, 클라이언트에는 아무 알림도 없었습니다. 화면은 astra, 사용량 차감도 astra, 실제
+답은 luna. 정상 결제한 Plus·Pro 계정에서도 똑같이 재현됐습니다 (openai/codex#46632).
 
-설치는 셋 중 하나예요.
+Codex 화면과 로컬 로그는 "요청한 모델"만 기록하기 때문에 이걸 보여주지 못합니다. 이 도구는
+모델마다 아주 짧은 Codex 턴을 하나 돌리고, **서버가 직접 써서 보낸 응답 객체**의 `model`
+값을 읽어서 실제로 응답한 모델을 알려줍니다. 서버 상태는 시간에 따라 바뀌니(같은 계정이
+한 시간 안에 정상 ↔ 바꿔치기를 오갔습니다) 필요할 때마다 돌려 보세요.
 
-- Windows, Python 없음: [Releases](https://github.com/darkdarkcocoa/codex-routing-detector/releases)에서
-  `codex-routing-detector.exe`를 받아 더블클릭.
-- Python 3.8+: `pipx install git+https://github.com/darkdarkcocoa/codex-routing-detector` 후
-  `codex-routing-detector`(터미널) 또는 `codex-routing-detector-gui`(창).
-- 소스 그대로: `git clone` 후 `python codex_routing_detector.py` 또는 `run_gui.bat`.
+**설치.** Windows에서 Python 없이 쓰려면 [Releases](https://github.com/darkdarkcocoa/codex-routing-detector/releases)의
+`codex-routing-detector.exe`를 받아 더블클릭(SmartScreen 경고는 "추가 정보" → "실행").
+Python 3.8+가 있으면 `pipx install git+https://github.com/darkdarkcocoa/codex-routing-detector`
+후 `codex-routing-detector-gui`(창) 또는 `codex-routing-detector`(터미널). 어느 쪽이든
+로그인된 Codex CLI나 Codex Desktop이 필요합니다.
 
 ```
 python codex_routing_detector.py                # config.toml의 모델 + 대조군(gpt-5.6-sol) 확인
@@ -291,16 +240,12 @@ python codex_routing_detector.py -r 3           # 3번 반복
 python codex_routing_detector.py --wire         # mitmproxy로 패킷 수준 확인 (pip install mitmproxy)
 ```
 
-- 창 버전: `run_gui.bat`을 더블클릭하거나(Python 필요) `build_exe.bat`으로 만든
-  `dist\codex-routing-detector.exe`를 더블클릭하면 창이 뜹니다(exe는 Python 불필요, 로그인된
-  Codex는 필요). 모델을 고르고 **Check**를 누르면 표와 판정 배너, 상세 내용이 표시되고,
+- 창 버전: 모델을 고르고 **Check**를 누르면 표와 판정 배너, 상세 내용이 표시되고,
   보고서 복사·JSON 저장·로그 폴더 열기 버튼이 있습니다. 오른쪽 아래 버튼으로 한국어/영어를
   바꿀 수 있고(`--lang ko`로 시작 가능), Codex를 못 찾으면 **Codex...** 버튼으로 실행 파일을
   직접 고를 수 있어요. 상단 **도움말** 메뉴에 기본 사용법·용어 설명(웜업, 턴, 대조군, 판정,
-  trace/wire 모드)·정보가 있어요. exe는 서명이 없어서 처음 실행할 때 SmartScreen 경고가 뜨면
-  "추가 정보" → "실행"을 누르면 되고, 백신이 막으면 `run_gui.bat`을 쓰세요.
+  trace/wire 모드)·정보가 있어요. 백신이 exe를 막으면 `run_gui.bat`(Python 필요)을 쓰세요.
 
-- 필요한 것: Python 3.8+ (exe 버전은 불필요), 로그인된 Codex CLI 또는 Codex Desktop. 추가 패키지 없음.
 - 결과: `REROUTED`(다른 모델이 응답) / `ok`(요청대로) / `ERROR`(서버 오류, 예: capacity) /
   `UNKNOWN`(확인 불가: `model` 필드가 없거나, 턴이 `completed`까지 가지 못했거나, 웜업 응답만
   보임. 행 아래 note에 이유가 적힘) / `NO_DATA`(WebSocket 프레임 없음. 행 아래의
