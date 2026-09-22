@@ -1,5 +1,7 @@
 # Codex Routing Detector
 
+[한국어 설명 (Korean)](README.ko.md)
+
 Shows which model **actually** answers your Codex requests. Run it, press Check, and it tells
 you whether the `gpt-6-astra` you selected was really served by `gpt-6-astra` or quietly by
 `gpt-5.6-luna`.
@@ -220,63 +222,3 @@ The fixtures under `tests/fixtures` are two complete trace runs from 2026-09-22 
 replaced by a placeholder: an astra request served by luna, and a request that ended in
 `server_is_overloaded`. One test also checks that a timed-out probe kills its whole process
 tree.
-
----
-
-## 한국어 요약
-
-**왜 만들었나.** 2026년 9월, Codex에서 `gpt-6-astra`를 골라 쓰는데 답이 갑자기 하위 모델
-수준으로 떨어지고 "Selected model is at capacity" 오류가 잦아졌습니다. 통신을 캡처해 보니
-요청은 `model: gpt-6-astra`였는데 서버가 돌려준 응답 객체에는 `model: gpt-5.6-luna`가
-적혀 있었습니다. 같은 시간에 sol·terra·luna 요청은 정상이었고, 사용량 한도도 한참 남아
-있었고, 클라이언트에는 아무 알림도 없었습니다. 화면은 astra, 사용량 차감도 astra, 실제
-답은 luna. 정상 결제한 Plus·Pro 계정에서도 똑같이 재현됐습니다.
-
-Codex 화면과 로컬 로그는 "요청한 모델"만 기록하기 때문에 이걸 보여주지 못합니다. 이 도구는
-모델마다 아주 짧은 Codex 턴을 하나 돌리고, **서버가 직접 써서 보낸 응답 객체**의 `model`
-값을 읽어서 실제로 응답한 모델을 알려줍니다. 서버 상태는 시간에 따라 바뀌니(같은 계정이
-한 시간 안에 정상 ↔ 바꿔치기를 오갔습니다) 필요할 때마다 돌려 보세요.
-
-**설치.** Windows에서 Python 없이 쓰려면 [Releases](https://github.com/darkdarkcocoa/codex-routing-detector/releases)의
-`codex-routing-detector.exe`를 받아 더블클릭(SmartScreen 경고는 "추가 정보" → "실행").
-Python 3.8+가 있으면 `pipx install git+https://github.com/darkdarkcocoa/codex-routing-detector`
-후 `codex-routing-detector-gui`(창) 또는 `codex-routing-detector`(터미널). 어느 쪽이든
-로그인된 Codex CLI나 Codex Desktop이 필요합니다.
-
-```
-python codex_routing_detector.py                # config.toml의 모델 + 대조군(gpt-5.6-sol) 확인
-python codex_routing_detector.py -m gpt-6-astra # 특정 모델만
-python codex_routing_detector.py -r 3           # 3번 반복
-python codex_routing_detector.py --wire         # mitmproxy로 패킷 수준 확인 (pip install mitmproxy)
-```
-
-- 창 버전: 모델을 고르고 **Check**를 누르면 표와 판정 배너, 상세 내용이 표시되고,
-  보고서 복사·JSON 저장·로그 폴더 열기 버튼이 있습니다. 오른쪽 아래 버튼으로 한국어/영어를
-  바꿀 수 있고(`--lang ko`로 시작 가능), Codex를 못 찾으면 **Codex...** 버튼으로 실행 파일을
-  직접 고를 수 있어요. 상단 **도움말** 메뉴에 기본 사용법·용어 설명(웜업, 턴, 대조군, 판정,
-  trace/wire 모드)·정보가 있어요. 백신이 exe를 막으면 `run_gui.bat`(Python 필요)을 쓰세요.
-
-- 결과: `REROUTED`(다른 모델이 응답) / `ok`(요청대로) / `ERROR`(서버 오류, 예: capacity) /
-  `UNKNOWN`(확인 불가: `model` 필드가 없거나, 턴이 `completed`까지 가지 못했거나, 웜업 응답만
-  보임. 행 아래 note에 이유가 적힘) / `NO_DATA`(WebSocket 프레임 없음. 행 아래의
-  note에 Codex 종료 코드와 마지막 오류 줄이 적힙니다: 로그인 안 됨 등. 정상 종료인데 프레임이
-  없으면 구버전 Codex이니 `--wire` 사용. 사용자 지정 provider는 확인 불가).
-- 프로브마다 새 Codex 세션을 씁니다(`--ephemeral`을 지원하는 버전이면 사용, 샌드박스
-  read-only). 아래 "Without Python"의 수동 명령에서 구버전이면 `--ephemeral`을 빼세요.
-- 종료 코드: 0 정상, 2 바꿔치기 감지(대조군 포함), 1 확인 실패 또는 인자 오류.
-- 서버 쪽 상태는 시간에 따라 바뀝니다. 같은 계정이 20분 사이에 REROUTED에서 OK로 바뀐 기록이
-  있으니, 필요할 때마다 다시 돌려 보세요.
-- 비용: 실행 한 번에 기본 4개 요청(모델 2개 × 웜업+턴). 일반 사용량으로 차감됩니다.
-- 업데이트: 시작할 때 `api.github.com`에 익명 요청 하나를 보내 새 릴리스가 있는지 봅니다.
-  있으면 오른쪽 아래에 빨간 NEW 배지가 뜨고, **exe 버전은 새 파일을 받아 검증(크기·MZ
-  헤더·SHA-256)한 뒤 자기 자신을 교체하고 새 버전으로 다시 실행**됩니다(시작 직후에만, 검사
-  중에는 안 함, 폴더에 쓰기 가능할 때만). `--no-auto-update`면 배지만 표시하고,
-  `--no-update-check` 또는 `CODEX_ROUTING_DETECTOR_NO_UPDATE=1`이면 확인 자체를 안 합니다.
-  pip/pipx 설치는 배지와 `pipx upgrade codex-routing-detector` 안내만 나옵니다.
-- 로그: 마지막 줄에 찍힌 폴더에 서버 프레임 원문이 남습니다. 스레드 ID, 계정 사용자 ID
-  (`safety_identifier`), 프롬프트, 플랜/사용량이 들어 있고, 토큰·쿠키·요청 본문(작업 폴더
-  경로 포함)은 기록되지 않습니다. `--json` 보고서에는 사용자 이름이 든 경로가 없습니다.
-- `--wire` 모드에서는 프로브 동안 Codex가 보내는 모든 HTTPS 요청이 이 도구가 띄운 로컬
-  mitmproxy를 지나갑니다(기록되는 것은 responses WebSocket뿐). 저장되는 기록에서 클라이언트
-  요청 프레임은 `model`·`service_tier`·`reasoning` 같은 라우팅 필드만 남기고 프롬프트·도구
-  목록·메타데이터는 버립니다. 인증서는 임시 폴더에 만들고 끝나면 지웁니다.
