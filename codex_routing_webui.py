@@ -135,6 +135,7 @@ PAGE = r"""<!DOCTYPE html>
   src: url(__FONT_QUICKSAND__) format("woff2"); }
 @font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 100 800;
   src: url(__FONT_MONO__) format("woff2"); }
+__FONT_GOWUN_FACES__
 :root {
   --paper: #f4f6f2; --card: #ffffff; --hairline: #e4e9e2; --chipground: #f2f5f1;
   --quiet: #f4f6f2; --ctrl: #f1f4f0; --pre: #f6f8f5; --disabled: #e7ece6;
@@ -910,12 +911,21 @@ window.addEventListener("pywebviewready", () => {
 """
 
 
+def _gowun_faces() -> str:
+    """One @font-face per Google Fonts slice: the unicode-range keeps the browser from decoding
+    slices the page never uses."""
+    rule = ('@font-face {{ font-family: "Gowun Dodum"; font-style: normal; font-weight: 400;\n'
+            '  src: url(data:font/woff2;base64,{b64}) format("woff2"); unicode-range: {ur}; }}')
+    return "\n".join(rule.format(b64=b64, ur=ur) for ur, b64 in fonts.GOWUN_DODUM)
+
+
 def build_page() -> str:
     return (PAGE
             .replace("__MASCOT__", _data_uri("mascot_256"))
             .replace("__MOOD_IDLE__", _data_uri("mood_idle_56"))
             .replace("__FONT_QUICKSAND__", "data:font/woff2;base64," + fonts.FONTS["quicksand"])
-            .replace("__FONT_MONO__", "data:font/woff2;base64," + fonts.FONTS["jetbrains_mono"]))
+            .replace("__FONT_MONO__", "data:font/woff2;base64," + fonts.FONTS["jetbrains_mono"])
+            .replace("__FONT_GOWUN_FACES__", _gowun_faces()))
 
 
 # ------------------------------------------------------------------ view model
@@ -1818,12 +1828,22 @@ def main(argv: Optional[List[str]] = None) -> int:
     except Exception as e:  # a windowed build has no console: show the reason instead of dying silently
         tkgui._report_startup_error(f"{APP_TITLE} could not start: {type(e).__name__}: {e}")
         return 1
+    # The page goes through a temp file, not create_window(html=...): with the embedded fonts it
+    # is larger than the ~2 MB WebView2 NavigateToString limit, which fails with a blank window.
+    page_dir: Optional[str] = None
     try:
-        window = webview.create_window(APP_TITLE, html=build_page(), js_api=JsApi(app),
+        import shutil
+        import tempfile
+        page_dir = tempfile.mkdtemp(prefix="codex-routing-ui-")
+        page_path = Path(page_dir) / "codex-routing-detector.html"
+        page_path.write_text(build_page(), encoding="utf-8")
+        window = webview.create_window(APP_TITLE, url=page_path.as_uri(), js_api=JsApi(app),
                                        width=1240, height=1000, min_size=(1000, 800),
                                        background_color="#f4f6f2", text_select=True)
     except Exception as e:
         note(f"web view not available ({type(e).__name__}: {e}); falling back to the tkinter window")
+        if page_dir:
+            shutil.rmtree(page_dir, ignore_errors=True)
         return fall_back()
     app.window = window
     window.events.closing += app.on_closing
@@ -1849,8 +1869,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         webview.start()
     except Exception as e:
         note(f"web view could not start ({type(e).__name__}: {e}); falling back to the tkinter window")
+        shutil.rmtree(page_dir, ignore_errors=True)
         return fall_back()
     app.shutdown()
+    shutil.rmtree(page_dir, ignore_errors=True)
     return 0
 
 

@@ -218,7 +218,7 @@ pip/pipx 설치는 건드리지 않고 배지와 `pipx upgrade codex-routing-det
 (`design_handoff_routing_detector_ui/`): 라벤더 고양이 탐정 마스코트가 판정 카드 안에서
 상태에 따라 움직이고, 컨트롤은 알약(pill) 모양, 결과는 여백 있는 목록, 색은 세이지 톤 배경
 위에 청록 강조색 하나입니다. 화면은 pywebview(내장 브라우저 뷰)가 그리고 검사 로직은 전부
-Python에 남아 있습니다. 마스코트 그림과 웹폰트 두 종(Quicksand, JetBrains Mono)은 프로그램에
+Python에 남아 있습니다. 마스코트 그림과 웹폰트 세 종(Quicksand, JetBrains Mono, 고운돋움)은 프로그램에
 내장되어 있어(`codex_routing_assets.py`, `codex_routing_fonts.py`) 창이 네트워크에서 아무것도
 받아 오지 않습니다. `tools/make_assets.py`가 원본 PNG에서 그림을 다시 만들어 줍니다
 (`docs/icon.ico` 포함).

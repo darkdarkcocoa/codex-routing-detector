@@ -103,6 +103,7 @@ class GuiSmoke(unittest.TestCase):
         self.assertIn("plan gating", self.app.lbl_brief.cget("text"))
 
     def test_briefing_text_in_both_languages(self):
+        self.app.var_model.set("gpt-6-astra")  # not this machine's config.toml default
         self.app.start_check()
         self._pump(15)
         en = self.app.lbl_brief.cget("text")
@@ -329,6 +330,7 @@ class GuiSmoke(unittest.TestCase):
         self.assertEqual(self.app.result.error, "after")  # the loop kept polling
 
     def test_copy_report_puts_full_ids_on_clipboard(self):
+        self.app.var_model.set("gpt-6-astra")  # not this machine's config.toml default
         self.app.start_check()
         self._pump(15)
         self.app.copy_report()
