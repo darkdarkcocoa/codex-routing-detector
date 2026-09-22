@@ -47,11 +47,12 @@ the instructions and a glossary. If Codex is not found, the details say so and t
 The window uses the same verdicts, logs and privacy rules as the command line (below), with the
 default prompt, the 240 s timeout and the service tier from `config.toml`. `run_gui.bat`
 starts the window with an installed Python; `build_exe.bat` rebuilds the exe.
+
 ## How Codex is found
 
 The tool looks for `codex` on `PATH` and runs the native binary inside the npm package (npm,
 yarn, pnpm-as-symlink; `codex.cmd` on Windows is resolved to the binary). Without a CLI it
-tries the Windows Desktop bundle (`%LOCALAPPDATA%\OpenAI\Codexin\*\codex.exe`) and, unverified,
+tries the Windows Desktop bundle (`%LOCALAPPDATA%\OpenAI\Codex\bin\*\codex.exe`) and, unverified,
 `/Applications/Codex.app/Contents/Resources/codex` on macOS. Otherwise pass `--codex PATH`, set
 `CODEX_BIN`, or use the window's **Codex...** button. `--wire` additionally needs
 `pip install mitmproxy` (7.0 or newer).
