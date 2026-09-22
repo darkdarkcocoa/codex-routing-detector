@@ -174,6 +174,20 @@ class GuiSmoke(unittest.TestCase):
         self.assertIn(cmc.__version__, about)
         self.assertIs(self.app.show_help("terms"), win)  # reused, not duplicated
 
+    def test_github_link_opens_the_repository(self):
+        import webbrowser
+        opened = []
+        original = webbrowser.open
+        webbrowser.open = lambda url, *a, **k: opened.append(url) or True
+        try:
+            self.assertIn("<Button-1>", self.app.link_github.bind())  # click is wired up
+            self.app.open_repo()  # a withdrawn window does not receive synthetic clicks
+        finally:
+            webbrowser.open = original
+        self.assertEqual(opened, [gui.REPO_URL])
+        self.assertIsNotNone(self.app.github_icon)
+        self.assertIn(gui.REPO_URL, self.app.show_help("about").help_text.get("1.0", "end"))
+
     def test_poll_survives_a_bad_message(self):
         self.app.q.put(("progress", "probe_done", {"probe": object()}))  # malformed probe
         self._pump(1)

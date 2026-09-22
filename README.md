@@ -16,8 +16,7 @@ server's own response object said `model: gpt-5.6-luna`. Requests for `gpt-5.6-s
 and the client was never told. Codex has a `model/rerouted` notification and a "switched
 because of usage limits" banner in its protocol, and neither fired. The UI kept saying astra;
 the usage meter charged for astra; the answers came from luna. The same thing was reproduced
-independently by other people on ordinary Plus and Pro accounts
-(openai/codex#46632).
+independently by other people on ordinary Plus and Pro accounts.
 
 You cannot see this from inside Codex: the UI and the local session logs only record the model
 you *asked for*. This tool reads the model name the **server** puts into its response objects,
@@ -167,8 +166,7 @@ model is not, the substitution is specific to that model, not a broken account o
 
 If you see `REROUTED`, the useful facts for a bug report are the response ids, the
 `created_at` times (UTC), the requested/served pair, your plan type and usage line, and the
-Codex version. `--json` writes all of them. A public tracker for the `gpt-6-astra` ->
-`gpt-5.6-luna` case is openai/codex issue #46632.
+Codex version. `--json` writes all of them.
 
 ## Without Python
 
@@ -220,7 +218,7 @@ tree.
 요청은 `model: gpt-6-astra`였는데 서버가 돌려준 응답 객체에는 `model: gpt-5.6-luna`가
 적혀 있었습니다. 같은 시간에 sol·terra·luna 요청은 정상이었고, 사용량 한도도 한참 남아
 있었고, 클라이언트에는 아무 알림도 없었습니다. 화면은 astra, 사용량 차감도 astra, 실제
-답은 luna. 정상 결제한 Plus·Pro 계정에서도 똑같이 재현됐습니다 (openai/codex#46632).
+답은 luna. 정상 결제한 Plus·Pro 계정에서도 똑같이 재현됐습니다.
 
 Codex 화면과 로컬 로그는 "요청한 모델"만 기록하기 때문에 이걸 보여주지 못합니다. 이 도구는
 모델마다 아주 짧은 Codex 턴을 하나 돌리고, **서버가 직접 써서 보낸 응답 객체**의 `model`

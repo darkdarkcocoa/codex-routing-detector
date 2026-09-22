@@ -29,6 +29,12 @@ from tkinter import filedialog, messagebox, ttk
 import codex_routing_detector as cmc
 
 APP_TITLE = "Codex Routing Detector"
+REPO_URL = "https://github.com/darkdarkcocoa/codex-routing-detector"
+# 16x16 GitHub-style mark (dark disc, white silhouette), embedded so the exe needs no image file.
+GITHUB_ICON_PNG_B64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXElEQVR42mNgwAJUNPX/Y8MMhAAujUQZRKxmrIbABGGAWD5BA9AxVgOwKSAEULyC"
+    "yxZiNA9SA/AZgjU6CYU4oZjBmYjQ4x9vYiI23olKjcQaQFR+wBny5OZKbGoBaIzPPu93aOcAAAAASUVORK5CYII="
+)
 FALLBACK_MODELS = ["gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5"]
 EFFORTS = ["low", "medium", "high", "xhigh"]
 MAX_REPEAT = 10
@@ -243,18 +249,19 @@ HELP_ABOUT = {
 
 Shows which model actually answers your Codex requests, by reading the model name the server
 writes into its own response objects. Built on 2026-09-22 after wire captures showed
-gpt-6-astra requests being served by gpt-5.6-luna on a ChatGPT Pro account
-(public tracker: openai/codex issue #46632).
+gpt-6-astra requests being served by gpt-5.6-luna on a ChatGPT Pro account.
 
 The command-line version (codex_routing_detector.py) has more options; see README.md.
+Source and updates: {repo}
 """,
     "ko": """codex-routing-detector v{version}
 
 서버가 응답 객체에 적은 모델명을 읽어서, Codex 요청에 실제로 어떤 모델이 응답했는지
 보여줍니다. 2026-09-22에 ChatGPT Pro 계정에서 gpt-6-astra 요청이 gpt-5.6-luna로 처리되는
-것을 패킷 캡처로 확인한 뒤 만들었습니다 (공개 이슈: openai/codex #46632).
+것을 패킷 캡처로 확인한 뒤 만들었습니다.
 
 명령줄 버전(codex_routing_detector.py)에 더 많은 옵션이 있습니다. README.md를 참고하세요.
+소스와 업데이트: {repo}
 """,
 }
 
@@ -443,6 +450,14 @@ class App:
         self.btn_logs = ttk.Button(bottom, command=self.open_logs, state="disabled")
         self.btn_logs.pack(side="left", padx=4)
         ttk.Label(bottom, text=f"v{cmc.__version__}").pack(side="right", padx=8)
+        try:
+            self.github_icon = tk.PhotoImage(data=GITHUB_ICON_PNG_B64)
+        except tk.TclError:  # very old Tk without PNG support: text-only link
+            self.github_icon = None
+        self.link_github = tk.Label(bottom, text="GitHub", image=self.github_icon, compound="left",
+                                    fg="#0969da", cursor="hand2", padx=4)
+        self.link_github.pack(side="right", padx=6)
+        self.link_github.bind("<Button-1>", lambda _e: self.open_repo())
         self.btn_lang = ttk.Button(bottom, command=self.toggle_language)
         self.btn_lang.pack(side="right", padx=4)
 
@@ -500,7 +515,7 @@ class App:
     # ------------------------------------------------------------------- help
     def help_text(self, kind: str) -> str:
         table = {"usage": HELP_USAGE, "terms": HELP_TERMS, "about": HELP_ABOUT}[kind]
-        return table[self.lang].format(version=cmc.__version__)
+        return table[self.lang].format(version=cmc.__version__, repo=REPO_URL)
 
     def show_help(self, kind: str) -> tk.Toplevel:
         win = self.help_windows.get(kind)
@@ -751,6 +766,10 @@ class App:
     def open_logs(self) -> None:
         if self.result is not None and self.result.outdir:
             open_folder(self.result.outdir)
+
+    def open_repo(self) -> None:
+        import webbrowser
+        webbrowser.open(REPO_URL)
 
 
 def _enable_dpi_awareness() -> None:
