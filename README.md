@@ -35,18 +35,43 @@ same account went REROUTED -> OK -> REROUTED within an hour), so check whenever 
 
 Either way you need a Codex CLI or Codex Desktop that is signed in with ChatGPT.
 
-## The window
+## Quick start
 
-Pick the model (defaults to the one in your `config.toml`), press **Check**, and the table
-fills in as each probe finishes, with a colored verdict banner and the details underneath.
-Buttons copy the text report, save it as JSON or open the raw-log folder; the corner button
-switches between English and Korean (`--lang ko` starts in Korean). The **Help** menu holds
-the instructions and a glossary. If Codex is not found, the details say so and the
-**Codex...** button lets you pick the binary by hand.
+No setup. Open it and press **Check**.
 
-The window uses the same verdicts, logs and privacy rules as the command line (below), with the
-default prompt, the 240 s timeout and the service tier from `config.toml`. `run_gui.bat`
-starts the window with an installed Python; `build_exe.bat` rebuilds the exe.
+1. Start `codex-routing-detector.exe` (or `codex-routing-detector-gui`).
+2. Press **Check**. It already knows your model from `~/.codex/config.toml` and your Codex login.
+3. About 30 seconds later, read the banner:
+   - **REROUTED: gpt-6-astra -> gpt-5.6-luna** (red): the server answered with a different model.
+   - **OK** (green): the model you chose answered.
+   - **Could not check** (orange): a server error such as "at capacity". Press Check again.
+
+That is the whole check. Everything below is optional.
+
+## More details (optional)
+
+- **Model / Control**: *Model* is the one you want to test. *Control* is a second model checked
+  right after it for comparison (default `gpt-5.6-sol`). If the control is fine while your model
+  is not, the substitution is specific to that model, not to your account or client. Set it to
+  `(none)` for a quicker, cheaper run.
+- **Repeat**: run the check N times (1 to 10). The server's behaviour changes over time, so
+  three runs tell you whether it is stable or flickering.
+- **Effort**: reasoning effort sent with the probe. `low` is the cheapest; the substitution seen
+  so far did not depend on it.
+- **Wire mode**: same verdict, different evidence. The default reads the server frames from
+  inside the Codex process; wire mode records the traffic outside it with mitmproxy, including
+  what Codex sent. Use it when you need to convince someone else. Needs `pip install mitmproxy`.
+- **Codex... / auto-detect**: the tool finds your `codex` binary by itself (PATH, npm package,
+  Codex Desktop bundle). The button is only for the rare case where it cannot.
+- **warm-up / turn**: Codex sends two requests per session. The *warm-up* is an automatic
+  request with no user input that opens the connection; the *turn* is the real prompt. Both are
+  listed. Either one answered by another model counts as REROUTED; **ok** needs the turn.
+- **Copy report / Save JSON / Open log folder**: the text report with full response ids (for a
+  bug report or a support ticket), the same as JSON, and the raw server frames.
+- **NEW badge / auto-update**: at startup the app looks for a newer release. The exe downloads
+  it, verifies it and restarts itself; the badge at the bottom right links to the release page.
+  See "Cost and privacy" for how to turn that off.
+- **한국어 / English** switches every label, the help texts included.
 
 ## How Codex is found
 
