@@ -1,4 +1,6 @@
-# codex-model-check
+# Codex Routing Detector
+
+`codex-routing-detector`
 
 Find out which model **actually** answers your Codex requests.
 
@@ -13,12 +15,12 @@ A run where the substitution was happening (real capture, 2026-09-22 02:24 UTC, 
 in the current layout; binary path shortened, temp directory name illustrative):
 
 ```
-$ python codex_model_check.py
+$ python codex_routing_detector.py
 running 2 probe(s) with codex-cli 0.153.4 [npm package (native binary)] ...
   [1/2] gpt-6-astra (low, priority) ... REROUTED (17.2s)
   [2/2] gpt-5.6-sol (low, priority) ... ERROR (19.7s)
 
-codex-model-check 1.1.2   2026-09-22 11:25:26 +0900   method=trace
+codex-routing-detector 1.1.2   2026-09-22 11:25:26 +0900   method=trace
 codex binary : ~\...\codex.exe  (codex-cli 0.153.4)
 models       : gpt-6-astra (from config.toml); control gpt-5.6-sol
 account      : plan=pro  primary usage=8% of 7-day window  limit_reached=False
@@ -33,7 +35,7 @@ account      : plan=pro  primary usage=8% of 7-day window  limit_reached=False
 
 VERDICT: REROUTED - served by a different model: gpt-6-astra -> gpt-5.6-luna (2 of 2 responses).
 control: gpt-5.6-sol probe ended with ERROR.
-raw logs     : ~\AppData\Local\Temp\codex-model-check-k3j2x1ab
+raw logs     : ~\AppData\Local\Temp\codex-routing-detector-k3j2x1ab
 ```
 
 Twenty minutes later the same account was served correctly (the server-side state changes over
@@ -57,25 +59,25 @@ control: gpt-5.6-sol was served correctly.
 
 Pick one:
 
-- **Windows, no Python**: download `codex-model-check.exe` from the
-  [Releases page](https://github.com/darkdarkcocoa/codex-model-check/releases) and double-click it.
+- **Windows, no Python**: download `codex-routing-detector.exe` from the
+  [Releases page](https://github.com/darkdarkcocoa/codex-routing-detector/releases) and double-click it.
   SmartScreen will warn once ("More info" -> "Run anyway"); the file is not code-signed.
 - **With Python 3.8+** (any OS):
   ```
-  pipx install git+https://github.com/darkdarkcocoa/codex-model-check
-  codex-model-check          # command line
-  codex-model-check-gui      # window
+  pipx install git+https://github.com/darkdarkcocoa/codex-routing-detector
+  codex-routing-detector          # command line
+  codex-routing-detector-gui      # window
   ```
-  (`pip install git+https://github.com/darkdarkcocoa/codex-model-check` works too; add
-  `[wire]`, i.e. `...codex-model-check[wire]`, to pull in mitmproxy for `--wire`.)
-- **Just the files**: `git clone https://github.com/darkdarkcocoa/codex-model-check`, then
-  `python codex_model_check.py` or `run_gui.bat`.
+  (`pip install git+https://github.com/darkdarkcocoa/codex-routing-detector` works too; add
+  `[wire]`, i.e. `...codex-routing-detector[wire]`, to pull in mitmproxy for `--wire`.)
+- **Just the files**: `git clone https://github.com/darkdarkcocoa/codex-routing-detector`, then
+  `python codex_routing_detector.py` or `run_gui.bat`.
 
 All three need a Codex install (CLI or Desktop) that is signed in with ChatGPT.
 
-![codex-model-check window after a live check](docs/screenshot.png)
+![codex-routing-detector window after a live check](docs/screenshot.png)
 
-`codex_model_check_gui.py` is the same check behind one **Check** button: pick the model
+`codex_routing_detector_gui.py` is the same check behind one **Check** button: pick the model
 (defaults to the one in your `config.toml`), press Check, and the table fills in as each probe
 finishes, with a colored verdict banner and the details underneath. Buttons copy the text
 report, save the JSON report or open the raw-log folder; the button in the corner switches the
@@ -85,13 +87,13 @@ The **Help** menu has the basic instructions, a glossary (warm-up, turn, control
 verdicts, trace vs wire mode) and an About box, in the current language.
 
 - **Standalone Windows exe** (no Python needed on the PC that runs it): run `build_exe.bat`
-  once on a PC with Python (it installs PyInstaller) to produce `dist\codex-model-check.exe`,
+  once on a PC with Python (it installs PyInstaller) to produce `dist\codex-routing-detector.exe`,
   a single file you can copy anywhere and double-click. It still needs a signed-in Codex
   install. Windows SmartScreen warns about unsigned downloads: choose "More info" -> "Run
   anyway"; some antivirus products also flag PyInstaller one-file executables, in which case
   use the next option.
 - **With Python installed**: double-click `run_gui.bat` (it starts `pythonw`), or run
-  `python codex_model_check_gui.py`.
+  `python codex_routing_detector_gui.py`.
 
 The window uses the same verdicts, logs and privacy rules as the command line (below), with the
 default prompt, the 240 s timeout and the service tier from `config.toml`; the process exit
@@ -112,13 +114,13 @@ code is not meaningful for the window, read the banner instead.
 ## Usage
 
 ```
-python codex_model_check.py                      # model from ~/.codex/config.toml + control
-python codex_model_check.py -m gpt-6-astra       # a specific model
-python codex_model_check.py -m gpt-6-astra -m gpt-5.5 --no-control
-python codex_model_check.py -e high -t priority  # probe with a given effort / service tier
-python codex_model_check.py -r 3                 # repeat each probe 3 times
-python codex_model_check.py --json result.json --full-ids
-python codex_model_check.py --wire               # packet-level capture with mitmproxy
+python codex_routing_detector.py                      # model from ~/.codex/config.toml + control
+python codex_routing_detector.py -m gpt-6-astra       # a specific model
+python codex_routing_detector.py -m gpt-6-astra -m gpt-5.5 --no-control
+python codex_routing_detector.py -e high -t priority  # probe with a given effort / service tier
+python codex_routing_detector.py -r 3                 # repeat each probe 3 times
+python codex_routing_detector.py --json result.json --full-ids
+python codex_routing_detector.py --wire               # packet-level capture with mitmproxy
 ```
 
 | Option | Meaning |
@@ -256,7 +258,7 @@ python -m unittest discover -s tests -v
 ```
 
 `tests/test_gui.py` builds the window off-screen and drives it with the fixture runs; it is
-skipped where tkinter has no display. `python codex_model_check_gui.py --fake --auto-check`
+skipped where tkinter has no display. `python codex_routing_detector_gui.py --fake --auto-check`
 shows the window with the fixture data instead of a live check (development only; the exe does
 not include the fixtures).
 
@@ -276,21 +278,21 @@ Codex에서 `gpt-6-astra`를 골라도 서버가 `gpt-5.6-luna`로 응답하는 
 
 설치는 셋 중 하나예요.
 
-- Windows, Python 없음: [Releases](https://github.com/darkdarkcocoa/codex-model-check/releases)에서
-  `codex-model-check.exe`를 받아 더블클릭.
-- Python 3.8+: `pipx install git+https://github.com/darkdarkcocoa/codex-model-check` 후
-  `codex-model-check`(터미널) 또는 `codex-model-check-gui`(창).
-- 소스 그대로: `git clone` 후 `python codex_model_check.py` 또는 `run_gui.bat`.
+- Windows, Python 없음: [Releases](https://github.com/darkdarkcocoa/codex-routing-detector/releases)에서
+  `codex-routing-detector.exe`를 받아 더블클릭.
+- Python 3.8+: `pipx install git+https://github.com/darkdarkcocoa/codex-routing-detector` 후
+  `codex-routing-detector`(터미널) 또는 `codex-routing-detector-gui`(창).
+- 소스 그대로: `git clone` 후 `python codex_routing_detector.py` 또는 `run_gui.bat`.
 
 ```
-python codex_model_check.py                # config.toml의 모델 + 대조군(gpt-5.6-sol) 확인
-python codex_model_check.py -m gpt-6-astra # 특정 모델만
-python codex_model_check.py -r 3           # 3번 반복
-python codex_model_check.py --wire         # mitmproxy로 패킷 수준 확인 (pip install mitmproxy)
+python codex_routing_detector.py                # config.toml의 모델 + 대조군(gpt-5.6-sol) 확인
+python codex_routing_detector.py -m gpt-6-astra # 특정 모델만
+python codex_routing_detector.py -r 3           # 3번 반복
+python codex_routing_detector.py --wire         # mitmproxy로 패킷 수준 확인 (pip install mitmproxy)
 ```
 
 - 창 버전: `run_gui.bat`을 더블클릭하거나(Python 필요) `build_exe.bat`으로 만든
-  `dist\codex-model-check.exe`를 더블클릭하면 창이 뜹니다(exe는 Python 불필요, 로그인된
+  `dist\codex-routing-detector.exe`를 더블클릭하면 창이 뜹니다(exe는 Python 불필요, 로그인된
   Codex는 필요). 모델을 고르고 **Check**를 누르면 표와 판정 배너, 상세 내용이 표시되고,
   보고서 복사·JSON 저장·로그 폴더 열기 버튼이 있습니다. 오른쪽 아래 버튼으로 한국어/영어를
   바꿀 수 있고(`--lang ko`로 시작 가능), Codex를 못 찾으면 **Codex...** 버튼으로 실행 파일을

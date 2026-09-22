@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""codex-model-check GUI: one window, one Check button.
+"""codex-routing-detector GUI: one window, one Check button.
 
-Wraps codex_model_check.run_check() in a tkinter window: pick a model, press Check, and see
+Wraps codex_routing_detector.run_check() in a tkinter window: pick a model, press Check, and see
 which model actually answered. Everything else (how the check works, what the verdicts mean,
 privacy notes) is in README.md.
 
@@ -26,9 +26,9 @@ from typing import Dict, List, Optional
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-import codex_model_check as cmc
+import codex_routing_detector as cmc
 
-APP_TITLE = "codex-model-check"
+APP_TITLE = "Codex Routing Detector"
 FALLBACK_MODELS = ["gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5"]
 EFFORTS = ["low", "medium", "high", "xhigh"]
 MAX_REPEAT = 10
@@ -239,22 +239,22 @@ Wire 모드: 임시 인증서로 로컬 mitmproxy를 띄워 WebSocket 양방향�
 }
 
 HELP_ABOUT = {
-    "en": """codex-model-check v{version}
+    "en": """codex-routing-detector v{version}
 
 Shows which model actually answers your Codex requests, by reading the model name the server
 writes into its own response objects. Built on 2026-09-22 after wire captures showed
 gpt-6-astra requests being served by gpt-5.6-luna on a ChatGPT Pro account
 (public tracker: openai/codex issue #46632).
 
-The command-line version (codex_model_check.py) has more options; see README.md.
+The command-line version (codex_routing_detector.py) has more options; see README.md.
 """,
-    "ko": """codex-model-check v{version}
+    "ko": """codex-routing-detector v{version}
 
 서버가 응답 객체에 적은 모델명을 읽어서, Codex 요청에 실제로 어떤 모델이 응답했는지
 보여줍니다. 2026-09-22에 ChatGPT Pro 계정에서 gpt-6-astra 요청이 gpt-5.6-luna로 처리되는
 것을 패킷 캡처로 확인한 뒤 만들었습니다 (공개 이슈: openai/codex #46632).
 
-명령줄 버전(codex_model_check.py)에 더 많은 옵션이 있습니다. README.md를 참고하세요.
+명령줄 버전(codex_routing_detector.py)에 더 많은 옵션이 있습니다. README.md를 참고하세요.
 """,
 }
 
@@ -743,7 +743,7 @@ class App:
         if self.result is None or self.result.error:
             return
         path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON", "*.json")],
-                                            initialfile="codex-model-check.json")
+                                            initialfile="codex-routing-detector.json")
         if path:
             Path(path).write_text(json.dumps(self.result.json(), indent=2), encoding="utf-8")
             self.var_status.set(self.s("saved", path=cmc.display_path(path)))
@@ -773,7 +773,7 @@ def _report_startup_error(msg: str) -> None:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(prog="codex-model-check-gui", add_help=True)
+    ap = argparse.ArgumentParser(prog="codex-routing-detector-gui", add_help=True)
     ap.add_argument("--lang", default="en", choices=["en", "ko"], help="interface language")
     ap.add_argument("--fake", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--auto-check", action="store_true", help=argparse.SUPPRESS)

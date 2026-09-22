@@ -10,7 +10,7 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-import codex_model_check as cmc  # noqa: E402
+import codex_routing_detector as cmc  # noqa: E402
 
 try:
     import tkinter as tk
@@ -22,7 +22,7 @@ except Exception:  # pragma: no cover - no display
     HAVE_DISPLAY = False
 
 if HAVE_DISPLAY:
-    import codex_model_check_gui as gui  # noqa: E402
+    import codex_routing_detector_gui as gui  # noqa: E402
 
 
 @unittest.skipUnless(HAVE_DISPLAY, "no display for tkinter")
@@ -187,7 +187,7 @@ class GuiSmoke(unittest.TestCase):
         self.app.copy_report()
         self.root.update()
         text = self.root.clipboard_get()
-        self.assertIn("codex-model-check", text)
+        self.assertIn("codex-routing-detector", text)
         self.assertIn("resp_TEST001", text)
 
 
@@ -196,7 +196,7 @@ class RunCheckOffline(unittest.TestCase):
 
     def setUp(self):
         self.orig = cmc.run_capture, cmc.find_codex
-        import codex_model_check_gui as g  # noqa: F401  (import works without a display for this part)
+        import codex_routing_detector_gui as g  # noqa: F401  (import works without a display for this part)
         assert g.install_fake_runner()
 
     def tearDown(self):

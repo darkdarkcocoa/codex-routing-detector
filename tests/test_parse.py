@@ -18,7 +18,7 @@ from contextlib import redirect_stdout
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-import codex_model_check as cmc  # noqa: E402
+import codex_routing_detector as cmc  # noqa: E402
 
 FIX = pathlib.Path(__file__).parent / "fixtures"
 

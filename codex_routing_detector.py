@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""codex-model-check: find out which model actually answers your Codex requests.
+"""codex-routing-detector: find out which model actually answers your Codex requests.
 
 Codex (OpenAI's coding agent) lets you pick a model such as `gpt-6-astra`, but the
 server may answer with a different one. The client UI and the local session logs only
@@ -47,7 +47,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-__version__ = "1.1.2"
+__version__ = "1.2.0"
 
 FALLBACK_MODEL = "gpt-6-astra"
 DEFAULT_CONTROL = "gpt-5.6-sol"
@@ -910,7 +910,7 @@ def render_report(probes: List[Probe], codex_desc: str, codex_version: str, meth
     """(report text, overall verdict, exit code). `summary` overrides summarize() (cancelled runs)."""
     out: List[str] = []
     now = _dt.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %z")
-    out.append(f"codex-model-check {__version__}   {now}   method={method}")
+    out.append(f"codex-routing-detector {__version__}   {now}   method={method}")
     out.append(f"codex binary : {codex_desc}  ({codex_version})")
     out.append(f"models       : {', '.join(sorted({p.requested for p in probes if not p.is_control}))} ({model_source})"
                + (f"; control {', '.join(sorted({p.requested for p in probes if p.is_control}))}" if any(p.is_control for p in probes) else ""))
@@ -954,7 +954,7 @@ def print_report(probes: List[Probe], codex_desc: str, codex_version: str, metho
 def to_json(probes: List[Probe], codex_desc: str, codex_version: str, method: str, overall: str, code: int,
             outdir: Path) -> dict:
     return {
-        "tool": "codex-model-check", "version": __version__,
+        "tool": "codex-routing-detector", "version": __version__,
         "time": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
         "codex": {"command": codex_desc, "version": codex_version}, "method": method,
         "overall": {"verdict": overall, "exit_code": code}, "log_dir": display_path(outdir),
@@ -1058,7 +1058,7 @@ def run_check(opts: CheckOptions, progress=None, cancel: Optional[Canceller] = N
     else:
         models, res.model_source = [FALLBACK_MODEL], "built-in default"
     tier = opts.tier if opts.tier is not None else cfg_tier
-    outdir = Path(opts.out_dir) if opts.out_dir else Path(tempfile.mkdtemp(prefix="codex-model-check-"))
+    outdir = Path(opts.out_dir) if opts.out_dir else Path(tempfile.mkdtemp(prefix="codex-routing-detector-"))
     outdir.mkdir(parents=True, exist_ok=True)
     res.outdir = outdir
 
@@ -1127,7 +1127,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     except Exception:
         pass
     cfg_model, cfg_tier, cfg_source = read_config_values()
-    ap = _Parser(prog="codex-model-check", description=__doc__.split("\n\n")[0],
+    ap = _Parser(prog="codex-routing-detector", description=__doc__.split("\n\n")[0],
                  formatter_class=argparse.RawDescriptionHelpFormatter,
                  epilog="Exit codes: 0 served as requested, 2 served by another model (any probe, control "
                         "included), 1 check failed or usage error.")
@@ -1151,7 +1151,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--json", dest="json_path", metavar="FILE", help="write a machine-readable report")
     ap.add_argument("--out", dest="out_dir", metavar="DIR", help="where to keep raw logs (default: a new temp dir)")
     ap.add_argument("--full-ids", action="store_true", help="print full response ids in the table")
-    ap.add_argument("--version", action="version", version=f"codex-model-check {__version__}")
+    ap.add_argument("--version", action="version", version=f"codex-routing-detector {__version__}")
     a = ap.parse_args(argv)
     if a.repeat < 1:
         ap.error("--repeat must be at least 1")
