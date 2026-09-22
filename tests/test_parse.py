@@ -596,6 +596,7 @@ class UpdateCheck(unittest.TestCase):
         script = cmc.self_update_script(pathlib.Path(r"C:\a b\app.exe"), pathlib.Path(r"C:\a b\app.new.exe"), 4321, ["--updated-from", "1.0"])
         self.assertIn('find " 4321 "', script)   # padded, so PID 14321 would not match
         self.assertIn('move /y "C:\\a b\\app.new.exe" "C:\\a b\\app.exe"', script)
+        self.assertIn("app.new.update.log", script)
         self.assertIn('start "" "C:\\a b\\app.exe" "--updated-from" "1.0"', script)
         self.assertIn('del "%~f0"', script)
 

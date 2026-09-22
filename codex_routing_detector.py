@@ -47,7 +47,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-__version__ = "1.2.4"
+__version__ = "1.2.6"
 
 FALLBACK_MODEL = "gpt-6-astra"
 DEFAULT_CONTROL = "gpt-5.6-sol"
@@ -1059,8 +1059,10 @@ def verify_download(path: Path, expected_size: Optional[int] = None, digest: Opt
 def self_update_script(target: Path, new: Path, pid: int, relaunch_args: List[str]) -> str:
     """cmd script: wait for `pid` to exit, swap the exe, start the new one, delete itself."""
     args = " ".join(f'"{a}"' for a in relaunch_args)
+    log = new.with_suffix(".update.log")  # a short trace of what the helper did, for support
     return "\r\n".join([
         "@echo off",
+        f'echo helper started, waiting for pid {pid} > "{log}"',
         "set N=0",
         ":wait",
         f'tasklist /FI "PID eq {pid}" 2>nul | find " {pid} " >nul',
@@ -1068,14 +1070,20 @@ def self_update_script(target: Path, new: Path, pid: int, relaunch_args: List[st
         "ping -n 2 127.0.0.1 >nul",
         "goto wait",
         ":swap",
-        f'move /y "{new}" "{target}" >nul 2>nul',
+        f'echo swapping (attempt %N%) >> "{log}"',
+        f'move /y "{new}" "{target}" >> "{log}" 2>&1',
         "if not errorlevel 1 goto run",
         "set /a N+=1",
-        "if %N% geq 30 goto done",
+        "if %N% geq 30 goto fail",
         "ping -n 2 127.0.0.1 >nul",
         "goto swap",
         ":run",
+        f'echo starting new version >> "{log}"',
         f'start "" "{target}" {args}'.rstrip(),
+        f'del "{log}"',
+        "goto done",
+        ":fail",
+        f'echo giving up: could not replace the exe >> "{log}"',
         ":done",
         'del "%~f0"',
         "",
@@ -1086,10 +1094,21 @@ def launch_replacer(target: Path, new: Path, relaunch_args: List[str]) -> Path:
     """Write the swap script next to the temp exe and start it detached; the caller must exit."""
     script = new.with_suffix(".update.cmd")
     script.write_text(self_update_script(target, new, os.getpid(), relaunch_args), encoding="utf-8")
-    flags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NO_WINDOW", 0)
-    subprocess.Popen(["cmd.exe", "/c", str(script)], creationflags=flags, close_fds=True,
-                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    return script
+    base = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    breakaway = 0x01000000  # CREATE_BREAKAWAY_FROM_JOB: survive a job object that kills children with us
+    last_error: Optional[Exception] = None
+    for flags in (base | breakaway, base):
+        try:
+            p = subprocess.Popen(["cmd.exe", "/c", str(script)], creationflags=flags, close_fds=True,
+                                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except OSError as e:  # breakaway refused by the job: retry without it
+            last_error = e
+            continue
+        time.sleep(0.5)
+        if p.poll() is None:
+            return script
+        last_error = RuntimeError(f"update helper exited at once (code {p.returncode})")
+    raise RuntimeError(f"could not start the update helper: {last_error}")
 
 
 def dir_writable(path: Path) -> bool:
