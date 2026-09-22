@@ -20,6 +20,11 @@ Two ways of getting at the server's bytes:
                    CODEX_CA_CERTIFICATE, no changes to the OS certificate store) and
                    record both directions of the WebSocket. Needs `pip install mitmproxy`.
 
+  --live           Watch a real Codex CLI session instead of sending probes: opens Codex in
+                   a new terminal window behind the built-in proxy (codex_routing_proxy) and
+                   prints one line per server response as it happens. Needs
+                   `pip install cryptography`. The Codex desktop app cannot be watched.
+
 Exit codes: 0 = every checked model was served as requested, 2 = at least one request
 (including the control) was served by a different model, 1 = the check could not be
 completed or a usage error.
@@ -47,7 +52,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-__version__ = "1.3.1"
+__version__ = "1.4.0"
 
 FALLBACK_MODEL = "gpt-6-astra"
 DEFAULT_CONTROL = "gpt-5.6-sol"
@@ -256,24 +261,35 @@ def parse_wire_frames(jsonl_text: str) -> Tuple[List[dict], List[str]]:
     return frames, requested
 
 
-def collect_responses(frames: List[dict]) -> Tuple[List[ResponseRecord], List[Tuple[Optional[str], Optional[str]]]]:
-    by_id: Dict[str, ResponseRecord] = {}
-    order: List[str] = []
-    stream_errors: List[Tuple[Optional[str], Optional[str]]] = []
-    for f in frames:
+class ResponseCollector:
+    """Builds ResponseRecords from server frames, one frame at a time (the live monitor feeds
+    frames as they arrive; collect_responses() feeds a whole capture)."""
+
+    def __init__(self) -> None:
+        self.by_id: Dict[str, ResponseRecord] = {}
+        self.order: List[str] = []
+        self.stream_errors: List[Tuple[Optional[str], Optional[str]]] = []
+
+    @property
+    def records(self) -> List[ResponseRecord]:
+        return [self.by_id[i] for i in self.order]
+
+    def feed(self, f: dict) -> Tuple[Optional[ResponseRecord], bool]:
+        """Apply one frame. Returns (the record it touched or None, True if a stream error
+        that belongs to no response was added)."""
         t = str(f.get("type", ""))
         r = f.get("response")
         if isinstance(r, dict) and r.get("id"):
             rid = str(r["id"])
-            rec = by_id.get(rid)
+            rec = self.by_id.get(rid)
             if rec is None:
                 rec = ResponseRecord(
                     response_id=rid, model=None, status=None,
                     service_tier=r.get("service_tier"), created_at=r.get("created_at"),
                     kind="turn" if r.get("previous_response_id") else "warmup",
                 )
-                by_id[rid] = rec
-                order.append(rid)
+                self.by_id[rid] = rec
+                self.order.append(rid)
             model = r.get("model")
             if model:
                 model = str(model)
@@ -290,18 +306,27 @@ def collect_responses(frames: List[dict]) -> Tuple[List[ResponseRecord], List[Tu
             if isinstance(err, dict) and (err.get("code") or err.get("message")):
                 rec.error_code = err.get("code") or err.get("type") or rec.error_code
                 rec.error_message = err.get("message") or rec.error_message
-        elif t == "error":
+            return rec, False
+        if t == "error":
             e = f.get("error") if isinstance(f.get("error"), dict) else {}
             code = e.get("code") or e.get("type")
             msg = e.get("message") or f.get("message")
-            target = by_id[order[-1]] if order else None
+            target = self.by_id[self.order[-1]] if self.order else None
             if target is not None and target.status not in TERMINAL_STATUSES and not target.error_code:
                 target.error_code, target.error_message = code, msg
-            elif target is not None and target.error_code and target.error_code == code:
-                pass  # the same failure reported twice (response.failed followed by an `error` frame)
-            else:
-                stream_errors.append((code, msg))
-    return [by_id[i] for i in order], stream_errors
+                return target, False
+            if target is not None and target.error_code and target.error_code == code:
+                return None, False  # the same failure reported twice (response.failed followed by an `error` frame)
+            self.stream_errors.append((code, msg))
+            return None, True
+        return None, False
+
+
+def collect_responses(frames: List[dict]) -> Tuple[List[ResponseRecord], List[Tuple[Optional[str], Optional[str]]]]:
+    c = ResponseCollector()
+    for f in frames:
+        c.feed(f)
+    return c.records, c.stream_errors
 
 
 def collect_rate_limits(frames: List[dict]) -> Optional[dict]:
@@ -1343,6 +1368,11 @@ def main(argv: Optional[List[str]] = None) -> int:
                     help="seconds to wait for each codex exec (default 240)")
     ap.add_argument("--codex", default=None, metavar="PATH", help="codex binary (default: auto-detect; env CODEX_BIN)")
     ap.add_argument("--wire", action="store_true", help="capture with mitmproxy instead of trace logging")
+    ap.add_argument("--live", action="store_true",
+                    help="watch a real Codex CLI session in a new terminal window instead of sending probes; "
+                         "arguments after `--` are passed to codex (default: the interactive TUI)")
+    ap.add_argument("--live-dir", default=None, metavar="DIR", help="folder to open Codex in for --live (default: current)")
+    ap.add_argument("codex_args", nargs="*", help=argparse.SUPPRESS)
     ap.add_argument("--json", dest="json_path", metavar="FILE", help="write a machine-readable report")
     ap.add_argument("--out", dest="out_dir", metavar="DIR", help="where to keep raw logs (default: a new temp dir)")
     ap.add_argument("--full-ids", action="store_true", help="print full response ids in the table")
@@ -1352,6 +1382,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     a = ap.parse_args(argv)
     if a.repeat < 1:
         ap.error("--repeat must be at least 1")
+    if a.codex_args and not a.live:
+        ap.error("positional arguments are only accepted after --live (they are passed to codex)")
+    if a.live:
+        import codex_routing_live
+        return codex_routing_live.run_live_cli(a.codex, a.live_dir, a.codex_args)
 
     def progress(event: str, info: dict) -> None:
         if event == "start":

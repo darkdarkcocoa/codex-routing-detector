@@ -7,7 +7,7 @@ python -c "import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)" >nul 2>
   pause
   exit /b 1
 )
-python -m pip install --upgrade pyinstaller || (echo pip install pyinstaller failed. & pause & exit /b 1)
+python -m pip install --upgrade pyinstaller cryptography || (echo pip install pyinstaller failed. & pause & exit /b 1)
 python -m PyInstaller --noconfirm --clean --onefile --windowed --name codex-routing-detector codex_routing_detector_gui.py || (echo PyInstaller failed. & pause & exit /b 1)
 echo.
 echo Built: %~dp0dist\codex-routing-detector.exe

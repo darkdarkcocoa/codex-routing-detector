@@ -27,6 +27,8 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 import codex_routing_detector as cmc
+import codex_routing_live as live
+import codex_routing_proxy as crp
 
 APP_TITLE = "Codex Routing Detector"
 REPO_URL = "https://github.com/darkdarkcocoa/codex-routing-detector"
@@ -89,6 +91,36 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "confirm_skip": "Don't ask again",
         "confirm_ok": "Check",
         "confirm_cancel": "Cancel",
+        "tab_check": "Check", "tab_live": "Live monitor (CLI)",
+        "live_cfg": "Codex settings", "live_cfg_value": "model {model}  ·  effort {effort}   ({source})",
+        "live_cfg_none": "no model in config.toml (Codex picks its default)",
+        "live_folder": "Working folder", "live_folder_btn": "Folder...", "live_folder_title": "Folder to open Codex in",
+        "live_start": "Start monitoring", "live_stop": "Stop",
+        "live_idle": "Off. Start opens a Codex CLI window whose requests are watched here.",
+        "live_running": "Watching Codex (pid {pid}) through 127.0.0.1:{port}. Work in the Codex window as usual.",
+        "live_stopped": "Stopped.", "live_codex_exit": "Codex exited (code {rc}). Monitoring stopped.",
+        "live_failed": "The live monitor could not start.",
+        "live_needs_crypto": "The live monitor needs the cryptography package: pip install cryptography",
+        "live_stop_confirm": "Stopping closes the Codex window that is being watched. Stop now?",
+        "live_close_confirm": "The live monitor is running. Closing this window also closes the watched Codex window. Close?",
+        "live_copy": "Copy live report", "live_clear": "Clear",
+        "col_time": "Time",
+        "banner_live_idle": "Live monitor off",
+        "banner_live_waiting": "Watching... waiting for the first request",
+        "banner_live_ok": "OK so far: {n} response(s) served as requested",
+        "banner_live_rerouted": "REROUTED: {pairs} ({bad} of {total})",
+        "banner_live_unsupported": "{models} is not available on this account",
+        "banner_live_error": "No confirmed response yet ({n} error(s))",
+        "brief_live_idle": "Codex CLI only. Start opens a terminal with Codex routed through a local proxy on this computer; every request you make there is listed here with the model that really answered. The Codex desktop app cannot be watched.",
+        "brief_live_running": "Codex is running in its own window. Each request appears here as soon as the server answers; nothing is written to disk.",
+        "brief_live_waiting": "No request yet. Type something in the Codex window.",
+        "brief_live_rerouted": "{bad} of {total} responses were answered by {served} although Codex asked for {requested}.",
+        "brief_live_ok": "{n} response(s) so far, all answered by the model Codex asked for.",
+        "brief_live_unsupported": "The server refused {models} for this account (plan gating, not a substitution).",
+        "brief_live_error": "The server has only returned errors so far ({errors}).",
+        "confirm_live_title": "Start the live monitor?",
+        "confirm_live_body": "A new terminal window opens with the Codex CLI. Its connections go through a local proxy on this computer (127.0.0.1 only) with a certificate that exists for this session only, so the model name in every server response can be read. Prompts, files and answers pass through and are not saved. Stopping the monitor closes that Codex window.",
+        "confirm_live_ok": "Start",
     },
     "ko": {
         "model": "모델", "effort": "Effort", "repeat": "반복",
@@ -139,6 +171,36 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "confirm_skip": "다시 묻지 않기",
         "confirm_ok": "검사 시작",
         "confirm_cancel": "취소",
+        "tab_check": "Check", "tab_live": "라이브 모니터 (CLI)",
+        "live_cfg": "Codex 설정", "live_cfg_value": "모델 {model}  ·  effort {effort}   ({source})",
+        "live_cfg_none": "config.toml에 모델이 없습니다 (Codex 기본값 사용)",
+        "live_folder": "작업 폴더", "live_folder_btn": "폴더...", "live_folder_title": "Codex를 열 폴더",
+        "live_start": "모니터링 시작", "live_stop": "중지",
+        "live_idle": "꺼짐. 시작을 누르면 Codex CLI 창이 열리고 그 요청을 여기서 감시합니다.",
+        "live_running": "Codex(pid {pid})를 127.0.0.1:{port} 프록시로 감시 중. Codex 창에서 평소처럼 작업하세요.",
+        "live_stopped": "중지됨.", "live_codex_exit": "Codex가 종료됐습니다 (코드 {rc}). 모니터링을 멈췄습니다.",
+        "live_failed": "라이브 모니터를 시작하지 못했습니다.",
+        "live_needs_crypto": "라이브 모니터에는 cryptography 패키지가 필요합니다: pip install cryptography",
+        "live_stop_confirm": "중지하면 감시 중인 Codex 창도 닫힙니다. 중지할까요?",
+        "live_close_confirm": "라이브 모니터가 실행 중입니다. 이 창을 닫으면 감시 중인 Codex 창도 닫힙니다. 닫을까요?",
+        "live_copy": "라이브 보고서 복사", "live_clear": "지우기",
+        "col_time": "시각",
+        "banner_live_idle": "라이브 모니터 꺼짐",
+        "banner_live_waiting": "감시 중... 첫 요청을 기다립니다",
+        "banner_live_ok": "지금까지 정상: 응답 {n}개 모두 요청대로",
+        "banner_live_rerouted": "바꿔치기 감지: {pairs} ({total}개 중 {bad}개)",
+        "banner_live_unsupported": "{models}은(는) 이 계정에서 쓸 수 없는 모델입니다",
+        "banner_live_error": "아직 확인된 응답 없음 (오류 {n}개)",
+        "brief_live_idle": "Codex CLI 전용입니다. 시작을 누르면 이 컴퓨터의 로컬 프록시를 거치는 Codex 터미널이 열리고, 거기서 보내는 모든 요청이 실제로 답한 모델과 함께 여기에 쌓입니다. Codex 데스크톱 앱은 감시할 수 없습니다.",
+        "brief_live_running": "Codex가 별도 창에서 실행 중입니다. 서버가 답하는 즉시 요청이 여기에 나타나며, 디스크에는 아무것도 저장하지 않습니다.",
+        "brief_live_waiting": "아직 요청이 없습니다. Codex 창에 무엇이든 입력해 보세요.",
+        "brief_live_rerouted": "Codex는 {requested}로 요청했지만 응답 {total}개 중 {bad}개는 {served}가 답했습니다.",
+        "brief_live_ok": "지금까지 응답 {n}개 모두 Codex가 요청한 모델이 답했습니다.",
+        "brief_live_unsupported": "서버가 이 계정에서는 {models}를 쓸 수 없다고 거절했습니다 (요금제 제한이지 바꿔치기가 아닙니다).",
+        "brief_live_error": "지금까지 서버가 오류만 돌려줬습니다 ({errors}).",
+        "confirm_live_title": "라이브 모니터를 시작할까요?",
+        "confirm_live_body": "Codex CLI가 새 터미널 창에서 열립니다. 그 창의 통신은 이 컴퓨터 안의 로컬 프록시(127.0.0.1 전용)를 거치고, 이번 세션에만 쓰는 인증서로 서버 응답 속 모델명을 읽습니다. 프롬프트, 파일, 답변은 그대로 지나가며 저장하지 않습니다. 모니터를 중지하면 그 Codex 창도 닫힙니다.",
+        "confirm_live_ok": "시작",
     },
 }
 
@@ -169,10 +231,21 @@ Repeat: run every probe N times (1 to 10). Useful because the server state chang
 Wire mode: capture with mitmproxy instead of trace logging (needs pip install mitmproxy).
 Codex...: pick the codex binary by hand if it was not found automatically.
 
+LIVE MONITOR (second tab, Codex CLI only)
+
+Instead of sending probes, watch your own Codex session. Start monitoring opens a new terminal window with the Codex CLI; work there as usual. Every request you make is listed in the table as soon as the server answers, with the model Codex asked for, the model that really answered and the verdict. The banner and briefing sum it up as you go.
+
+Codex settings shows the model and reasoning effort from ~/.codex/config.toml (re-read when the file changes) so you can see what Codex will ask for. Working folder is where the Codex window opens.
+
+Stop closes the Codex window (it cannot reach the server without the monitor). Closing Codex yourself also ends the monitor. Copy live report puts the table on the clipboard.
+
+The Codex desktop app cannot be watched: it is a packaged application that does not take settings from another program. Use the Check tab for it.
+
 COST AND PRIVACY
 
-One check sends two requests per model (warm-up plus turn), counted like any other Codex usage.
-Logs contain your thread ids, account user id and the probe prompt, but no tokens or cookies; the request body and your home directory are never written.
+One check sends two requests per model (warm-up plus turn), counted like any other Codex usage. The live monitor sends nothing of its own.
+Check logs contain your thread ids, account user id and the probe prompt, but no tokens or cookies; the request body and your home directory are never written.
+The live monitor keeps only model names, response ids, statuses, timestamps and error codes, in memory. Your prompts, files and the model's answers pass through it and are never stored. It listens on 127.0.0.1 only and uses a certificate that is created for the session and deleted afterwards; nothing is installed in the system certificate store.
 """,
     "ko": """기본 사용법
 
@@ -195,10 +268,21 @@ Effort: 검사에 보낼 reasoning effort. low가 가장 저렴하고, 지금까
 Wire 모드: trace 로그 대신 mitmproxy로 패킷을 캡처합니다 (pip install mitmproxy 필요).
 Codex...: Codex를 자동으로 못 찾을 때 실행 파일을 직접 지정합니다.
 
+라이브 모니터 (두 번째 탭, Codex CLI 전용)
+
+검사 요청을 보내는 대신 내 Codex 세션을 그대로 지켜봅니다. 모니터링 시작을 누르면 Codex CLI가 새 터미널 창에서 열리고, 거기서 평소처럼 작업하면 됩니다. 보내는 요청마다 서버가 답하는 즉시 표에 한 줄씩 쌓입니다 (Codex가 요청한 모델, 실제로 답한 모델, 판정). 배너와 브리핑은 그때그때 요약을 보여줍니다.
+
+Codex 설정에는 ~/.codex/config.toml의 모델과 reasoning effort가 표시되며, 파일이 바뀌면 다시 읽습니다. 작업 폴더는 Codex 창이 열릴 폴더입니다.
+
+중지를 누르면 Codex 창도 닫힙니다 (모니터 없이는 서버에 연결할 수 없기 때문입니다). Codex를 직접 닫아도 모니터가 끝납니다. 라이브 보고서 복사는 표 내용을 클립보드에 넣습니다.
+
+Codex 데스크톱 앱은 감시할 수 없습니다. 패키지 형태로 설치되는 앱이라 다른 프로그램이 설정을 넣어 줄 수 없습니다. 데스크톱 앱 사용자는 Check 탭을 쓰세요.
+
 비용과 프라이버시
 
-검사 한 번에 모델당 요청 2개(웜업 + 턴)가 나가며, 일반 Codex 사용량으로 차감됩니다.
-로그에는 스레드 ID, 계정 사용자 ID, 검사 프롬프트가 남지만 토큰과 쿠키는 없고, 요청 본문과 홈 폴더 경로는 기록되지 않습니다.
+검사 한 번에 모델당 요청 2개(웜업 + 턴)가 나가며, 일반 Codex 사용량으로 차감됩니다. 라이브 모니터는 스스로 요청을 보내지 않습니다.
+검사 로그에는 스레드 ID, 계정 사용자 ID, 검사 프롬프트가 남지만 토큰과 쿠키는 없고, 요청 본문과 홈 폴더 경로는 기록되지 않습니다.
+라이브 모니터는 모델명, 응답 ID, 상태, 시각, 오류 코드만 메모리에 둡니다. 프롬프트, 파일, 모델의 답변은 그대로 지나가며 저장하지 않습니다. 127.0.0.1에서만 듣고, 인증서는 이번 세션용으로 만들었다가 끝나면 지웁니다. 시스템 인증서 저장소에는 아무것도 설치하지 않습니다.
 """,
 }
 
@@ -248,6 +332,7 @@ MODES
 
 Trace mode (default): runs codex with RUST_LOG=tungstenite::protocol=trace so the WebSocket library prints every frame it receives, verbatim, before Codex's own code sees it.
 Wire mode: runs a local mitmproxy with a throw-away certificate and records both directions of the WebSocket. Needs mitmproxy installed.
+Live monitor: a built-in proxy on 127.0.0.1 with a session-only certificate; the Codex CLI is started with HTTPS_PROXY and CODEX_CA_CERTIFICATE pointing at it, so the responses WebSocket can be decoded as it passes through. Nothing is changed or stored.
 
 Rate limits
 The "Account" line: plan type and the share of the usage window already used. If limit_reached is False, a substitution is not a usage-limit fallback.
@@ -297,6 +382,7 @@ NO_DATA: WebSocket 프레임이 전혀 없음. 로그인 안 됨, Codex 시작 �
 
 Trace 모드(기본): codex를 RUST_LOG=tungstenite::protocol=trace로 실행해서 WebSocket 라이브러리가 받은 프레임을 원문 그대로 찍게 합니다. Codex 코드가 손대기 전 단계입니다.
 Wire 모드: 임시 인증서로 로컬 mitmproxy를 띄워 WebSocket 양방향을 기록합니다. mitmproxy 설치가 필요합니다.
+라이브 모니터: 127.0.0.1에서 듣는 내장 프록시와 세션 전용 인증서를 씁니다. Codex CLI를 HTTPS_PROXY와 CODEX_CA_CERTIFICATE가 그 프록시를 가리키도록 실행해서, 지나가는 responses WebSocket을 해독합니다. 바꾸거나 저장하는 것은 없습니다.
 
 한도 (rate limits)
 "계정" 줄에 플랜 종류와 사용량 창의 소진 비율이 나옵니다. limit_reached가 False면 한도 소진 때문에 예비 모델로 넘어간 게 아닙니다.
@@ -410,6 +496,59 @@ def install_fake_runner() -> bool:
     cmc.run_capture = fake_capture  # type: ignore[assignment]
     cmc.find_codex = lambda explicit: (["codex-fake"], "fixture runner")  # type: ignore[assignment]
     return True
+
+
+class FakeCodexProcess:
+    """Stands in for the Codex window in --fake mode and in tests: never exits by itself."""
+
+    def __init__(self) -> None:
+        self.pid = 0
+        self._done = threading.Event()
+        self.returncode = 0
+
+    def poll(self):
+        return self.returncode if self._done.is_set() else None
+
+    def wait(self):
+        self._done.wait()
+        return self.returncode
+
+    def finish(self, rc: int = 0) -> None:
+        self.returncode = rc
+        self._done.set()
+
+
+def fake_launcher(cmd, env, cwd) -> FakeCodexProcess:
+    return FakeCodexProcess()
+
+
+def feed_fake_live(app: "App") -> None:
+    """--fake-live: a few made-up responses for screenshots (ids are placeholders)."""
+    if app.monitor is None:
+        return
+    now = time.time()
+
+    def m(direction: str, obj: dict, conn: int, dt: float) -> crp.WsMessage:
+        return crp.WsMessage(direction, json.dumps(obj), now + dt, conn)
+
+    resp = lambda rid, model, status, prev=None, dt=0.0, conn=1: m(  # noqa: E731
+        "s2c", {"type": "response.completed" if status == "completed" else "response.created",
+                "response": {"id": rid, "model": model, "status": status, "previous_response_id": prev}}, conn, dt)
+    events = [
+        ("ws_open", {"conn": 1, "routing_hint": "model=gpt-6-astra;tier=priority", "watched": True, "deflate": True}),
+        ("message", m("c2s", {"type": "response.create", "model": "gpt-6-astra"}, 1, 0)),
+        ("message", m("s2c", {"type": "codex.rate_limits", "plan_type": "pro",
+                              "rate_limits": {"primary": {"used_percent": 9}, "limit_reached": False}}, 1, 0)),
+        ("message", resp("resp_0000000000000000000000000000000000000000000000000001", "gpt-5.6-luna", "in_progress", dt=0.1)),
+        ("message", resp("resp_0000000000000000000000000000000000000000000000000001", "gpt-5.6-luna", "completed", dt=0.1)),
+        ("message", m("c2s", {"type": "response.create", "model": "gpt-6-astra", "input": [{"role": "user"}]}, 1, 1)),
+        ("message", resp("resp_0000000000000000000000000000000000000000000000000002", "gpt-5.6-luna", "in_progress", "resp_1", 1.2)),
+        ("message", resp("resp_0000000000000000000000000000000000000000000000000002", "gpt-5.6-luna", "completed", "resp_1", 1.2)),
+        ("message", m("c2s", {"type": "response.create", "model": "gpt-6-astra", "input": [{"role": "user"}]}, 1, 40)),
+        ("message", resp("resp_0000000000000000000000000000000000000000000000000003", "gpt-6-astra", "completed", "resp_2", 41)),
+    ]
+    for ev in events:
+        app.monitor.events.put(ev)
 
 
 def build_brief(res: cmc.CheckResult, lang: str) -> str:
@@ -545,6 +684,11 @@ def apply_theme(root: tk.Tk) -> None:
     style.map("Treeview.Heading", background=[("active", p["head"])])
     style.map("Treeview", background=[("selected", "#dbeafe")], foreground=[("selected", p["text"])])
     style.configure("TProgressbar", troughcolor=p["head"], background=p["accent"], borderwidth=0, thickness=6)
+    style.configure("TNotebook", background=p["bg"], borderwidth=0, tabmargins=(0, 4, 0, 0))
+    style.configure("TNotebook.Tab", background=p["head"], foreground=p["muted"], padding=(16, 7), borderwidth=0,
+                    font=(FONT_UI, 10, "bold"))
+    style.map("TNotebook.Tab", background=[("selected", p["bg"])], foreground=[("selected", p["text"])],
+              expand=[("selected", (0, 0, 0, 0))])
     style.configure("TScrollbar", troughcolor=p["bg"], background=p["border"], arrowcolor=p["muted"], borderwidth=0)
 
 
@@ -595,11 +739,10 @@ class App:
         r = self.root
         p = PALETTE
         r.title(APP_TITLE)
-        r.geometry("1180x780")
-        r.minsize(1000, 680)
+        r.geometry("1180x880")
+        r.minsize(1000, 740)
         r.columnconfigure(0, weight=1)
-        r.rowconfigure(5, weight=3)
-        r.rowconfigure(6, weight=2)
+        r.rowconfigure(1, weight=1)
 
         self.menubar = tk.Menu(r)
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
@@ -619,7 +762,17 @@ class App:
         self.lbl_subtitle = ttk.Label(header, style="Muted.TLabel")
         self.lbl_subtitle.grid(row=1, column=0, sticky="w")
 
-        opts = self._card(r, row=1, column=0, sticky="ew", padx=18, pady=(4, 6))
+        self.nb = ttk.Notebook(r)
+        self.nb.grid(row=1, column=0, sticky="nsew", padx=18, pady=(4, 0))
+        page = self.page_check = ttk.Frame(self.nb)
+        self.nb.add(page)
+        self.page_live = ttk.Frame(self.nb)
+        self.nb.add(self.page_live)
+        page.columnconfigure(0, weight=1)
+        page.rowconfigure(5, weight=3)
+        page.rowconfigure(6, weight=1)
+
+        opts = self._card(page, row=1, column=0, sticky="ew", padx=0, pady=(10, 6))
         pad = {"padx": (0, 6), "pady": 2}
         self.lbl_model = ttk.Label(opts, style="CardMuted.TLabel")
         self.lbl_model.grid(row=0, column=0, **pad)
@@ -646,8 +799,8 @@ class App:
         self.var_codex = tk.StringVar()
         ttk.Label(opts, textvariable=self.var_codex, style="CardMuted.TLabel").grid(row=0, column=8, pady=2)
 
-        act = ttk.Frame(r)
-        act.grid(row=2, column=0, sticky="ew", padx=18, pady=(2, 4))
+        act = ttk.Frame(page)
+        act.grid(row=2, column=0, sticky="ew", padx=0, pady=(2, 4))
         act.columnconfigure(2, weight=1)
         self.btn_check = tk.Button(act, command=self.start_check, bg=p["accent"], fg=p["accent_text"],
                                    activebackground=p["accent_dark"], activeforeground=p["accent_text"],
@@ -664,16 +817,9 @@ class App:
         self.progress.grid(row=0, column=3, padx=(10, 0))
         self.progress.grid_remove()
 
-        self.banner_frame = tk.Frame(r, bg=VERDICT_STYLE["IDLE"][0], bd=0)
-        self.banner_frame.grid(row=3, column=0, sticky="ew", padx=18, pady=(4, 6))
-        self.banner_glyph = tk.Label(self.banner_frame, text=VERDICT_STYLE["IDLE"][2], font=(FONT_UI, 18, "bold"),
-                                     bg=VERDICT_STYLE["IDLE"][0], fg=VERDICT_STYLE["IDLE"][1], padx=14, pady=8)
-        self.banner_glyph.pack(side="left")
-        self.banner = tk.Label(self.banner_frame, font=(FONT_UI, 15, "bold"), anchor="w",
-                               bg=VERDICT_STYLE["IDLE"][0], fg=VERDICT_STYLE["IDLE"][1], padx=4, pady=10)
-        self.banner.pack(side="left", fill="x", expand=True)
+        self.banner_frame, self.banner_glyph, self.banner = self._banner(page, row=3)
 
-        brief = self._card(r, row=4, column=0, sticky="ew", padx=18, pady=(0, 6))
+        brief = self._card(page, row=4, column=0, sticky="ew", padx=0, pady=(0, 6))
         brief.columnconfigure(0, weight=1)
         self.lbl_brief_title = ttk.Label(brief, style="CardTitle.TLabel")
         self.lbl_brief_title.grid(row=0, column=0, sticky="w")
@@ -681,11 +827,11 @@ class App:
         self.lbl_brief.grid(row=1, column=0, sticky="ew", pady=(4, 0))
         brief.bind("<Configure>", lambda e: self.lbl_brief.configure(wraplength=max(300, e.width - 30)))
 
-        table = self._card(r, row=5, column=0, sticky="nsew", padx=18, pady=(0, 6))
+        table = self._card(page, row=5, column=0, sticky="nsew", padx=0, pady=(0, 6))
         table.columnconfigure(0, weight=1)
         table.rowconfigure(0, weight=1)
         cols = ("n", "requested", "kind", "served", "status", "created", "verdict", "rid")
-        self.tree = ttk.Treeview(table, columns=cols, show="headings", height=6)
+        self.tree = ttk.Treeview(table, columns=cols, show="headings", height=5)
         widths = {"n": 36, "requested": 160, "kind": 80, "served": 160, "status": 90, "created": 100, "verdict": 110, "rid": 430}
         for c in cols:
             self.tree.column(c, width=widths[c], minwidth=widths[c], anchor="w", stretch=(c == "rid"))
@@ -698,47 +844,161 @@ class App:
         ysb.grid(row=0, column=1, sticky="ns")
         xsb.grid(row=1, column=0, sticky="ew")
 
-        details = self._card(r, row=6, column=0, sticky="nsew", padx=18, pady=(0, 6))
+        details = self._card(page, row=6, column=0, sticky="nsew", padx=0, pady=(0, 6))
         details.columnconfigure(0, weight=1)
         details.rowconfigure(1, weight=1)
         self.lbl_notes_title = ttk.Label(details, style="CardTitle.TLabel")
         self.lbl_notes_title.grid(row=0, column=0, sticky="w")
-        self.notes = tk.Text(details, height=6, wrap="word", font=(FONT_MONO, 10), state="disabled",
+        self.notes = tk.Text(details, height=4, wrap="word", font=(FONT_MONO, 10), state="disabled",
                              bg=PALETTE["card"], fg=PALETTE["text"], relief="flat", bd=0, highlightthickness=0)
         self.notes.grid(row=1, column=0, sticky="nsew", pady=(4, 0))
         nsb = ttk.Scrollbar(details, orient="vertical", command=self.notes.yview)
         self.notes.configure(yscrollcommand=nsb.set)
         nsb.grid(row=1, column=1, sticky="ns")
 
-        bottom = ttk.Frame(r)
-        bottom.grid(row=7, column=0, sticky="ew", padx=18, pady=(0, 12))
+        bottom = ttk.Frame(page)
+        bottom.grid(row=7, column=0, sticky="ew", padx=0, pady=(0, 10))
         self.btn_copy = ttk.Button(bottom, command=self.copy_report, state="disabled")
         self.btn_copy.pack(side="left", padx=(0, 6))
         self.btn_json = ttk.Button(bottom, command=self.save_json, state="disabled")
         self.btn_json.pack(side="left", padx=(0, 6))
         self.btn_logs = ttk.Button(bottom, command=self.open_logs, state="disabled")
         self.btn_logs.pack(side="left", padx=(0, 6))
-        self.lbl_version = tk.Label(bottom, text=f"v{cmc.__version__}", bg=p["bg"], fg=p["muted"], font=(FONT_UI, 9))
+
+        self._build_live(self.page_live)
+
+        foot = ttk.Frame(r)
+        foot.grid(row=2, column=0, sticky="ew", padx=18, pady=(6, 10))
+        self.lbl_version = tk.Label(foot, text=f"v{cmc.__version__}", bg=p["bg"], fg=p["muted"], font=(FONT_UI, 9))
         self.lbl_version.pack(side="right", padx=(8, 0))
         try:
-            self.github_icon = tk.PhotoImage(data=GITHUB_ICON_PNG_B64)
+            self.github_icon = tk.PhotoImage(master=self.root, data=GITHUB_ICON_PNG_B64)
         except tk.TclError:  # very old Tk without PNG support: text-only link
             self.github_icon = None
-        self.link_github = tk.Label(bottom, text="GitHub", image=self.github_icon, compound="left",
+        self.link_github = tk.Label(foot, text="GitHub", image=self.github_icon, compound="left",
                                     bg=p["bg"], fg=p["accent"], cursor="hand2", padx=4, font=(FONT_UI, 9))
         self.link_github.pack(side="right", padx=6)
         self.link_github.bind("<Button-1>", lambda _e: self.open_repo())
-        self.btn_lang = ttk.Button(bottom, command=self.toggle_language)
+        self.btn_lang = ttk.Button(foot, command=self.toggle_language)
         self.btn_lang.pack(side="right", padx=4)
+
+    def _banner(self, parent: tk.Misc, row: int):
+        frame = tk.Frame(parent, bg=VERDICT_STYLE["IDLE"][0], bd=0)
+        frame.grid(row=row, column=0, sticky="ew", padx=0, pady=(4, 6))
+        glyph = tk.Label(frame, text=VERDICT_STYLE["IDLE"][2], font=(FONT_UI, 18, "bold"),
+                         bg=VERDICT_STYLE["IDLE"][0], fg=VERDICT_STYLE["IDLE"][1], padx=14, pady=8)
+        glyph.pack(side="left")
+        label = tk.Label(frame, font=(FONT_UI, 15, "bold"), anchor="w",
+                         bg=VERDICT_STYLE["IDLE"][0], fg=VERDICT_STYLE["IDLE"][1], padx=4, pady=10)
+        label.pack(side="left", fill="x", expand=True)
+        return frame, glyph, label
+
+    def _build_live(self, page: ttk.Frame) -> None:
+        p = PALETTE
+        page.columnconfigure(0, weight=1)
+        page.rowconfigure(5, weight=3)
+        page.rowconfigure(6, weight=1)
+
+        opts = self._card(page, row=1, column=0, sticky="ew", padx=0, pady=(10, 6))
+        opts.columnconfigure(1, weight=1)
+        self.lbl_live_cfg = ttk.Label(opts, style="CardMuted.TLabel")
+        self.lbl_live_cfg.grid(row=0, column=0, sticky="w", padx=(0, 10), pady=2)
+        self.var_live_cfg = tk.StringVar()
+        ttk.Label(opts, textvariable=self.var_live_cfg, style="Card.TLabel").grid(row=0, column=1, sticky="w", pady=2)
+        self.lbl_live_folder = ttk.Label(opts, style="CardMuted.TLabel")
+        self.lbl_live_folder.grid(row=1, column=0, sticky="w", padx=(0, 10), pady=2)
+        self.live_dir = str(self.settings.get("live_dir") or Path.home())
+        if not os.path.isdir(self.live_dir):
+            self.live_dir = str(Path.home())
+        self.var_live_dir = tk.StringVar(value=cmc.display_path(self.live_dir))
+        ttk.Label(opts, textvariable=self.var_live_dir, style="Card.TLabel").grid(row=1, column=1, sticky="w", pady=2)
+        self.btn_live_dir = ttk.Button(opts, command=self.pick_live_dir)
+        self.btn_live_dir.grid(row=1, column=2, sticky="e", pady=2)
+
+        act = ttk.Frame(page)
+        act.grid(row=2, column=0, sticky="ew", padx=0, pady=(2, 4))
+        act.columnconfigure(2, weight=1)
+        self.btn_live_start = tk.Button(act, command=self.start_live, bg=p["accent"], fg=p["accent_text"],
+                                        activebackground=p["accent_dark"], activeforeground=p["accent_text"],
+                                        disabledforeground="#bfdbfe", relief="flat", bd=0, padx=30, pady=8,
+                                        font=(FONT_UI, 12, "bold"), cursor="hand2")
+        self.btn_live_start.grid(row=0, column=0, padx=(0, 10), pady=4)
+        self.btn_live_stop = ttk.Button(act, command=self.stop_live, state="disabled")
+        self.btn_live_stop.grid(row=0, column=1, padx=(0, 12), pady=4)
+        self.var_live_status = tk.StringVar()
+        ttk.Label(act, textvariable=self.var_live_status, style="Muted.TLabel", anchor="w").grid(row=0, column=2, sticky="ew")
+        self.live_progress = ttk.Progressbar(act, mode="indeterminate", length=200)
+        self.live_progress.grid(row=0, column=3, padx=(10, 0))
+        self.live_progress.grid_remove()
+
+        self.live_banner_frame, self.live_banner_glyph, self.live_banner = self._banner(page, row=3)
+
+        brief = self._card(page, row=4, column=0, sticky="ew", padx=0, pady=(0, 6))
+        brief.columnconfigure(0, weight=1)
+        self.lbl_live_brief_title = ttk.Label(brief, style="CardTitle.TLabel")
+        self.lbl_live_brief_title.grid(row=0, column=0, sticky="w")
+        self.lbl_live_brief = ttk.Label(brief, style="Card.TLabel", justify="left", anchor="w", wraplength=1080)
+        self.lbl_live_brief.grid(row=1, column=0, sticky="ew", pady=(4, 0))
+        brief.bind("<Configure>", lambda e: self.lbl_live_brief.configure(wraplength=max(300, e.width - 30)))
+
+        table = self._card(page, row=5, column=0, sticky="nsew", padx=0, pady=(0, 6))
+        table.columnconfigure(0, weight=1)
+        table.rowconfigure(0, weight=1)
+        cols = ("n", "time", "requested", "kind", "served", "status", "verdict", "rid")
+        self.live_tree = ttk.Treeview(table, columns=cols, show="headings", height=5)
+        widths = {"n": 36, "time": 80, "requested": 160, "kind": 80, "served": 160, "status": 110, "verdict": 110, "rid": 400}
+        for c in cols:
+            self.live_tree.column(c, width=widths[c], minwidth=widths[c], anchor="w", stretch=(c == "rid"))
+        for v, (bg, fg, _g) in VERDICT_STYLE.items():
+            self.live_tree.tag_configure(v, background=bg, foreground=fg)
+        ysb = ttk.Scrollbar(table, orient="vertical", command=self.live_tree.yview)
+        xsb = ttk.Scrollbar(table, orient="horizontal", command=self.live_tree.xview)
+        self.live_tree.configure(yscrollcommand=ysb.set, xscrollcommand=xsb.set)
+        self.live_tree.grid(row=0, column=0, sticky="nsew")
+        ysb.grid(row=0, column=1, sticky="ns")
+        xsb.grid(row=1, column=0, sticky="ew")
+
+        details = self._card(page, row=6, column=0, sticky="nsew", padx=0, pady=(0, 6))
+        details.columnconfigure(0, weight=1)
+        details.rowconfigure(1, weight=1)
+        self.lbl_live_notes_title = ttk.Label(details, style="CardTitle.TLabel")
+        self.lbl_live_notes_title.grid(row=0, column=0, sticky="w")
+        self.live_notes = tk.Text(details, height=4, wrap="word", font=(FONT_MONO, 10), state="disabled",
+                                  bg=PALETTE["card"], fg=PALETTE["text"], relief="flat", bd=0, highlightthickness=0)
+        self.live_notes.grid(row=1, column=0, sticky="nsew", pady=(4, 0))
+        nsb = ttk.Scrollbar(details, orient="vertical", command=self.live_notes.yview)
+        self.live_notes.configure(yscrollcommand=nsb.set)
+        nsb.grid(row=1, column=1, sticky="ns")
+
+        bottom = ttk.Frame(page)
+        bottom.grid(row=7, column=0, sticky="ew", padx=0, pady=(0, 10))
+        self.btn_live_copy = ttk.Button(bottom, command=self.copy_live_report, state="disabled")
+        self.btn_live_copy.pack(side="left", padx=(0, 6))
+        self.btn_live_clear = ttk.Button(bottom, command=self.clear_live, state="disabled")
+        self.btn_live_clear.pack(side="left", padx=(0, 6))
+
+        self.monitor: Optional[live.LiveMonitor] = None
+        self.agg = live.LiveAggregator()
+        self.live_items: Dict[int, str] = {}
+        self.live_lines: List[str] = []
+        self.live_ended: Optional[str] = None  # "stopped" | "exit:<rc>" after a session ended
+        self.launcher = fake_launcher if self.fake else live.launch_in_terminal
+        self._cfg_mtime: Optional[float] = None
+        self.cfg_live: tuple = (None, None, "")
+        self._refresh_config(first=True)
 
     def s(self, key: str, **kw) -> str:
         return STRINGS[self.lang][key].format(**kw)
 
-    def _set_banner(self, key: str, text: str) -> None:
+    def _set_banner(self, key: str, text: str, target: str = "check") -> None:
         bg, fg, glyph = VERDICT_STYLE.get(key, VERDICT_STYLE["IDLE"])
-        self.banner_frame.configure(bg=bg)
-        self.banner_glyph.configure(text=glyph, bg=bg, fg=fg)
-        self.banner.configure(text=text, bg=bg, fg=fg)
+        if target == "live":
+            frame, glabel, label = self.live_banner_frame, self.live_banner_glyph, self.live_banner
+        else:
+            frame, glabel, label = self.banner_frame, self.banner_glyph, self.banner
+        frame.configure(bg=bg)
+        glabel.configure(text=glyph, bg=bg, fg=fg)
+        label.configure(text=text, bg=bg, fg=fg)
 
     def _apply_language(self) -> None:
         m = MENU[self.lang]
@@ -765,6 +1025,27 @@ class App:
         self.btn_lang.configure(text=self.s("lang"))
         self.lbl_notes_title.configure(text=self.s("notes"))
         self.lbl_brief_title.configure(text=self.s("brief"))
+        self.nb.tab(self.page_check, text=self.s("tab_check"))
+        self.nb.tab(self.page_live, text=self.s("tab_live"))
+        self.lbl_live_cfg.configure(text=self.s("live_cfg"))
+        self.lbl_live_folder.configure(text=self.s("live_folder"))
+        self.btn_live_dir.configure(text=self.s("live_folder_btn"))
+        self.btn_live_start.configure(text=self.s("live_start"))
+        self.btn_live_stop.configure(text=self.s("live_stop"))
+        self.btn_live_copy.configure(text=self.s("live_copy"))
+        self.btn_live_clear.configure(text=self.s("live_clear"))
+        self.lbl_live_brief_title.configure(text=self.s("brief"))
+        self.lbl_live_notes_title.configure(text=self.s("notes"))
+        for c, key in (("n", "col_n"), ("time", "col_time"), ("requested", "col_requested"), ("kind", "col_kind"),
+                       ("served", "col_served"), ("status", "col_status"), ("verdict", "col_verdict"), ("rid", "col_id")):
+            self.live_tree.heading(c, text=self.s(key))
+        self._show_config()
+        self.live_tree.delete(*self.live_tree.get_children())
+        self.live_items.clear()
+        for row in self.agg.rows:
+            self._render_live_row(row)
+        self._render_live_summary()
+        self._show_live_status()
         if self.update_info:
             self.show_update(self.update_info)
         for c, key in (("n", "col_n"), ("requested", "col_requested"), ("kind", "col_kind"), ("served", "col_served"),
@@ -898,6 +1179,12 @@ class App:
 
     def on_close(self) -> None:
         """Window closed: stop codex (and mitmdump) instead of leaving them running."""
+        if self.monitor is not None and self.monitor.codex_running() and self.exit_after is None:
+            if not messagebox.askyesno(APP_TITLE, self.s("live_close_confirm"), parent=self.root):
+                return
+        if self.monitor is not None:
+            self.monitor.stop()
+            self.monitor = None
         if self.worker is not None and self.cancel is not None:
             self.cancel.cancel()
             self.worker.join(timeout=10)
@@ -931,8 +1218,243 @@ class App:
             if self.worker is not None and not self.worker.is_alive():
                 self.worker = None  # only re-enable Check when nothing is running any more
                 self._set_running(False)
+        try:
+            self._poll_live()
+        except Exception as e:
+            self._live_note(f"{type(e).__name__}: {e}")
         finally:
             self.root.after(100, self._poll)
+
+    # ------------------------------------------------------------ live monitor
+    def _refresh_config(self, first: bool = False) -> None:
+        """Mirror model / effort from ~/.codex/config.toml; re-read whenever the file changes."""
+        mtime = live.config_mtime()
+        if first or mtime != self._cfg_mtime:
+            self._cfg_mtime = mtime
+            self.cfg_live = live.read_config_model_effort()
+            self._show_config()
+        self.root.after(2000, self._refresh_config)
+
+    def _show_config(self) -> None:
+        model, effort, source = self.cfg_live
+        if model:
+            self.var_live_cfg.set(self.s("live_cfg_value", model=model, effort=effort or "default", source=source))
+        else:
+            self.var_live_cfg.set(self.s("live_cfg_none"))
+
+    def pick_live_dir(self) -> None:
+        path = filedialog.askdirectory(title=self.s("live_folder_title"), initialdir=self.live_dir, mustexist=True)
+        if path:
+            self.live_dir = path
+            self.var_live_dir.set(cmc.display_path(path))
+            self.settings["live_dir"] = path
+            save_settings(self.settings)
+
+    def start_live(self, confirm: Optional[bool] = None) -> None:
+        if self.monitor is not None or self.updating:
+            return
+        if not crp.have_crypto():
+            self.var_live_status.set(self.s("live_needs_crypto"))
+            self._live_note(self.s("live_needs_crypto"))
+            return
+        ask = (confirm if confirm is not None else self.confirm_before_check) and not self.settings.get("skip_confirm_live")
+        if ask:
+            ok, skip = ConfirmDialog.ask(self.root, self.s("confirm_live_title"), self.s("confirm_live_body"),
+                                         self.s("confirm_skip"), self.s("confirm_live_ok"), self.s("confirm_cancel"))
+            if skip:
+                self.settings["skip_confirm_live"] = True
+                save_settings(self.settings)
+            if not ok:
+                return
+        codex, how = cmc.find_codex(self.codex_path)
+        if not codex:
+            self.var_live_status.set(self.s("live_failed"))
+            self._live_note(f"codex binary not found ({how}). " + self.s("codex_hint"))
+            return
+        self.clear_live()
+        mon = live.LiveMonitor(codex, self.live_dir, launcher=self.launcher)
+        try:
+            mon.start()
+        except Exception as e:
+            self.var_live_status.set(self.s("live_failed"))
+            self._live_note(f"{type(e).__name__}: {e}")
+            return
+        self.monitor = mon
+        self.live_ended = None
+        self._live_note(f"{self.s('codex')}: {' '.join(cmc.display_path(c) for c in codex)} ({how})")
+        self._set_live_running(True)
+        self._show_live_status()
+        self._render_live_summary()
+
+    def stop_live(self, ask: bool = True) -> None:
+        mon = self.monitor
+        if mon is None:
+            return
+        if ask and mon.codex_running():
+            if not messagebox.askyesno(APP_TITLE, self.s("live_stop_confirm"), parent=self.root):
+                return
+        self._end_live("stopped")
+
+    def _end_live(self, how: str) -> None:
+        mon = self.monitor
+        if mon is None:
+            return
+        mon.stop()
+        self.monitor = None
+        self.live_ended = how
+        self._set_live_running(False)
+        self._show_live_status()
+        self._render_live_summary()
+
+    def _set_live_running(self, running: bool) -> None:
+        self.btn_live_start.configure(state="disabled" if running else "normal",
+                                      bg="#93c5fd" if running else PALETTE["accent"])
+        self.btn_live_stop.configure(state="normal" if running else "disabled")
+        self.btn_live_dir.configure(state="disabled" if running else "normal")
+        have = bool(self.agg.rows) or bool(self.live_lines)
+        self.btn_live_copy.configure(state="normal" if self.agg.rows else "disabled")
+        self.btn_live_clear.configure(state="normal" if have and not running else "disabled")
+        if running:
+            self.live_progress.grid()
+            self.live_progress.start(12)
+        else:
+            self.live_progress.stop()
+            self.live_progress.grid_remove()
+
+    def _show_live_status(self) -> None:
+        mon = self.monitor
+        if mon is not None and mon.proxy is not None:
+            pid = (mon.proc.pid if mon.proc is not None else 0) or "?"
+            self.var_live_status.set(self.s("live_running", pid=pid, port=mon.proxy.port))
+        elif self.live_ended is None:
+            self.var_live_status.set(self.s("live_idle"))
+        elif self.live_ended.startswith("exit:"):
+            self.var_live_status.set(self.s("live_codex_exit", rc=self.live_ended[5:]))
+        else:
+            self.var_live_status.set(self.s("live_stopped"))
+
+    def _poll_live(self) -> None:
+        mon = self.monitor
+        if mon is None:
+            return
+        changed = False
+        while True:
+            try:
+                ev = mon.events.get_nowait()
+            except queue.Empty:
+                break
+            kind = ev[0]
+            if kind == "message":
+                for name, info in self.agg.feed(ev[1]):
+                    if name == "row":
+                        self._render_live_row(info["row"])
+                        changed = True
+                    elif name == "rate_limits":
+                        changed = True
+            elif kind == "ws_open":
+                self.agg.note_hint(ev[1]["conn"], ev[1].get("routing_hint", ""))
+            elif kind == "notice":
+                self._live_note(ev[1])
+            elif kind == "codex_exit":
+                self._live_note(self.s("live_codex_exit", rc=ev[1]))
+                self._end_live(f"exit:{ev[1]}")
+                return
+        if changed:
+            self._render_live_summary()
+            self.btn_live_copy.configure(state="normal")
+
+    def _render_live_row(self, row: "live.LiveRow") -> None:
+        kind_name = {"warmup": self.s("kind_warmup"), "turn": self.s("kind_turn"), "error": "-"}
+        v = row.verdict()
+        values = (row.n, time.strftime("%H:%M:%S", time.localtime(row.first_seen)), row.requested or "?",
+                  kind_name.get(row.kind, row.kind), row.served or "-", row.status or row.error_code or "-", v,
+                  row.response_id)
+        item = self.live_items.get(row.n)
+        if item is None:
+            self.live_items[row.n] = self.live_tree.insert("", "end", values=values, tags=(v,))
+            self.live_tree.see(self.live_items[row.n])
+        else:
+            self.live_tree.item(item, values=values, tags=(v,))
+
+    def _render_live_summary(self) -> None:
+        agg = self.agg
+        running = self.monitor is not None
+        overall = agg.overall()
+        counts = agg.counts()
+        total = len(agg.rows)
+        requested = ", ".join(sorted({r.requested for r in agg.rows if r.requested})) or "?"
+        if overall == "REROUTED":
+            bad = counts.get("REROUTED", 0)
+            served = sorted({m for r in agg.rows for m in r.other_models()})
+            self._set_banner("REROUTED", self.s("banner_live_rerouted", pairs="; ".join(agg.pairs()), bad=bad, total=total), "live")
+            brief = [self.s("brief_live_rerouted", bad=bad, total=total, served=", ".join(served) or "?", requested=requested)]
+            acct = self._live_account_sentence()
+            if acct:
+                brief.append(acct)
+            brief.append(self.s("brief_advice_rerouted"))
+        elif overall == "OK":
+            self._set_banner("ok", self.s("banner_live_ok", n=counts.get("ok", 0)), "live")
+            brief = [self.s("brief_live_ok", n=counts.get("ok", 0))]
+            acct = self._live_account_sentence()
+            if acct:
+                brief.append(acct)
+        elif overall == "UNSUPPORTED":
+            self._set_banner("UNSUPPORTED", self.s("banner_live_unsupported", models=requested), "live")
+            brief = [self.s("brief_live_unsupported", models=requested), self.s("brief_advice_unsupported")]
+        elif overall == "ERROR":
+            errs = sorted({(r.error_code or (r.record.error_code if r.record else None) or "?") for r in agg.rows
+                           if r.verdict() in ("ERROR", "UNKNOWN")})
+            self._set_banner("ERROR", self.s("banner_live_error", n=total), "live")
+            brief = [self.s("brief_live_error", errors=", ".join(errs))]
+        elif running:
+            self._set_banner("RUNNING", self.s("banner_live_waiting"), "live")
+            brief = [self.s("brief_live_running"), self.s("brief_live_waiting")]
+        else:
+            self._set_banner("IDLE", self.s("banner_live_idle"), "live")
+            brief = [self.s("brief_live_idle")]
+        if running and overall in ("REROUTED", "OK", "UNSUPPORTED", "ERROR"):
+            brief.insert(0, self.s("brief_live_running"))
+        self.lbl_live_brief.configure(text=" ".join(brief))
+
+    def _live_account_sentence(self) -> Optional[str]:
+        rl = self.agg.rate_limits
+        if not rl or not rl.get("plan_type"):
+            return None
+        lim = rl.get("rate_limits") or {}
+        used = (lim.get("primary") or {}).get("used_percent")
+        text = self.s("brief_account", plan=rl.get("plan_type"), used=used if used is not None else "?")
+        if self.agg.overall() == "REROUTED":
+            text += " " + (self.s("brief_not_limit") if lim.get("limit_reached") is False else self.s("brief_limit"))
+        return text
+
+    def _live_note(self, text: str) -> None:
+        self.live_lines.append(f"{time.strftime('%H:%M:%S')}  {text}")
+        self.live_lines = self.live_lines[-200:]
+        self.live_notes.configure(state="normal")
+        self.live_notes.delete("1.0", "end")
+        self.live_notes.insert("1.0", "\n".join(self.live_lines))
+        self.live_notes.see("end")
+        self.live_notes.configure(state="disabled")
+
+    def copy_live_report(self) -> None:
+        self.root.clipboard_clear()
+        self.root.clipboard_append(self.agg.report())
+        self.var_live_status.set(self.s("copied"))
+
+    def clear_live(self) -> None:
+        if self.monitor is not None:
+            return
+        self.agg = live.LiveAggregator()
+        self.live_items.clear()
+        self.live_tree.delete(*self.live_tree.get_children())
+        self.live_lines = []
+        self.live_notes.configure(state="normal")
+        self.live_notes.delete("1.0", "end")
+        self.live_notes.configure(state="disabled")
+        self.live_ended = None
+        self._set_live_running(False)
+        self._show_live_status()
+        self._render_live_summary()
 
     def _handle(self, msg: tuple) -> None:
         if msg[0] == "progress":
@@ -1096,8 +1618,8 @@ class App:
         self.lbl_version.configure(text=self.s("update_new", new=new), fg="#b3261e",
                                    font=(FONT_UI, 10, "bold"), cursor="hand2")
         self.lbl_version.bind("<Button-1>", lambda _e: self.open_update())
-        if self.updating or self.worker is not None or self.result is not None:
-            return  # a check is running or already done: do not restart the app under the user
+        if self.updating or self.worker is not None or self.result is not None or self.monitor is not None:
+            return  # a check or live session is running or done: do not restart the app under the user
         if not cmc.is_frozen():
             self.var_status.set(self.s("update_pip", new=new, repo=REPO_URL))
         elif not (self.auto_update and info.get("asset") and cmc.dir_writable(self.exe_path.parent)):
@@ -1166,6 +1688,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--lang", default=None, choices=["en", "ko"], help="interface language (remembered)")
     ap.add_argument("--fake", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--auto-check", action="store_true", help=argparse.SUPPRESS)
+    ap.add_argument("--auto-live", action="store_true", help=argparse.SUPPRESS)
+    ap.add_argument("--fake-live", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--exit-after", type=float, default=None, help=argparse.SUPPRESS)
     ap.add_argument("--show-help", choices=["usage", "terms", "about"], default=None, help=argparse.SUPPRESS)
     ap.add_argument("--no-update-check", action="store_true",
@@ -1186,11 +1710,17 @@ def main(argv: Optional[List[str]] = None) -> int:
                   auto_update=not a.no_auto_update, updated_from=a.updated_from)
         if a.auto_check:
             root.after(300, lambda: app.start_check(confirm=False))
+        if a.auto_live or a.fake_live:
+            root.after(300, lambda: (app.nb.select(app.page_live), app.start_live(confirm=False)))
+        if a.fake_live:
+            root.after(900, lambda: feed_fake_live(app))
         if a.show_help:
             root.after(300, lambda: app.show_help(a.show_help))
         if a.exit_after is not None and not a.auto_check:
-            root.after(int(a.exit_after * 1000), root.destroy)
+            root.after(int(a.exit_after * 1000), app.on_close)
         root.mainloop()
+        if app.monitor is not None:  # the window went away without on_close (destroy from elsewhere)
+            app.monitor.stop()
     except Exception as e:  # a windowed build has no console: show the reason instead of dying silently
         _report_startup_error(f"{APP_TITLE} could not start: {type(e).__name__}: {e}")
         return 1

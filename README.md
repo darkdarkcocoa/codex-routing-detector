@@ -4,9 +4,10 @@
 
 Shows which model **actually** answers your Codex requests. Run it, press Check, and it tells
 you whether the `gpt-6-astra` you selected was really served by `gpt-6-astra` or quietly by
-`gpt-5.6-luna`.
+`gpt-5.6-luna`. The **Live monitor** tab does the same for your own Codex CLI session, request
+by request, while you work.
 
-![Codex Routing Detector after a live check](docs/screenshot.png)
+![Codex Routing Detector after a check](docs/screenshot.png)
 
 ## Why this exists
 
@@ -31,9 +32,11 @@ same account went REROUTED -> OK -> REROUTED within an hour), so check whenever 
   [Releases](https://github.com/darkdarkcocoa/codex-routing-detector/releases) and double-click it
   (SmartScreen warns once: "More info" -> "Run anyway").
 - **Python 3.8+**: `pipx install git+https://github.com/darkdarkcocoa/codex-routing-detector`,
-  then `codex-routing-detector-gui` (window) or `codex-routing-detector` (terminal).
+  then `codex-routing-detector-gui` (window) or `codex-routing-detector` (terminal). The only
+  dependency, `cryptography`, is pulled in for the live monitor's certificates.
 
-Either way you need a Codex CLI or Codex Desktop that is signed in with ChatGPT.
+Either way you need a Codex CLI or Codex Desktop that is signed in with ChatGPT (the live
+monitor needs the CLI, see below).
 
 ## Quick start
 
@@ -52,6 +55,39 @@ Under the banner, the **Briefing** card says in plain words what happened and wh
 the table and the details underneath carry the evidence (response ids, plan, usage).
 
 That is the whole check. Everything below is optional.
+
+## Live monitor (Codex CLI only)
+
+The second tab watches a real Codex session instead of sending a probe. Press **Start
+monitoring**: a new terminal window opens with the Codex CLI, and every request you make there
+is listed as soon as the server answers, with the model Codex asked for, the model that really
+answered and the verdict. The banner and the briefing keep a running total, so a substitution
+that starts halfway through your afternoon shows up at the moment it happens.
+
+![Live monitor tab during a session](docs/screenshot-live.png)
+
+- **Codex settings** mirrors `model` and `model_reasoning_effort` from `~/.codex/config.toml`
+  and re-reads them when the file changes, so you can see what Codex is going to ask for.
+- **Working folder** is where the Codex window opens (your project). Pick it once; it is
+  remembered.
+- **Stop** closes the Codex window, because that window cannot reach the server without the
+  monitor. Closing Codex yourself (`/exit` or Ctrl-C) ends the monitor too. The result stays on
+  screen; **Copy live report** puts the table on the clipboard.
+- It costs nothing extra: the monitor sends no requests of its own.
+- It works by starting the Codex CLI with `HTTPS_PROXY` pointing at a small proxy built into
+  this tool (listening on 127.0.0.1 only) and `CODEX_CA_CERTIFICATE` pointing at a certificate
+  that is created for the session and deleted afterwards. Nothing is installed in the system
+  certificate store, no byte is changed, and nothing is written to disk: prompts, files and
+  answers pass through and only model names, response ids, statuses and error codes are kept
+  in memory.
+- **The Codex desktop app cannot be watched.** It is a packaged (MSIX) application that does
+  not take these settings from another program, and it keeps no record of the served model
+  anywhere on disk. Desktop users get the same answer from the Check tab, one probe at a time.
+
+On the command line: `codex-routing-detector --live` opens the Codex TUI in a new window and
+prints one line per response until Codex exits or you press Ctrl-C; `--live-dir DIR` picks the
+folder, and anything after `--` is passed to codex (for example `--live -- exec "hello"`). Exit
+code 2 if any response was served by another model.
 
 ## More details (optional)
 
@@ -109,6 +145,8 @@ python codex_routing_detector.py --wire               # packet-level capture wit
 | `--timeout SEC` | per-probe timeout (default 240); the whole process tree is killed on timeout |
 | `--codex PATH` | codex binary (also `CODEX_BIN`) |
 | `--wire` | use mitmproxy instead of trace logging |
+| `--live` | watch a real Codex CLI session in a new terminal window (built-in proxy); arguments after `--` go to codex |
+| `--live-dir DIR` | folder to open Codex in for `--live` (default: current directory) |
 | `--json FILE` | machine-readable report |
 | `--out DIR` | keep raw logs here (default: a new private temp dir) |
 | `--full-ids` | print full response ids (for bug reports) |
@@ -137,6 +175,14 @@ removed when the run ends, is cancelled, or the window is closed. Both
 directions of the responses WebSocket are recorded, including the requested model in the
 client's `response.create` frame. Trace mode and wire mode were checked against each other on
 2026-09-22: the server response objects were identical.
+
+**Live monitor.** The same idea as `--wire`, without mitmproxy: `codex_routing_proxy.py` is a
+CONNECT proxy that terminates TLS with a per-session certificate authority (EC P-256, made with
+the `cryptography` package), re-encrypts towards the real server, relays every byte unchanged
+and, on the responses WebSocket only, decodes the frames (masking, fragmentation and
+`permessage-deflate` with context takeover) to read the client's `response.create` model and
+the server's `response.created` / `response.completed` objects. `codex_routing_live.py` turns
+those into one row per response and starts and stops the Codex window.
 
 Each probe is a fresh Codex session (`--ephemeral` where the Codex version supports it, sandbox
 `read-only`, the `notify` hook disabled; your MCP servers and plugins still load). Codex sends
@@ -207,6 +253,12 @@ model, not a broken account or client. The window runs no control probe.
   no network calls of its own. In `--wire` mode every HTTPS request Codex makes during the probe
   (including token refresh and telemetry) passes through the local mitmproxy process the tool
   launched on your machine; only the responses WebSocket is recorded.
+- The live monitor keeps only model names, response ids, statuses, timestamps and error codes,
+  in memory, until you press Clear or close the window; the raw messages are never written
+  anywhere. All of Codex's HTTPS traffic during the session (token refresh, telemetry, MCP
+  servers on the network) passes through the built-in proxy on 127.0.0.1; only the responses
+  WebSocket is decoded. The certificate authority lives in a private temp directory for the
+  session and is deleted when the monitor stops.
 - The probe runs with the sandbox in `read-only` mode, but a custom `--prompt` can still make
   the model read files and send them to OpenAI, as any Codex turn can. Keep the default prompt
   unless you know what you are doing.
@@ -250,8 +302,11 @@ python -m unittest discover -s tests -v
 
 `tests/test_gui.py` builds the window off-screen and drives it with the fixture runs; it is
 skipped where tkinter has no display. `python codex_routing_detector_gui.py --fake --auto-check`
-shows the window with the fixture data instead of a live check (development only; the exe does
-not include the fixtures).
+shows the window with the fixture data instead of a live check, and `--fake --fake-live` fills
+the live tab with sample rows (development only; the exe does not include the fixtures).
+`tests/test_live.py` runs the built-in proxy end to end against a local TLS WebSocket echo
+server (CONNECT, throw-away CA, masked and deflated frames) and checks the live aggregation;
+`tests/test_gui_live.py` drives the live tab with a fake Codex process.
 
 The fixtures under `tests/fixtures` are two complete trace runs from 2026-09-22 with every id
 replaced by a placeholder: an astra request served by luna, and a request that ended in

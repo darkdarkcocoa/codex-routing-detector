@@ -4,9 +4,10 @@
 
 Codex 요청에 **실제로 어떤 모델이 응답했는지** 보여주는 도구입니다. 실행하고 **Check**를 누르면,
 내가 고른 `gpt-6-astra`가 정말 `gpt-6-astra`로 처리됐는지, 아니면 몰래 `gpt-5.6-luna`로
-처리됐는지 알려줍니다.
+처리됐는지 알려줍니다. **라이브 모니터** 탭은 내 Codex CLI 세션을 작업하는 동안 요청 하나하나
+같은 방식으로 지켜봅니다.
 
-![실제 검사 후의 Codex Routing Detector 창](docs/screenshot.png)
+![검사 후의 Codex Routing Detector 창](docs/screenshot.png)
 
 ## 왜 만들었나
 
@@ -31,9 +32,11 @@ Codex 안에서는 이걸 볼 수 없습니다. 화면과 로컬 세션 로그�
   `codex-routing-detector.exe`를 받아 더블클릭합니다. 처음 한 번 SmartScreen 경고가 뜨면
   "추가 정보" → "실행"을 누르세요(코드 서명이 없어서 그렇습니다).
 - **Python 3.8 이상**: `pipx install git+https://github.com/darkdarkcocoa/codex-routing-detector`
-  후 `codex-routing-detector-gui`(창) 또는 `codex-routing-detector`(터미널).
+  후 `codex-routing-detector-gui`(창) 또는 `codex-routing-detector`(터미널). 의존성은
+  라이브 모니터의 인증서를 만드는 `cryptography` 하나뿐이며 같이 설치됩니다.
 
-어느 쪽이든 ChatGPT로 로그인된 Codex CLI 또는 Codex Desktop이 필요합니다.
+어느 쪽이든 ChatGPT로 로그인된 Codex CLI 또는 Codex Desktop이 필요합니다(라이브 모니터는 CLI가
+있어야 합니다. 아래 참고).
 
 ## 바로 쓰기
 
@@ -54,6 +57,35 @@ Codex 안에서는 이걸 볼 수 없습니다. 화면과 로컬 세션 로그�
 상세에 증거(응답 ID, 플랜, 사용량)가 있습니다.
 
 검사는 이게 전부입니다. 아래는 알아 두면 좋은 것들입니다.
+
+## 라이브 모니터 (Codex CLI 전용)
+
+두 번째 탭은 검사 요청을 보내는 대신 내 Codex 세션을 그대로 지켜봅니다. **모니터링 시작**을
+누르면 Codex CLI가 새 터미널 창에서 열리고, 거기서 보내는 요청마다 서버가 답하는 즉시 표에
+한 줄씩 쌓입니다(Codex가 요청한 모델, 실제로 답한 모델, 판정). 배너와 브리핑은 누적 집계를
+보여 주므로, 작업 도중에 바꿔치기가 시작되면 그 순간 바로 드러납니다.
+
+![세션 중의 라이브 모니터 탭](docs/screenshot-live.png)
+
+- **Codex 설정**은 `~/.codex/config.toml`의 `model`과 `model_reasoning_effort`를 그대로
+  보여 주고, 파일이 바뀌면 다시 읽습니다. Codex가 무엇을 요청할지 미리 알 수 있습니다.
+- **작업 폴더**는 Codex 창이 열릴 폴더(내 프로젝트)입니다. 한 번 고르면 기억합니다.
+- **중지**를 누르면 Codex 창도 닫힙니다. 모니터 없이는 그 창이 서버에 연결할 수 없기 때문입니다.
+  Codex를 직접 끝내도(`/exit` 또는 Ctrl-C) 모니터가 끝납니다. 결과는 화면에 남고,
+  **라이브 보고서 복사**로 표를 클립보드에 넣을 수 있습니다.
+- 추가 비용은 없습니다. 모니터는 스스로 요청을 보내지 않습니다.
+- 원리: Codex CLI를 `HTTPS_PROXY`가 이 도구에 내장된 작은 프록시(127.0.0.1에서만 듣습니다)를,
+  `CODEX_CA_CERTIFICATE`가 이번 세션용으로 만든 인증서를 가리키도록 실행합니다. 시스템 인증서
+  저장소에는 아무것도 설치하지 않고, 바이트 하나 바꾸지 않으며, 디스크에도 저장하지 않습니다.
+  프롬프트·파일·답변은 그대로 지나가고, 모델명·응답 ID·상태·오류 코드만 메모리에 둡니다.
+- **Codex 데스크톱 앱은 감시할 수 없습니다.** 패키지(MSIX) 형태로 설치되는 앱이라 다른 프로그램이
+  이런 설정을 넣어 줄 수 없고, 실제 응답 모델을 디스크 어디에도 남기지 않습니다. 데스크톱 앱
+  사용자는 Check 탭에서 한 번에 하나씩 같은 답을 얻을 수 있습니다.
+
+터미널에서는 `codex-routing-detector --live`가 Codex TUI를 새 창에 열고, Codex가 끝나거나
+Ctrl-C를 누를 때까지 응답마다 한 줄씩 출력합니다. `--live-dir DIR`로 폴더를 고르고, `--` 뒤의
+인자는 codex에 그대로 넘어갑니다(예: `--live -- exec "hello"`). 하나라도 다른 모델이 답하면
+종료 코드 2입니다.
 
 ## 추가 설명
 
@@ -87,6 +119,7 @@ codex-routing-detector -m gpt-6-astra  # 특정 모델만
 codex-routing-detector -r 3            # 3번 반복
 codex-routing-detector --json out.json --full-ids
 codex-routing-detector --wire          # mitmproxy로 패킷 수준 확인
+codex-routing-detector --live          # 내 Codex CLI 세션을 새 창에 열고 실시간으로 감시
 ```
 
 종료 코드: 0 전부 요청대로, 2 하나라도 다른 모델이 응답(대조군 포함), 1 확인 실패 또는 인자
@@ -123,6 +156,13 @@ codex-routing-detector --wire          # mitmproxy로 패킷 수준 확인
 않음), 끝나면 인증서와 프록시를 지웁니다. 두 모드를 나란히 돌려 서버 응답 객체가 동일함을
 확인했습니다.
 
+라이브 모니터는 `--wire`와 같은 발상을 mitmproxy 없이 구현한 것입니다. `codex_routing_proxy.py`는
+CONNECT 프록시로, 세션마다 새로 만든 인증 기관(EC P-256, `cryptography` 패키지 사용)으로 TLS를
+종단하고 실제 서버 쪽으로 다시 암호화해 모든 바이트를 그대로 중계합니다. responses WebSocket에
+한해 프레임(마스킹, 분할, context takeover가 있는 `permessage-deflate`)을 해독해서 클라이언트의
+`response.create`에 적힌 모델과 서버의 `response.created` / `response.completed` 객체를 읽습니다.
+`codex_routing_live.py`가 이를 응답당 한 행으로 정리하고 Codex 창을 열고 닫습니다.
+
 프로브마다 새 Codex 세션을 씁니다(`--ephemeral`, 샌드박스 read-only, notify 훅 끔). Codex는
 세션마다 요청을 두 번 보냅니다(웜업 + 턴). 둘 다 표에 나오며, 어느 하나라도 다른 모델명을
 담으면 `REROUTED`, `ok`는 턴이 정상 완료됐을 때만 줍니다.
@@ -141,6 +181,10 @@ codex-routing-detector --wire          # mitmproxy로 패킷 수준 확인
 - trace 모드에서 도구가 하는 네트워크 통신은 아래 업데이트 확인뿐입니다. `--wire` 모드에서는
   프로브 동안 Codex의 모든 HTTPS 요청(토큰 갱신, 원격 측정 포함)이 이 도구가 띄운 로컬
   mitmproxy를 지나가며, 기록되는 것은 responses WebSocket뿐입니다.
+- 라이브 모니터는 모델명·응답 ID·상태·시각·오류 코드만 메모리에 두며, 지우기를 누르거나 창을
+  닫으면 사라집니다. 원문 메시지는 어디에도 쓰지 않습니다. 세션 동안 Codex의 모든 HTTPS 통신(토큰
+  갱신, 원격 측정, 네트워크 MCP 서버 포함)이 127.0.0.1의 내장 프록시를 지나가며, 해독하는 것은
+  responses WebSocket뿐입니다. 인증 기관은 세션 전용 임시 폴더에 있다가 모니터가 멈추면 지워집니다.
 - 샌드박스가 read-only여도 사용자 지정 `--prompt`로 모델이 파일을 읽어 OpenAI로 보내게 할 수
   있습니다(다른 Codex 턴과 같음). 기본 프롬프트를 쓰세요.
 
@@ -169,3 +213,7 @@ build_exe.bat                             # dist\codex-routing-detector.exe 빌�
 
 `tests/fixtures`는 2026-09-22 실제 캡처에서 ID를 자리표시자로 바꾼 두 개의 전체 실행
 기록입니다(astra 요청이 luna로 처리된 것, `server_is_overloaded`로 끝난 것).
+`tests/test_live.py`는 내장 프록시를 로컬 TLS WebSocket 에코 서버에 대고 끝까지 돌려 봅니다
+(CONNECT, 임시 인증 기관, 마스킹·압축 프레임). `tests/test_gui_live.py`는 가짜 Codex
+프로세스로 라이브 탭을 구동합니다. `python codex_routing_detector_gui.py --fake --fake-live`는
+라이브 탭을 샘플 행으로 채워 보여 줍니다(개발용).
