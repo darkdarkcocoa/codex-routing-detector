@@ -572,9 +572,32 @@ class UpdateCheck(unittest.TestCase):
         self.assertEqual(cmc.version_tuple("garbage"), (0,))
         self.assertLess(cmc.version_tuple("v1.2.9"), cmc.version_tuple("v1.2.10"))
 
-    def test_newer_release_is_reported(self):
+    def test_newer_release_is_reported_with_its_exe_asset(self):
         info = cmc.check_for_update(current="1.2.1", fetch=lambda: {"tag_name": "v1.3.0", "html_url": "https://x/rel"})
-        self.assertEqual(info, {"version": "1.3.0", "url": "https://x/rel"})
+        self.assertEqual(info, {"version": "1.3.0", "url": "https://x/rel", "asset": None})
+        data = {"tag_name": "v1.3.0", "html_url": "https://x/rel", "assets": [
+            {"name": "other.zip", "browser_download_url": "https://x/o.zip"},
+            {"name": "codex-routing-detector.exe", "browser_download_url": "https://x/c.exe", "size": 123, "digest": "sha256:ab"}]}
+        info = cmc.check_for_update(current="1.2.1", fetch=lambda: data)
+        self.assertEqual(info["asset"], {"url": "https://x/c.exe", "size": 123, "digest": "sha256:ab"})
+
+    def test_verify_download_and_swap_script(self):
+        import hashlib, tempfile
+        d = pathlib.Path(tempfile.mkdtemp())
+        f = d / "x.exe"
+        f.write_bytes(b"MZ" + b"\0" * 1_500_000)
+        self.assertIsNone(cmc.verify_download(f, f.stat().st_size, "sha256:" + hashlib.sha256(f.read_bytes()).hexdigest()))
+        self.assertIn("size mismatch", cmc.verify_download(f, 5))
+        self.assertIn("SHA-256", cmc.verify_download(f, None, "sha256:" + "0" * 64))
+        (d / "small.exe").write_bytes(b"MZ")
+        self.assertIn("too small", cmc.verify_download(d / "small.exe"))
+        (d / "text.exe").write_bytes(b"#!" + b"\0" * 1_500_000)
+        self.assertIn("not a Windows executable", cmc.verify_download(d / "text.exe"))
+        script = cmc.self_update_script(pathlib.Path(r"C:\a b\app.exe"), pathlib.Path(r"C:\a b\app.new.exe"), 4321, ["--updated-from", "1.0"])
+        self.assertIn('find " 4321 "', script)   # padded, so PID 14321 would not match
+        self.assertIn('move /y "C:\\a b\\app.new.exe" "C:\\a b\\app.exe"', script)
+        self.assertIn('start "" "C:\\a b\\app.exe" "--updated-from" "1.0"', script)
+        self.assertIn('del "%~f0"', script)
 
     def test_same_or_older_release_is_ignored(self):
         self.assertIsNone(cmc.check_for_update(current="1.2.1", fetch=lambda: {"tag_name": "v1.2.1"}))

@@ -47,7 +47,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-__version__ = "1.2.2"
+__version__ = "1.2.4"
 
 FALLBACK_MODEL = "gpt-6-astra"
 DEFAULT_CONTROL = "gpt-5.6-sol"
@@ -969,6 +969,7 @@ def to_json(probes: List[Probe], codex_desc: str, codex_version: str, method: st
 
 
 # --------------------------------------------------------------- update check
+EXE_ASSET_NAME = "codex-routing-detector.exe"
 REPO = "darkdarkcocoa/codex-routing-detector"
 RELEASES_URL = f"https://github.com/{REPO}/releases"
 LATEST_API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
@@ -997,9 +998,108 @@ def check_for_update(current: str = __version__, timeout: float = 4.0, fetch=Non
         tag = str(data.get("tag_name") or data.get("name") or "")
         if not tag or version_tuple(tag) <= version_tuple(current):
             return None
-        return {"version": tag.lstrip("vV"), "url": data.get("html_url") or RELEASES_URL}
+        info = {"version": tag.lstrip("vV"), "url": data.get("html_url") or RELEASES_URL, "asset": None}
+        for a in data.get("assets") or []:
+            if isinstance(a, dict) and a.get("name") == EXE_ASSET_NAME and a.get("browser_download_url"):
+                info["asset"] = {"url": a["browser_download_url"], "size": a.get("size"), "digest": a.get("digest")}
+                break
+        return info
     except Exception:
         return None
+
+
+# ---------------------------------------------------------------- self update
+def is_frozen() -> bool:
+    """True inside the PyInstaller build (the only case where self-replacement makes sense)."""
+    return bool(getattr(sys, "frozen", False)) and os.name == "nt"
+
+
+def download_file(url: str, dest: Path, progress=None, timeout: float = 30.0) -> None:
+    """Stream `url` to `dest`; progress(done_bytes, total_bytes_or_None) is called as data arrives."""
+    import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": f"codex-routing-detector/{__version__}"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp, dest.open("wb") as out:
+        total = resp.headers.get("Content-Length")
+        total_n = int(total) if total and total.isdigit() else None
+        done = 0
+        while True:
+            chunk = resp.read(256 * 1024)
+            if not chunk:
+                break
+            out.write(chunk)
+            done += len(chunk)
+            if progress is not None:
+                progress(done, total_n)
+
+
+def verify_download(path: Path, expected_size: Optional[int] = None, digest: Optional[str] = None) -> Optional[str]:
+    """Return None when the file looks like the released exe, else a reason."""
+    try:
+        size = path.stat().st_size
+    except OSError as e:
+        return f"download missing: {e}"
+    if size < 1_000_000:
+        return f"download too small ({size} bytes)"
+    if expected_size and size != int(expected_size):
+        return f"size mismatch (got {size}, expected {expected_size})"
+    with path.open("rb") as f:
+        if f.read(2) != b"MZ":
+            return "not a Windows executable"
+    if digest and str(digest).lower().startswith("sha256:"):
+        import hashlib
+        h = hashlib.sha256()
+        with path.open("rb") as f:
+            for block in iter(lambda: f.read(1 << 20), b""):
+                h.update(block)
+        if h.hexdigest() != str(digest)[7:].lower():
+            return "SHA-256 mismatch"
+    return None
+
+
+def self_update_script(target: Path, new: Path, pid: int, relaunch_args: List[str]) -> str:
+    """cmd script: wait for `pid` to exit, swap the exe, start the new one, delete itself."""
+    args = " ".join(f'"{a}"' for a in relaunch_args)
+    return "\r\n".join([
+        "@echo off",
+        "set N=0",
+        ":wait",
+        f'tasklist /FI "PID eq {pid}" 2>nul | find " {pid} " >nul',
+        "if errorlevel 1 goto swap",
+        "ping -n 2 127.0.0.1 >nul",
+        "goto wait",
+        ":swap",
+        f'move /y "{new}" "{target}" >nul 2>nul',
+        "if not errorlevel 1 goto run",
+        "set /a N+=1",
+        "if %N% geq 30 goto done",
+        "ping -n 2 127.0.0.1 >nul",
+        "goto swap",
+        ":run",
+        f'start "" "{target}" {args}'.rstrip(),
+        ":done",
+        'del "%~f0"',
+        "",
+    ])
+
+
+def launch_replacer(target: Path, new: Path, relaunch_args: List[str]) -> Path:
+    """Write the swap script next to the temp exe and start it detached; the caller must exit."""
+    script = new.with_suffix(".update.cmd")
+    script.write_text(self_update_script(target, new, os.getpid(), relaunch_args), encoding="utf-8")
+    flags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    subprocess.Popen(["cmd.exe", "/c", str(script)], creationflags=flags, close_fds=True,
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return script
+
+
+def dir_writable(path: Path) -> bool:
+    try:
+        probe = path / f".write-test-{os.getpid()}"
+        probe.write_bytes(b"x")
+        probe.unlink()
+        return True
+    except OSError:
+        return False
 
 
 # ------------------------------------------------------------------ run_check

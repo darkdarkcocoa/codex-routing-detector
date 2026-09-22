@@ -155,10 +155,17 @@ model is not, the substitution is specific to that model, not a broken account o
   block (plan, usage, credit balance) because that is useful in a bug report; remove it if
   you would rather not share it.
 - On startup the tool makes one anonymous request to `api.github.com` to see whether a newer
-  release exists; if so, the version label in the window turns into a red NEW badge that opens
-  the release page, and the command line prints an `update` line after the report. Nothing
-  about you is sent. Disable it with `--no-update-check` or the environment variable
-  `CODEX_ROUTING_DETECTOR_NO_UPDATE=1`.
+  release exists. Nothing about you is sent. If there is one, the version label in the window
+  turns into a red NEW badge that opens the release page, and the command line prints an
+  `update` line after the report. Disable the check with `--no-update-check` or the environment
+  variable `CODEX_ROUTING_DETECTOR_NO_UPDATE=1`.
+- The **Windows exe updates itself**: it downloads the new `codex-routing-detector.exe` from
+  the release next to itself, verifies size, `MZ` header and the SHA-256 digest GitHub
+  publishes for the asset, swaps the file once the old process has exited, and starts the new
+  version, which then reports "Updated to v…". This only happens right after startup, never
+  while a check is running, and only when the exe's folder is writable. `--no-auto-update`
+  keeps the badge but never replaces the file. Installs made with pip/pipx are not touched;
+  they get the badge plus the `pipx upgrade codex-routing-detector` hint.
 - Apart from that, in trace mode the tool only runs the Codex binary you already have and makes
   no network calls of its own. In `--wire` mode every HTTPS request Codex makes during the probe
   (including token refresh and telemetry) passes through the local mitmproxy process the tool
@@ -260,10 +267,12 @@ python codex_routing_detector.py --wire         # mitmproxy로 패킷 수준 확
 - 서버 쪽 상태는 시간에 따라 바뀝니다. 같은 계정이 20분 사이에 REROUTED에서 OK로 바뀐 기록이
   있으니, 필요할 때마다 다시 돌려 보세요.
 - 비용: 실행 한 번에 기본 4개 요청(모델 2개 × 웜업+턴). 일반 사용량으로 차감됩니다.
-- 업데이트 확인: 시작할 때 `api.github.com`에 익명 요청 하나를 보내 새 릴리스가 있는지
-  봅니다. 있으면 창 오른쪽 아래 버전 표시가 빨간 NEW 배지로 바뀌고(클릭하면 릴리스 페이지),
-  터미널 버전은 보고서 끝에 한 줄로 알립니다. `--no-update-check` 또는
-  `CODEX_ROUTING_DETECTOR_NO_UPDATE=1`로 끌 수 있습니다.
+- 업데이트: 시작할 때 `api.github.com`에 익명 요청 하나를 보내 새 릴리스가 있는지 봅니다.
+  있으면 오른쪽 아래에 빨간 NEW 배지가 뜨고, **exe 버전은 새 파일을 받아 검증(크기·MZ
+  헤더·SHA-256)한 뒤 자기 자신을 교체하고 새 버전으로 다시 실행**됩니다(시작 직후에만, 검사
+  중에는 안 함, 폴더에 쓰기 가능할 때만). `--no-auto-update`면 배지만 표시하고,
+  `--no-update-check` 또는 `CODEX_ROUTING_DETECTOR_NO_UPDATE=1`이면 확인 자체를 안 합니다.
+  pip/pipx 설치는 배지와 `pipx upgrade codex-routing-detector` 안내만 나옵니다.
 - 로그: 마지막 줄에 찍힌 폴더에 서버 프레임 원문이 남습니다. 스레드 ID, 계정 사용자 ID
   (`safety_identifier`), 프롬프트, 플랜/사용량이 들어 있고, 토큰·쿠키·요청 본문(작업 폴더
   경로 포함)은 기록되지 않습니다. `--json` 보고서에는 사용자 이름이 든 경로가 없습니다.

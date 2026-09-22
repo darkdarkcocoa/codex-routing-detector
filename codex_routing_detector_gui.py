@@ -59,7 +59,13 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "codex_hint": "Use the \"Codex...\" button to pick the codex binary by hand (codex.exe inside the npm package, or the Codex Desktop bundle).",
         "copied": "Report copied to the clipboard.", "saved": "Saved {path}", "fake": "(fixture data, not a live check)",
         "control_none": "(none)",
-        "update_new": "v{current}  ->  NEW v{new} available, click to download",
+        "update_new": "NEW v{new}",
+        "update_pip": "Version {new} is available: pipx upgrade codex-routing-detector  (or pip install -U git+{repo})",
+        "update_manual": "Version {new} is available. Click NEW at the bottom right to download it.",
+        "update_downloading": "Updating to v{new}: downloading {mb} MB...",
+        "update_restarting": "Update downloaded. Restarting as v{new}...",
+        "update_failed": "Automatic update to v{new} failed ({err}). Click NEW at the bottom right to download it.",
+        "updated": "Updated to v{current}.",
     },
     "ko": {
         "model": "모델", "control": "대조군", "effort": "Effort", "repeat": "반복",
@@ -80,7 +86,13 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "codex_hint": "\"Codex...\" 버튼으로 codex 실행 파일을 직접 고를 수 있습니다 (npm 패키지 안의 codex.exe 또는 Codex Desktop 번들).",
         "copied": "보고서를 클립보드에 복사했습니다.", "saved": "저장함: {path}", "fake": "(샘플 데이터, 실제 검사 아님)",
         "control_none": "(없음)",
-        "update_new": "v{current}  ->  NEW v{new} 나옴, 클릭해서 받기",
+        "update_new": "NEW v{new}",
+        "update_pip": "새 버전 {new}: pipx upgrade codex-routing-detector  (또는 pip install -U git+{repo})",
+        "update_manual": "새 버전 {new}이 있습니다. 오른쪽 아래 NEW를 눌러 받으세요.",
+        "update_downloading": "v{new}로 업데이트 중: {mb} MB 다운로드...",
+        "update_restarting": "다운로드 완료. v{new}로 다시 시작합니다...",
+        "update_failed": "v{new} 자동 업데이트 실패 ({err}). 오른쪽 아래 NEW를 눌러 직접 받으세요.",
+        "updated": "v{current}로 업데이트됨.",
     },
 }
 NONE_WORDS = {"", "(none)"} | {v["control_none"] for v in STRINGS.values()}
@@ -324,7 +336,7 @@ def install_fake_runner() -> bool:
 
 class App:
     def __init__(self, root: tk.Tk, lang: str = "en", fake: bool = False, exit_after: Optional[float] = None,
-                 update_check: bool = True) -> None:
+                 update_check: bool = True, auto_update: bool = True, updated_from: Optional[str] = None) -> None:
         self.root = root
         self.lang = lang if lang in STRINGS else "en"
         self.fake = fake
@@ -338,6 +350,10 @@ class App:
         self.done_secs = 0.0
         self.t0 = 0.0
         self.codex_path: Optional[str] = None
+        self.auto_update = auto_update
+        self.updating = False
+        self.updated_from = updated_from
+        self.exe_path = Path(sys.executable)  # the file that gets replaced by a self-update (frozen build)
         self.cfg_model, self.cfg_tier, _ = cmc.read_config_values()
         self.have_mitm = bool(cmc.shutil.which("mitmdump"))
         self.models = listed_models()
@@ -504,7 +520,9 @@ class App:
         for c, key in (("n", "col_n"), ("requested", "col_requested"), ("kind", "col_kind"), ("served", "col_served"),
                        ("status", "col_status"), ("created", "col_created"), ("verdict", "col_verdict"), ("rid", "col_id")):
             self.tree.heading(c, text=self.s(key))
-        if self.result is not None:
+        if self.updating:
+            pass  # the update status line is rewritten by the next progress message
+        elif self.result is not None:
             self._render_result(self.result)
         elif self.worker is not None:  # mid-run: relabel what is on screen so far
             self.banner.configure(text=self.s("banner_running"))
@@ -514,7 +532,7 @@ class App:
             if self.last_progress is not None:
                 self._show_progress(*self.last_progress)
         else:
-            self.var_status.set(self.s("idle"))
+            self.var_status.set(self.s("updated", current=cmc.__version__) if self.updated_from else self.s("idle"))
             self.banner.configure(text=self.s("banner_idle"))
 
     def toggle_language(self) -> None:
@@ -585,7 +603,7 @@ class App:
             self.var_codex.set(Path(path).name)  # full path is shown in the details after a run
 
     def start_check(self) -> None:
-        if self.worker is not None:
+        if self.worker is not None or self.updating:
             return
         opts = self.options()
         self.cancel = cmc.Canceller()
@@ -664,6 +682,25 @@ class App:
                 self._show_progress(ev, info)
         elif msg[0] == "update":
             self.show_update(msg[1])
+        elif msg[0] == "update_progress":
+            _, done, total, new = msg
+            mb = f"{done / 1e6:.1f}/{total / 1e6:.1f}" if total else f"{done / 1e6:.1f}"
+            self.var_status.set(self.s("update_downloading", new=new, mb=mb))
+            if total:
+                self.progress.configure(mode="determinate", maximum=total, value=done)
+        elif msg[0] == "update_ready":
+            _, new_path, new = msg
+            self.var_status.set(self.s("update_restarting", new=new))
+            self.root.update_idletasks()
+            try:
+                cmc.launch_replacer(self.exe_path, new_path, ["--updated-from", cmc.__version__, "--lang", self.lang])
+            except Exception as e:
+                self._update_failed(str(e), new)
+                return
+            self.root.after(300, self.root.destroy)
+        elif msg[0] == "update_failed":
+            _, err, new = msg
+            self._update_failed(err, new)
         elif msg[0] in ("done", "fatal"):
             self.worker = None
             self.done_secs = round(time.time() - self.t0, 1)
@@ -783,13 +820,54 @@ class App:
         webbrowser.open(REPO_URL)
 
     def show_update(self, info: Optional[dict]) -> None:
-        """Turn the version label into a red NEW badge that opens the release page."""
+        """Red NEW badge that opens the release page; the frozen build also updates itself."""
         self.update_info = info
         if not info:
             return
-        self.lbl_version.configure(text=self.s("update_new", current=cmc.__version__, new=info["version"]),
-                                   fg="#b3261e", font=("TkDefaultFont", 10, "bold"), cursor="hand2")
+        new = info["version"]
+        self.lbl_version.configure(text=self.s("update_new", new=new), fg="#b3261e",
+                                   font=("TkDefaultFont", 10, "bold"), cursor="hand2")
         self.lbl_version.bind("<Button-1>", lambda _e: self.open_update())
+        if self.updating or self.worker is not None or self.result is not None:
+            return  # a check is running or already done: do not restart the app under the user
+        if not cmc.is_frozen():
+            self.var_status.set(self.s("update_pip", new=new, repo=REPO_URL))
+        elif not (self.auto_update and info.get("asset") and cmc.dir_writable(self.exe_path.parent)):
+            self.var_status.set(self.s("update_manual", new=new))
+        else:
+            self._start_auto_update(info)
+
+    def _start_auto_update(self, info: dict) -> None:
+        self.updating = True
+        self.btn_check.configure(state="disabled")
+        self.progress.grid()
+        asset, new = info["asset"], info["version"]
+        dest = self.exe_path.with_name(self.exe_path.stem + ".new.exe")
+        self.var_status.set(self.s("update_downloading", new=new, mb=f"{(asset.get('size') or 0) / 1e6:.1f}"))
+
+        def work() -> None:
+            try:
+                cmc.download_file(asset["url"], dest, progress=lambda d, t: self.q.put(("update_progress", d, t, new)))
+                err = cmc.verify_download(dest, asset.get("size"), asset.get("digest"))
+                if err:
+                    raise RuntimeError(err)
+                self.q.put(("update_ready", dest, new))
+            except Exception as e:
+                try:
+                    dest.unlink()
+                except OSError:
+                    pass
+                self.q.put(("update_failed", f"{type(e).__name__}: {e}", new))
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _update_failed(self, err: str, new: str) -> None:
+        self.updating = False
+        self.progress.stop()
+        self.progress.configure(mode="indeterminate", value=0)
+        self.progress.grid_remove()
+        self.btn_check.configure(state="normal")
+        self.var_status.set(self.s("update_failed", new=new, err=err))
 
     def open_update(self) -> None:
         import webbrowser
@@ -824,6 +902,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--show-help", choices=["usage", "terms", "about"], default=None, help=argparse.SUPPRESS)
     ap.add_argument("--no-update-check", action="store_true",
                     help=f"do not ask api.github.com for a newer release at startup (or set {cmc.NO_UPDATE_ENV}=1)")
+    ap.add_argument("--no-auto-update", action="store_true",
+                    help="show the NEW badge only; never download and replace this exe by itself")
+    ap.add_argument("--updated-from", default=None, help=argparse.SUPPRESS)
     a = ap.parse_args(argv)
     if a.fake and not install_fake_runner():
         _report_startup_error("fixtures not found; --fake needs tests/fixtures next to this file")
@@ -832,7 +913,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     try:
         root = tk.Tk()
         app = App(root, lang=a.lang, fake=a.fake, exit_after=a.exit_after,
-                  update_check=not a.no_update_check and not a.fake)
+                  update_check=not a.no_update_check and not a.fake,
+                  auto_update=not a.no_auto_update, updated_from=a.updated_from)
         if a.auto_check:
             root.after(300, app.start_check)
         if a.show_help:

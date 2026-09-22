@@ -207,6 +207,79 @@ class GuiSmoke(unittest.TestCase):
         self.app.toggle_language()
         self.assertIn("NEW v9.9.9", self.app.lbl_version.cget("text"))  # badge survives relabelling
 
+    def _fake_update_env(self, frozen, download_ok=True):
+        """Patch the pieces that touch the network, the exe file and the process."""
+        import tempfile
+        self._patched = (cmc.is_frozen, cmc.download_file, cmc.launch_replacer, cmc.dir_writable)
+        calls = {"launch": [], "downloads": []}
+        tmp = pathlib.Path(tempfile.mkdtemp())
+        self.app.exe_path = tmp / "codex-routing-detector.exe"
+        self.app.exe_path.write_bytes(b"MZ" + b"\0" * 10)
+
+        def fake_download(url, dest, progress=None, timeout=30):
+            calls["downloads"].append(url)
+            if not download_ok:
+                raise OSError("network down")
+            dest.write_bytes(b"MZ" + b"\0" * 1_200_000)
+            if progress:
+                progress(1_200_002, 1_200_002)
+
+        cmc.is_frozen = lambda: frozen
+        cmc.download_file = fake_download
+        cmc.launch_replacer = lambda target, new, args: calls["launch"].append((target, new, args)) or new
+        cmc.dir_writable = lambda p: True
+        self.addCleanup(self._restore_update_env)
+        return calls
+
+    def _restore_update_env(self):
+        cmc.is_frozen, cmc.download_file, cmc.launch_replacer, cmc.dir_writable = self._patched
+
+    def test_frozen_build_updates_itself_and_restarts(self):
+        calls = self._fake_update_env(frozen=True)
+        info = {"version": "9.9.9", "url": "https://x/rel",
+                "asset": {"url": "https://x/codex-routing-detector.exe", "size": 1_200_002, "digest": None}}
+        self.app.q.put(("update", info))
+        end = time.time() + 5
+        while time.time() < end and not calls["launch"]:
+            try:
+                self.root.update()
+            except tk.TclError:  # the window destroys itself right after launching the replacer
+                break
+            time.sleep(0.05)
+        self.assertEqual(len(calls["launch"]), 1, calls)
+        target, new, args = calls["launch"][0]
+        self.assertEqual(target, self.app.exe_path)
+        self.assertEqual(new.name, "codex-routing-detector.new.exe")
+        self.assertEqual(args[:2], ["--updated-from", cmc.__version__])
+        self.assertIn("NEW v9.9.9", self.app.lbl_version.cget("text"))
+        self.root = tk.Toplevel(_root)  # the app destroyed its window; give tearDown a fresh one
+        self.root.withdraw()
+
+    def test_failed_download_falls_back_to_the_badge(self):
+        calls = self._fake_update_env(frozen=True, download_ok=False)
+        info = {"version": "9.9.9", "url": "https://x/rel", "asset": {"url": "https://x/a.exe", "size": 1, "digest": None}}
+        self.app.q.put(("update", info))
+        self._pump(3)
+        self.assertEqual(calls["launch"], [])
+        self.assertIn("failed", self.app.var_status.get())
+        self.assertFalse(self.app.updating)
+        self.assertEqual(str(self.app.btn_check["state"]), "normal")
+        self.assertIn("NEW v9.9.9", self.app.lbl_version.cget("text"))
+
+    def test_source_install_gets_badge_and_pip_hint_only(self):
+        calls = self._fake_update_env(frozen=False)
+        info = {"version": "9.9.9", "url": "https://x/rel", "asset": {"url": "https://x/a.exe", "size": 1, "digest": None}}
+        self.app.q.put(("update", info))
+        self._pump(1)
+        self.assertEqual(calls["downloads"], [])
+        self.assertIn("pipx upgrade", self.app.var_status.get())
+        self.assertIn("NEW v9.9.9", self.app.lbl_version.cget("text"))
+
+    def test_updated_from_shows_confirmation(self):
+        app = gui.App(tk.Toplevel(_root), lang="en", fake=True, update_check=False, updated_from="1.0.0")
+        self.assertEqual(app.var_status.get(), f"Updated to v{cmc.__version__}.")
+        app.root.destroy()
+
     def test_no_update_leaves_version_label_alone(self):
         self.app.q.put(("update", None))
         self._pump(1)
