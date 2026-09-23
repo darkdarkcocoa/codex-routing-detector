@@ -292,6 +292,10 @@ HELP: Dict[str, dict] = {
                 {"icon": "🚦", "title": "초록은 정상, 빨강은 바꿔치기",
                  "text": "초록이면 고른 모델이 대답한 거고, 빨강이면 몰래 다른 모델로 넘어간 거예요. 주황이면 서버 "
                          "오류처럼 한 번 확인해 볼 일이 생긴 거예요."},
+                {"icon": "🧹", "title": "처음에 luna가 한 번 보여도 괜찮아요",
+                 "text": "대화를 시작하면 Codex가 대화 제목 짓기 같은 잡일을 싸고 빠른 `gpt-5.6-luna`에게 따로 "
+                         "맡겨요. 요청한 모델도 luna인 `gpt-5.6-luna → gpt-5.6-luna` 줄은 바꿔치기가 아니에요. "
+                         "**내 모델 → 다른 모델**일 때만 바꿔치기예요."},
                 {"icon": "🔒", "title": "전부 내 컴퓨터 안에서 처리해요",
                  "text": "프롬프트·파일·답변은 저장하지 않고, 모델 이름과 ID 같은 짧은 기록만 메모리에 둬요."},
                 {"icon": "💻", "title": "Codex CLI 전용이에요",
@@ -438,6 +442,10 @@ HELP: Dict[str, dict] = {
                 {"icon": "🚦", "title": "Green is good, red is a switcheroo",
                  "text": "Green means the model you chose answered. Red means it was quietly swapped for another "
                          "one. Amber means something needs a look, like a server error."},
+                {"icon": "🧹", "title": "A luna line at the start is fine",
+                 "text": "When a conversation starts, Codex hands small chores such as naming the conversation to "
+                         "the cheap, fast `gpt-5.6-luna`. A `gpt-5.6-luna → gpt-5.6-luna` line asked for luna too, so "
+                         "it's not a switcheroo. Only **your model → another model** is."},
                 {"icon": "🔒", "title": "Everything stays on your computer",
                  "text": "Prompts, files and answers are never saved; only short records like model names and ids "
                          "are kept in memory."},

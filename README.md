@@ -85,6 +85,9 @@ away.
 ![Live monitor tab during a session](docs/screenshot-live.png)
 
 - **It costs nothing extra.** The monitor sends no requests of its own.
+- **A `gpt-5.6-luna → gpt-5.6-luna` line at the start is normal.** When a conversation starts,
+  Codex hands small chores such as naming the conversation to the cheap, fast luna. Only *your
+  model → another model* is a reroute.
 - **Session** shows the `model` and `model_reasoning_effort` from `config.toml`. **Folder** is
   where the Codex window opens, and the app remembers it.
 - **Stop** closes the Codex window too. Closing Codex yourself (`/exit` or Ctrl-C) ends the

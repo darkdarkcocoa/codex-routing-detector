@@ -81,6 +81,8 @@ ChatGPT로 로그인된 Codex CLI나 Codex Desktop도 있어야 해요. 라이�
 ![세션 중의 라이브 모니터 탭](docs/screenshot-live-ko.png)
 
 - **추가 비용이 없어요.** 모니터는 스스로 요청을 보내지 않아요.
+- **처음에 `gpt-5.6-luna → gpt-5.6-luna` 줄이 보여도 정상이에요.** 대화를 시작하면 Codex가 대화 제목
+  짓기 같은 잡일을 싸고 빠른 luna에게 따로 맡겨요. *내 모델 → 다른 모델*일 때만 바꿔치기예요.
 - **세션** 줄에는 `config.toml`의 `model`과 `model_reasoning_effort`가 보여요. **작업 폴더**는
   Codex 창이 열릴 폴더이고, 한 번 고르면 기억해요.
 - **중지**를 누르면 Codex 창도 닫혀요. Codex를 직접 끝내도(`/exit` 또는 Ctrl-C) 모니터가 끝나요.

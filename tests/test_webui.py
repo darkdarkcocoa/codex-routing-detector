@@ -506,6 +506,16 @@ class WebWording(WebUiBase):
         self.assertEqual(helps["en"]["about"]["version"], cmc.__version__)
         self.assertIn("usage", helps["ko"])
 
+    def test_live_guide_explains_codex_side_requests(self):
+        # Codex sends its own gpt-5.6-luna requests (conversation title and similar chores) at the
+        # start of a session; users read that ok line as a reroute unless the guide says so
+        import codex_routing_webtext as wt
+        for lang in ("ko", "en"):
+            guide = json.dumps(wt.HELP[lang]["guide"], ensure_ascii=False)
+            self.assertIn("gpt-5.6-luna → gpt-5.6-luna", guide, lang)
+        for lang in ("en", "ko"):
+            self.assertIn("gpt-5.6-luna", gui.STRINGS[lang]["guide_body"], lang)
+
     def test_model_names_are_bold_in_the_brief(self):
         c = self.check_as("gpt-6-astra", "en")
         self.assertIn("**gpt-6-astra**", c["brief"])
