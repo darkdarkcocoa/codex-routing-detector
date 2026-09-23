@@ -29,4 +29,4 @@ codex-routing-detector = "codex_routing_detector:main"
 codex-routing-detector-gui = "codex_routing_webui:main"
 
 [tool.setuptools]
-py-modules = ["codex_routing_detector", "codex_routing_detector_gui", "codex_routing_webui", "codex_routing_proxy", "codex_routing_live", "codex_routing_assets", "codex_routing_fonts"]
+py-modules = ["codex_routing_detector", "codex_routing_detector_gui", "codex_routing_webui", "codex_routing_proxy", "codex_routing_live", "codex_routing_assets", "codex_routing_fonts", "codex_routing_webtext"]

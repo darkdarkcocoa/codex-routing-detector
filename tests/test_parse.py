@@ -206,12 +206,109 @@ class UnsupportedModel(unittest.TestCase):
 
     def test_control_equal_to_model_is_skipped(self):
         import codex_routing_detector_gui as g
+        saved = cmc.run_capture, cmc.find_codex
         assert g.install_fake_runner()
         try:
             res = cmc.run_check(cmc.CheckOptions(models=["gpt-6-astra"], control="GPT-6-ASTRA"))
         finally:
-            pass
+            # regression: this used to leave the fake runner installed, so a later test
+            # (ProcessControl) silently checked the fake instead of the real process handling
+            cmc.run_capture, cmc.find_codex = saved
         self.assertEqual([p.is_control for p in res.probes], [False])
+
+
+class ProviderPrefix(unittest.TestCase):
+    """Reported by users: a model spelled 'openai/gpt-6-astra' (router style) was refused by the
+    server ("not supported when using Codex with a ChatGPT account") and the report's row said
+    ERROR, which read as a server fault. The prefix is now dropped before the check."""
+    REFUSAL = "The 'openai/gpt-6-astra' model is not supported when using Codex with a ChatGPT account."
+
+    def setUp(self):
+        self.orig_capture, self.orig_find = cmc.run_capture, cmc.find_codex
+        import codex_routing_detector_gui as g
+        assert g.install_fake_runner()
+
+    def tearDown(self):
+        cmc.run_capture, cmc.find_codex = self.orig_capture, self.orig_find
+
+    def test_strip(self):
+        for given, want in (("openai/gpt-6-astra", "gpt-6-astra"), ("OpenAI/gpt-5.5", "gpt-5.5"),
+                            ("  openai/gpt-6-sol ", "gpt-6-sol"), ("gpt-6-astra", "gpt-6-astra"),
+                            ("openai/", "openai/"), ("anthropic/claude", "anthropic/claude")):
+            self.assertEqual(cmc.strip_provider_prefix(given), want, given)
+
+    def test_prefixed_model_is_checked_without_the_prefix_and_noted(self):
+        import tempfile
+        seen = []
+        fake = cmc.run_capture
+
+        def recording(cmd, *a, **kw):
+            seen.append(list(cmd))
+            return fake(cmd, *a, **kw)
+
+        cmc.run_capture = recording
+        with tempfile.TemporaryDirectory() as d:
+            res = cmc.run_check(cmc.CheckOptions(models=["openai/gpt-6-astra"], control=None, out_dir=d))
+            text = res.report()
+        probe_cmds = [c for c in seen if "exec" in c and "--help" not in c]
+        self.assertTrue(probe_cmds)
+        self.assertIn('model="gpt-6-astra"', " ".join(probe_cmds[0]))  # what Codex is told to use
+        self.assertNotIn("openai/", " ".join(probe_cmds[0]))
+        self.assertEqual([p.requested for p in res.probes], ["gpt-6-astra"])
+        self.assertEqual(res.overall, "REROUTED")  # the astra fixture: served by luna
+        self.assertTrue(any("requested as openai/gpt-6-astra" in n for n in res.probes[0].notes), res.probes[0].notes)
+        self.assertIn("requested as openai/gpt-6-astra", text)
+
+    def test_prefixed_control_equal_to_the_model_is_skipped(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            res = cmc.run_check(cmc.CheckOptions(models=["gpt-6-astra"], control="openai/gpt-6-astra", out_dir=d))
+        self.assertEqual([p.is_control for p in res.probes], [False])
+
+    def test_refused_model_row_says_unsupported_in_the_report(self):
+        p = probe("openai/gpt-6-astra", [], [("invalid_request_error", self.REFUSAL)] * 2)
+        text, overall, _ = cmc.render_report([p], "codex", "codex-cli 0.155.0", "trace", pathlib.Path("."), False, "from -m")
+        self.assertEqual(overall, "UNSUPPORTED")
+        rows = [line for line in text.splitlines() if line.startswith(" 1 ")]
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(all("UNSUPPORTED" in r and " ERROR " not in r for r in rows), rows)
+
+    def test_real_server_error_row_still_says_error(self):
+        p = probe("gpt-6-astra", [], [("server_is_overloaded", "Our servers are currently overloaded.")])
+        text, _, _ = cmc.render_report([p], "codex", "v", "trace", pathlib.Path("."), False, "from -m")
+        self.assertTrue(any(" ERROR " in line for line in text.splitlines() if line.startswith(" 1 ")))
+
+
+class LongModelNames(unittest.TestCase):
+    """gpt-daybreak-blue-latest (24 characters) pushed the report's columns out of line."""
+
+    def test_check_report_columns_stay_aligned(self):
+        name = "gpt-daybreak-blue-latest"
+        p = probe(name, [rec("resp_w", name, kind="warmup"), rec("resp_t", name)])
+        q = probe("gpt-6-sol", [rec("resp_x", "gpt-6-sol")], index=2)
+        text, overall, _ = cmc.render_report([p, q], "codex", "v", "trace", pathlib.Path("."), False, "from -m")
+        self.assertEqual(overall, "OK")
+        lines = text.splitlines()
+        header = next(line for line in lines if line.lstrip().startswith("# requested"))
+        col = header.index("verdict")
+        rows = [line for line in lines if line[:3] in (" 1 ", " 2 ")]
+        self.assertEqual(len(rows), 3)
+        for row in rows:
+            self.assertEqual(row[col:col + 2], "ok", row)
+
+    def test_live_report_columns_stay_aligned(self):
+        import codex_routing_live as live
+        agg = live.LiveAggregator()
+        for n, model in enumerate(("gpt-daybreak-blue-latest", "gpt-6-sol"), 1):
+            agg.rows.append(live.LiveRow(n=n, conn=1, first_seen=0.0, requested=model, kind="turn",
+                                         record=rec(f"resp_{n}", model)))
+        lines = agg.report().splitlines()
+        header = next(line for line in lines if "served by" in line)
+        col = header.index("verdict")
+        rows = [line for line in lines if line.lstrip()[:2] in ("1 ", "2 ")]
+        self.assertEqual(len(rows), 2)
+        for row in rows:
+            self.assertEqual(row[col:col + 2], "ok", row)
 
 
 class Summary(unittest.TestCase):

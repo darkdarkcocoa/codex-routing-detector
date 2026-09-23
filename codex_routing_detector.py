@@ -98,6 +98,17 @@ _NO_WINDOW = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" e
 
 
 # --------------------------------------------------------------------------- models
+# "openai/gpt-6-astra" is how routers such as OpenRouter or LiteLLM spell a model. Codex passes
+# the name through unchanged and the ChatGPT backend refuses it ("not supported when using Codex
+# with a ChatGPT account"), which reads like the account cannot use the model at all.
+PROVIDER_PREFIX_RE = re.compile(r"(?i)^\s*openai/(?=\S)")
+
+
+def strip_provider_prefix(model: str) -> str:
+    """`openai/gpt-6-astra` -> `gpt-6-astra`; any other name is returned stripped of spaces."""
+    return PROVIDER_PREFIX_RE.sub("", model).strip()
+
+
 def models_match(requested: str, served: Optional[str]) -> Tuple[bool, Optional[str]]:
     """(match, note). A dated snapshot of the requested model counts as a match."""
     if not served:
@@ -978,22 +989,27 @@ def render_report(probes: List[Probe], codex_desc: str, codex_version: str, meth
     if acct:
         out.append(f"account      : {acct}")
     out.append("")
-    hdr = f"{'#':>2} {'requested':<16} {'eff':<6} {'tier':<9} {'kind':<7} {'served':<16} {'status':<10} {'created':<10} {'verdict':<9} response id"
+    # columns grow with long names such as gpt-daybreak-blue-latest instead of pushing the row out of line
+    wr = max([16] + [len(p.requested) for p in probes])
+    ws = max([16] + [len(r.model or "?") for p in probes for r in p.responses])
+    hdr = f"{'#':>2} {'requested':<{wr}} {'eff':<6} {'tier':<9} {'kind':<7} {'served':<{ws}} {'status':<10} {'created':<10} {'verdict':<9} response id"
     out.append(hdr)
     out.append("-" * len(hdr))
     for p in probes:
         tier = p.tier or "(config)"
         if not p.responses and not p.stream_errors:
-            out.append(f"{p.index:>2} {p.requested:<16} {p.effort:<6} {tier:<9} {'-':<7} {'-':<16} {'-':<10} {'-':<10} {'NO_DATA':<9} -")
+            out.append(f"{p.index:>2} {p.requested:<{wr}} {p.effort:<6} {tier:<9} {'-':<7} {'-':<{ws}} {'-':<10} {'-':<10} {'NO_DATA':<9} -")
         for r in p.responses:
             rid = r.response_id if full_ids else short_id(r.response_id)
             v = r.verdict(p.requested)
-            out.append(f"{p.index:>2} {p.requested:<16} {p.effort:<6} {tier:<9} {r.kind:<7} {(r.model or '?'):<16} "
+            out.append(f"{p.index:>2} {p.requested:<{wr}} {p.effort:<6} {tier:<9} {r.kind:<7} {(r.model or '?'):<{ws}} "
                        f"{(r.status or '?'):<10} {fmt_time(r.created_at):<10} {v:<9} {rid}")
             if v == "ERROR" or r.error_code or r.error_message:  # a rerouted response can also have failed
                 out.extend(_continuation(f"error {r.error_code or '?'}: {r.error_message or ''}"))
         for code, msg in p.stream_errors:
-            out.append(f"{p.index:>2} {p.requested:<16} {p.effort:<6} {tier:<9} {'-':<7} {'-':<16} {'-':<10} {'-':<10} {'ERROR':<9} -")
+            # the same per-row verdict the windows show; a refused model is not a server error
+            v = "UNSUPPORTED" if is_unsupported_error(code, msg) else "ERROR"
+            out.append(f"{p.index:>2} {p.requested:<{wr}} {p.effort:<6} {tier:<9} {'-':<7} {'-':<{ws}} {'-':<10} {'-':<10} {v:<9} -")
             out.extend(_continuation(f"error {code or '?'}: {msg or ''}"))
         for n in p.notes:
             out.extend(_continuation("note: " + n))
@@ -1296,8 +1312,15 @@ def run_check(opts: CheckOptions, progress=None, cancel: Optional[Canceller] = N
             raise
         res.method = "wire"
 
+    # A provider prefix is dropped before Codex sees the name; each probe notes it (see below).
+    spelled: Dict[str, str] = {}
+    for name in models + ([opts.control] if opts.control else []):
+        if strip_provider_prefix(name) != name.strip():
+            spelled[strip_provider_prefix(name)] = name.strip()
+    models = [strip_provider_prefix(m) for m in models]
+    control_name = strip_provider_prefix(opts.control) if opts.control else None
     plan: List[Tuple[str, bool]] = []
-    control = opts.control if opts.control and opts.control.lower() not in {m.lower() for m in models} else None
+    control = control_name if control_name and control_name.lower() not in {m.lower() for m in models} else None
     for _ in range(max(1, opts.repeat)):
         plan += [(m, False) for m in models]
         if control:
@@ -1312,6 +1335,9 @@ def run_check(opts: CheckOptions, progress=None, cancel: Optional[Canceller] = N
                           method=res.method)
             emit("probe_start", i=i, n=len(plan), model=model, effort=opts.effort, tier=tier)
             run_probe(codex, probe, opts.prompt, opts.timeout, ephemeral, outdir, wire, cancel)
+            if model in spelled:
+                probe.notes.append(f"requested as {spelled[model]}; checked as {model} (Codex model names "
+                                   f"carry no 'openai/' prefix, and the server refuses the prefixed name)")
             res.probes.append(probe)
             emit("probe_done", i=i, n=len(plan), probe=probe)
             # Cancel pressed after the very last probe finished is not a cancellation.

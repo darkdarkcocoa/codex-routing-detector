@@ -221,10 +221,12 @@ class LiveAggregator:
         for p in self.pairs():
             lines.append(f"REROUTED: {p}")
         lines.append("")
-        lines.append(f"{'#':>3}  {'time':8}  {'requested':22}  {'kind':7}  {'served by':22}  {'status':11}  {'verdict':11}  response id")
+        wr = max([22] + [len(r.requested or "?") for r in self.rows])
+        ws = max([22] + [len(r.served or "-") for r in self.rows])
+        lines.append(f"{'#':>3}  {'time':8}  {'requested':{wr}}  {'kind':7}  {'served by':{ws}}  {'status':11}  {'verdict':11}  response id")
         for r in self.rows:
             t = time.strftime("%H:%M:%S", time.localtime(r.first_seen))
-            lines.append(f"{r.n:>3}  {t:8}  {(r.requested or '?'):22}  {r.kind:7}  {(r.served or '-'):22}  "
+            lines.append(f"{r.n:>3}  {t:8}  {(r.requested or '?'):{wr}}  {r.kind:7}  {(r.served or '-'):{ws}}  "
                          f"{(r.status or r.error_code or '-'):11}  {r.verdict():11}  {r.response_id}")
         return "\n".join(lines)
 

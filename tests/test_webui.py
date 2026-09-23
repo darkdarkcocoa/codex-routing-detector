@@ -16,6 +16,11 @@ import codex_routing_proxy as crp  # noqa: E402
 import codex_routing_webui as webui  # noqa: E402
 
 
+def plain(text: str) -> str:
+    """The verdict paragraph marks model names **bold** for the page; compare the words."""
+    return text.replace("**", "")
+
+
 def msg(direction: str, obj: dict, conn: int = 1) -> crp.WsMessage:
     return crp.WsMessage(direction, json.dumps(obj), time.time(), conn)
 
@@ -82,6 +87,7 @@ class CheckFlow(WebUiBase):
         self.assertIsNone(self.app.options().control)
 
     def test_language_toggle_keeps_the_result(self):
+        self.app.set_option("model", "gpt-6-astra")  # not this machine's config.toml default
         self.app.start_check(confirm=False)
         self.wait_done()
         self.app.set_lang("ko")
@@ -89,7 +95,8 @@ class CheckFlow(WebUiBase):
         self.assertEqual(vm["lang"], "ko")
         self.assertEqual(vm["check"]["head"], webui.UI["ko"]["badHead"])
         self.assertEqual(len(vm["check"]["rows"]), 2)
-        self.assertIn("요청했지만", vm["check"]["brief"])  # ko brief_rerouted
+        self.assertIn("gpt-6-astra 모델을 불렀는데", plain(vm["check"]["brief"]))
+        self.assertIn("gpt-5.6-luna 모델이 대답했어요", plain(vm["check"]["brief"]))
 
     def test_unsupported_maps_to_warn_tone(self):
         self.app.set_option("model", "gpt-5.6-sol")  # the sol fixture is a capacity error
@@ -133,7 +140,8 @@ class CheckFlow(WebUiBase):
         c = self.app.build_vm()["check"]
         self.assertEqual(c["tone"], "warn")
         self.assertIn("boom", c["details"])
-        self.assertIn(gui.STRINGS["en"]["codex_hint"], c["details"])
+        self.assertIn(self.app.s("codex_hint"), c["details"])
+        self.assertIn("codex · auto-detect", c["details"])  # the old hint named a "Codex..." button
         self.assertTrue(c["canCopy"])
         self.assertFalse(c["canJson"] or c["canLogs"])
 
@@ -192,8 +200,8 @@ class LiveFlow(WebUiBase):
         row = vm["live"]["rows"][0]
         self.assertEqual((row["requested"], row["served"], row["tone"]), ("gpt-6-astra", "gpt-5.6-luna", "bad"))
         self.assertEqual(vm["live"]["tone"], "bad")
-        self.assertIn("1 of 1 responses were answered by gpt-5.6-luna", vm["live"]["brief"])
-        self.assertIn("not a usage-limit fallback", vm["live"]["brief"])
+        self.assertIn("Codex called gpt-6-astra, but 1 of 1 responses came from gpt-5.6-luna", plain(vm["live"]["brief"]))
+        self.assertNotIn("Plan", plain(vm["live"]["brief"]))  # plan and usage live in Details, not the brief
 
         self.feed(msg("s2c", {"type": "response.completed", "response": {"id": "resp_a", "model": "gpt-5.6-luna",
                                                                          "status": "completed"}}))
@@ -219,6 +227,27 @@ class LiveFlow(WebUiBase):
         self.assertEqual(vm["live"]["rows"], [])
         self.assertEqual(vm["live"]["tone"], "idle")
 
+    def test_answer_still_streaming_is_waiting_not_an_error(self):
+        # regression: an in_progress response is UNKNOWN, which the aggregator folds into ERROR;
+        # the card said "the server sent errors (?)" until the first turn completed
+        self.start()
+        self.feed(msg("c2s", {"type": "response.create", "model": "gpt-6-astra"}),
+                  msg("s2c", {"type": "response.completed", "response": {"id": "resp_w", "model": "gpt-6-astra",
+                                                                         "status": "completed"}}),
+                  msg("c2s", {"type": "response.create", "model": "gpt-6-astra", "input": [{"role": "user"}]}),
+                  msg("s2c", {"type": "response.created", "response": {"id": "resp_t", "model": "gpt-6-astra",
+                                                                       "status": "in_progress",
+                                                                       "previous_response_id": "resp_w"}}))
+        vm = self.wait_vm(lambda v: len(v["live"]["rows"]) == 2)
+        self.assertEqual(vm["live"]["tone"], "running")
+        self.assertEqual(vm["live"]["head"], self.app.v("liveWaitHead"))
+        self.assertIn("Waiting for the answer", vm["live"]["brief"])
+        self.assertNotIn("error", vm["live"]["brief"].lower())
+        self.feed(msg("s2c", {"type": "response.completed", "response": {"id": "resp_t", "model": "gpt-6-astra",
+                                                                         "status": "completed"}}))
+        vm = self.wait_vm(lambda v: v["live"]["head"] == self.app.v("liveOkHead"))
+        self.assertIn("every response so far (2)", plain(vm["live"]["brief"]))
+
     def test_codex_exit_ends_the_session_without_losing_messages(self):
         self.start()
         self.feed(msg("c2s", {"type": "response.create", "model": "gpt-6-astra", "input": [{"role": "user"}]}),
@@ -240,6 +269,26 @@ class LiveFlow(WebUiBase):
             self.assertIn("codex binary not found", vm["live"]["notes"])
         finally:
             assert gui.install_fake_runner()
+
+    def test_check_dialog_skip_does_not_skip_the_live_consent(self):
+        # the live dialog explains the proxy and certificate; skipping the check dialog must not skip it
+        app = webui.WebApp(lang="en", fake=True, update_check=False, confirm=True)
+        try:
+            app.request_check()
+            app.run_check_confirmed(skip=True)
+            end = time.time() + 20
+            while app.worker is not None and time.time() < end:
+                time.sleep(0.05)
+            ask = app.request_live()
+            self.assertEqual(ask["mode"], "start")
+            self.assertIsNone(app.monitor)
+            app.start_live_confirmed(skip=True)
+            self.assertIsNotNone(app.monitor)
+            app.stop_live()
+            self.assertIsNone(app.request_live())  # its own "don't ask again" is remembered
+            self.assertIsNotNone(app.monitor)
+        finally:
+            app.shutdown()
 
     def test_stop_confirm_path(self):
         self.start()
@@ -340,9 +389,196 @@ class Regressions(WebUiBase):
         self.assertNotIn("gstatic.com", page)
         self.assertNotIn("http://", page.split("<body>")[0])
         self.assertIn("data:font/woff2;base64,", page)
-        # the Korean face ships as Google Fonts' unicode-range slices, all embedded
-        self.assertGreater(page.count('font-family: "Jua"'), 50)
-        self.assertNotIn("__FONT_GOWUN_FACES__", page)
+        # Korean text uses NanumSquareRound with real weights (a single heavy weight made the
+        # browser fake bold on every label, which read poorly)
+        for weight in (400, 700, 800):
+            self.assertIn('font-family: "NanumSquareRound"; font-style: normal; font-weight: %d;' % weight, page)
+        self.assertNotIn('"Jua"', page)
+        self.assertNotIn("__FONT_", page)  # every font token was replaced
+
+    def test_font_licenses_ship_with_the_fonts(self):
+        import codex_routing_fonts as f
+        for name in ("Fredoka", "NanumSquareRound", "JetBrains Mono", "SIL OPEN FONT LICENSE Version 1.1"):
+            self.assertIn(name, f.FONT_LICENSES)
+        on_disk = (ROOT / "docs" / "FONT-LICENSES.txt").read_text(encoding="utf-8")
+        self.assertEqual(on_disk, f.FONT_LICENSES)
+
+
+USAGE_WORDS = ("Plan", "plan", "usage", "%", "플랜", "사용량", "한도", "요금제")
+STALE_CONTROLS = ("Codex...", "Codex…", "Open log folder", "로그 폴더 열기", "banner", "배너", "Working folder",
+                  "Copy live report", "라이브 보고서 복사", "Help >", "도움말 >", "Codex 설정", "bottom right",
+                  "오른쪽 아래", "Briefing", "브리핑")
+
+
+class WebWording(WebUiBase):
+    """The web window's own words (codex_routing_webtext)."""
+
+    def check_as(self, model: str, lang: str) -> dict:
+        self.app.set_lang(lang)
+        self.app.set_option("model", model)
+        self.app.start_check(confirm=False)
+        self.wait_done()
+        return self.app.build_vm()["check"]
+
+    def test_brief_names_the_called_and_answering_model_only(self):
+        # the user asked for: "called X, Y answered", without plan / usage talk
+        for lang, called, answered in (("en", "You called gpt-6-astra", "gpt-5.6-luna answered"),
+                                       ("ko", "gpt-6-astra 모델을 불렀는데", "gpt-5.6-luna 모델이 대답했어요")):
+            c = self.check_as("gpt-6-astra", lang)
+            self.assertIn(called, plain(c["brief"]))
+            self.assertIn(answered, plain(c["brief"]))
+            for word in USAGE_WORDS:
+                self.assertNotIn(word, c["brief"], (lang, word))
+        self.assertIn("plan=pro", c["details"])  # the figures are still one click away
+
+    def test_ok_brief_and_headline(self):
+        c = self.check_as("gpt-6-astra", "ko")
+        for p in self.app.result.probes:  # turn the fixture into a clean run
+            for r in p.responses:
+                r.model, r.models_seen = p.requested, [p.requested]
+        self.app.result.overall = "OK"
+        c = self.app.build_vm()["check"]
+        # "모델이" instead of a particle glued to the model name (sol가 / astra가 would be wrong half the time)
+        self.assertEqual(c["head"], "정상! gpt-6-astra 모델이 대답했어요")
+        self.assertIn("gpt-6-astra 모델을 불렀고", plain(c["brief"]))
+        for word in USAGE_WORDS:
+            self.assertNotIn(word, c["brief"])
+
+    def test_router_style_model_name_is_checked_without_the_prefix(self):
+        # users typed "openai/gpt-6-astra"; the server refused it and the window looked broken
+        c = self.check_as("openai/gpt-6-astra", "ko")
+        self.assertIn("gpt-6-astra 모델을 불렀는데", plain(c["brief"]))
+        self.assertNotIn("openai/", plain(c["brief"]))
+        self.assertEqual(c["tone"], "bad")  # the astra fixture: a real substitution, not a refusal
+        self.assertIn("requested as openai/gpt-6-astra", c["details"])
+
+    def test_no_verdict_text_talks_about_plan_or_usage(self):
+        import codex_routing_webtext as wt
+        for lang in ("ko", "en"):
+            for key, text in wt.VERDICT[lang].items():
+                for word in USAGE_WORDS:
+                    self.assertNotIn(word, text, (lang, key, word))
+
+    def test_check_dialog_mentions_the_repeat_count(self):
+        app = webui.WebApp(lang="ko", fake=True, update_check=False, confirm=True)
+        try:
+            self.assertNotIn("반복", app.request_check()["body"])
+            app.set_option("repeat", "3")
+            self.assertIn("3번 보내요", app.request_check()["body"])
+        finally:
+            app.shutdown()
+
+    def test_both_languages_have_the_same_keys_and_placeholders(self):
+        import string
+        import codex_routing_webtext as wt
+
+        def fields(text):
+            return {f for _, f, _, _ in string.Formatter().parse(text) if f}
+
+        for table in (wt.TEXT, wt.VERDICT):
+            self.assertEqual(set(table["ko"]), set(table["en"]))
+            for key in table["ko"]:
+                self.assertEqual(fields(table["ko"][key]), fields(table["en"][key]), key)
+        for key in wt.TEXT["en"]:  # every override replaces a key the shared table really has
+            self.assertIn(key, gui.STRINGS["en"], key)
+
+    def test_help_pages_are_well_formed_and_describe_this_window(self):
+        import codex_routing_webtext as wt
+        for lang in ("ko", "en"):
+            pages = wt.HELP[lang]
+            for kind in ("usage", "terms"):
+                self.assertTrue(pages[kind])
+                for sec in pages[kind]:
+                    self.assertTrue(sec["icon"] and sec["title"] and sec["items"], sec)
+                    for item in sec["items"]:
+                        if isinstance(item, dict):
+                            self.assertTrue(item.get("text"))
+                            self.assertTrue(item.get("term") or item.get("chip"))
+                            if "chip" in item:
+                                self.assertIn(item["tone"], ("ok", "bad", "warn", "idle"))
+            self.assertTrue(pages["guide"]["items"] and pages["guide"]["ok"] and pages["guide"]["skip"])
+            self.assertTrue(pages["about"]["lead"] and pages["about"]["repo"])
+            blob = json.dumps([pages, wt.TEXT[lang], wt.VERDICT[lang]], ensure_ascii=False)
+            for stale in STALE_CONTROLS:
+                self.assertNotIn(stale, blob, (lang, stale))
+            self.assertEqual(blob.count("`") % 2, 0, lang)  # every code chip is closed
+        helps = self.app.init()["helps"]
+        self.assertEqual(helps["en"]["about"]["version"], cmc.__version__)
+        self.assertIn("usage", helps["ko"])
+
+    def test_model_names_are_bold_in_the_brief(self):
+        c = self.check_as("gpt-6-astra", "en")
+        self.assertIn("**gpt-6-astra**", c["brief"])
+        self.assertIn("**gpt-5.6-luna**", c["brief"])
+        self.assertIn('$("c-brief").innerHTML = md(c.brief)', webui.PAGE)  # escaped before the markers
+
+    def test_page_renders_help_as_cards(self):
+        page = webui.build_page()
+        for anchor in ("function helpSections", "function guideSteps", "function aboutPage", ".hsec", ".gstep"):
+            self.assertIn(anchor, page)
+        # regression: a text selection dragged out of the Help card closed Help, and the backdrop
+        # handler outlived Help into the next dialog
+        self.assertIn("downOnBackdrop && e.target === ov", page)
+        self.assertEqual(page.count("resetOverlay();"), 4)  # closeOverlay, confirm, prompt, guide
+        self.assertNotIn("mbody mono", page)  # the old plain-text help block is gone
+
+
+class ModelCatalog(WebUiBase):
+    """Reasoning-effort choices follow Codex's own catalog (models_cache.json): GPT-6 Sol/Luna
+    brought max (and Sol ultra), GPT-5.5 stops at xhigh."""
+    LEVELS = ("low", "medium", "high", "xhigh", "max", "ultra")
+
+    def app_with_catalog(self, models, raw=None):
+        d = pathlib.Path(tempfile.mkdtemp())
+        (d / "models_cache.json").write_text(raw if raw is not None else json.dumps({"models": models}),
+                                             encoding="utf-8")
+        old = os.environ.get("CODEX_HOME")
+        os.environ["CODEX_HOME"] = str(d)
+        try:
+            return webui.WebApp(lang="en", fake=True, update_check=False, confirm=False)
+        finally:
+            if old is None:
+                del os.environ["CODEX_HOME"]
+            else:
+                os.environ["CODEX_HOME"] = old
+
+    def model(self, slug, levels):
+        return {"slug": slug, "visibility": "list",
+                "supported_reasoning_levels": [{"effort": e, "description": ""} for e in levels]}
+
+    def test_efforts_follow_the_model_and_never_offer_ultra(self):
+        app = self.app_with_catalog([self.model("gpt-6-sol", self.LEVELS), self.model("gpt-5.5", self.LEVELS[:4])])
+        try:
+            self.assertEqual(app.efforts_for("gpt-6-sol"), ["low", "medium", "high", "xhigh", "max"])
+            self.assertEqual(app.efforts_for("gpt-5.5"), ["low", "medium", "high", "xhigh"])
+            self.assertEqual(app.efforts_for("openai/gpt-6-sol"), app.efforts_for("gpt-6-sol"))
+            self.assertEqual(app.efforts_for("gpt-7-preview"), list(webui.EFFORTS))  # not in the catalog
+            app.set_option("model", "gpt-6-sol")
+            app.set_option("effort", "ultra")  # sub-agents at max: never for a probe
+            self.assertEqual(app.opt["effort"], "low")
+            app.set_option("effort", "max")
+            self.assertEqual(app.build_vm()["check"]["effort"], "max")
+            self.assertIn("max", app.build_vm()["check"]["efforts"])
+            app.set_option("model", "gpt-5.5")  # no max there: back to low
+            self.assertEqual(app.opt["effort"], "low")
+            self.assertEqual(app.options().effort, "low")
+        finally:
+            app.shutdown()
+
+    def test_unreadable_catalog_falls_back_to_the_classic_four(self):
+        app = self.app_with_catalog(None, raw="{not json")
+        try:
+            self.assertEqual(app.model_efforts, {})
+            self.assertEqual(app.efforts_for("gpt-6-sol"), list(webui.EFFORTS))
+        finally:
+            app.shutdown()
+
+    def test_page_rebuilds_the_effort_choices(self):
+        self.assertIn('eff.dataset.key !== effKey', webui.PAGE)
+
+    def test_builtin_model_list_knows_gpt_6_sol_and_luna(self):
+        for slug in ("gpt-6-astra", "gpt-6-sol", "gpt-6-luna"):
+            self.assertIn(slug, gui.FALLBACK_MODELS)
 
 
 if __name__ == "__main__":

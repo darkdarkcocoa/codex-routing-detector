@@ -30,6 +30,7 @@ from typing import Dict, List, Optional
 
 import codex_routing_assets as assets
 import codex_routing_fonts as fonts
+import codex_routing_webtext as webtext
 import codex_routing_detector as cmc
 import codex_routing_detector_gui as tkgui  # shared strings, briefing and settings helpers
 import codex_routing_live as live
@@ -37,7 +38,30 @@ import codex_routing_proxy as crp
 
 APP_TITLE = tkgui.APP_TITLE
 REPO_URL = tkgui.REPO_URL
-EFFORTS = tkgui.EFFORTS
+EFFORTS = tkgui.EFFORTS  # offered for a model the catalog does not describe
+# "ultra" makes the model spawn sub-agents at max effort: far too costly for a one-word probe.
+PROBE_EXCLUDED_EFFORTS = {"ultra"}
+
+
+def catalog_efforts() -> Dict[str, List[str]]:
+    """Reasoning efforts each model supports, from Codex's own catalog cache (models_cache.json),
+    without the ones a probe should never use. Empty when the cache is missing or unreadable."""
+    try:
+        data = json.loads((cmc.codex_home() / "models_cache.json").read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    out: Dict[str, List[str]] = {}
+    for m in data.get("models", []) if isinstance(data, dict) else []:
+        if not isinstance(m, dict) or not m.get("slug"):
+            continue
+        levels: List[str] = []
+        for lv in m.get("supported_reasoning_levels") or []:
+            name = lv.get("effort") if isinstance(lv, dict) else lv
+            if isinstance(name, str) and name and name not in PROBE_EXCLUDED_EFFORTS and name not in levels:
+                levels.append(name)
+        if levels:
+            out[str(m["slug"])] = levels
+    return out
 MAX_REPEAT = tkgui.MAX_REPEAT
 
 # ------------------------------------------------------------------ UI strings
@@ -62,7 +86,7 @@ UI: Dict[str, Dict[str, str]] = {
         "liveFolder": "작업 폴더",
         "foot": "짧은 프롬프트 하나만 보내고, 서버가 적어 보낸 모델명을 읽어요.",
         "idleHead": "준비됐어요", "runHead": "살펴보는 중...",
-        "okHead": "정상! {models}가 답했어요", "badHead": "바꿔치기 감지",
+        "badHead": "바꿔치기 감지",
         "cancelledHead": "취소했어요",
         "cta": "검사하기", "ctaAgain": "다시 검사", "ctaRun": "검사 중...", "cancel": "취소",
         "chipIdle": "대기", "chipRun": "검사 중", "chipOk": "정상", "chipBad": "바꿔치기",
@@ -72,7 +96,9 @@ UI: Dict[str, Dict[str, str]] = {
         "liveChipOff": "꺼짐", "liveChipOn": "감시 중", "liveChipBad": "바꿔치기", "liveChipWarn": "확인 필요",
         "liveStatusOff": "대기 중",
         "helpUsage": "기본 사용법", "helpTerms": "용어 설명", "helpGuide": "라이브 모니터 안내",
-        "helpAbout": "정보", "close": "닫기", "ok": "확인",
+        "helpAbout": "정보", "helpTitle": "도움말", "close": "닫기", "ok": "확인",
+        "statusPreparing": "Codex를 준비하는 중이에요...", "confirmRepeat": "반복이 {n}번이라 {n}번 보내요.",
+        "closeTitle": "창을 닫을까요?",
         "customModel": "직접 입력...", "customModelTitle": "모델 이름 직접 입력",
     },
     "en": {
@@ -93,7 +119,7 @@ UI: Dict[str, Dict[str, str]] = {
         "liveFolder": "Folder",
         "foot": "One short prompt goes out; we read the model name the server wrote back.",
         "idleHead": "Ready when you are", "runHead": "Sniffing around...",
-        "okHead": "All good — {models} answered", "badHead": "Rerouted",
+        "badHead": "Rerouted",
         "cancelledHead": "Cancelled",
         "cta": "Check", "ctaAgain": "Check again", "ctaRun": "Checking...", "cancel": "Cancel",
         "chipIdle": "Idle", "chipRun": "Checking", "chipOk": "OK", "chipBad": "Rerouted",
@@ -103,7 +129,9 @@ UI: Dict[str, Dict[str, str]] = {
         "liveChipOff": "Off", "liveChipOn": "Watching", "liveChipBad": "Rerouted", "liveChipWarn": "Needs a look",
         "liveStatusOff": "idle",
         "helpUsage": "How to use", "helpTerms": "Glossary", "helpGuide": "Live monitor guide",
-        "helpAbout": "About", "close": "Close", "ok": "OK",
+        "helpAbout": "About", "helpTitle": "Help", "close": "Close", "ok": "OK",
+        "statusPreparing": "Getting Codex ready...", "confirmRepeat": "With repeat at {n}, it goes out {n} times.",
+        "closeTitle": "Close the window?",
         "customModel": "Type a model...", "customModelTitle": "Enter a model slug",
     },
 }
@@ -117,6 +145,13 @@ VERDICT_TONE = {  # verdict -> row/hero tone
 
 def _tone_of(verdict: str) -> str:
     return VERDICT_TONE.get(verdict, "warn")
+
+
+def _is_pending(row: "live.LiveRow") -> bool:
+    """A response still being streamed: no error, not completed, no other model named yet."""
+    rec = row.record
+    return (rec is not None and row.verdict() == "UNKNOWN" and not rec.error_code
+            and rec.status in (None, "in_progress", "queued"))
 
 
 # ------------------------------------------------------------------ the page
@@ -141,7 +176,7 @@ __FONT_KO_FACES__
   --quiet: #f4f6f2; --ctrl: #f1f4f0; --pre: #f6f8f5; --disabled: #e7ece6;
   --ink: #2f3a36; --body: #55605b; --muted: #5f6b65; --faint: #6b7671; --caret: #7a857f;
   --accent: #2a7d96; --accent-link: #1f6070;
-  --sans: "Fredoka", "Segoe UI Variable", "Segoe UI", "Jua", "Malgun Gothic", system-ui, sans-serif;
+  --sans: "Fredoka", "NanumSquareRound", "Segoe UI Variable", "Segoe UI", "Malgun Gothic", system-ui, sans-serif;
   --mono: "JetBrains Mono", Consolas, monospace;
 }
 * { box-sizing: border-box; }
@@ -208,8 +243,9 @@ button:disabled { cursor: default; }
 .chip { font-size: 11.5px; font-weight: 700; letter-spacing: .3px; padding: 4px 11px; border-radius: 999px;
   background: #eef1ec; color: #4f5a55; }
 .statusline { font-size: 12.5px; color: var(--muted); font-family: var(--mono); }
-.headline { font-size: 28px; font-weight: 700; letter-spacing: -.4px; color: var(--ink); }
+.headline { font-size: 28px; font-weight: 800; letter-spacing: -.4px; color: var(--ink); }
 .brief { font-size: 14.5px; line-height: 1.6; color: var(--body); max-width: 760px; text-wrap: pretty; }
+.brief b { color: var(--ink); font-weight: 700; }
 .actionrow { display: flex; align-items: center; gap: 10px; padding-top: 4px; }
 .cta { background: var(--accent); color: #ffffff; border-radius: 999px; padding: 11px 26px;
   font-size: 14.5px; font-weight: 700; box-shadow: 0 4px 12px rgba(47,58,51,.14);
@@ -346,24 +382,75 @@ button:disabled { cursor: default; }
 /* modal */
 #overlay { position: fixed; inset: 0; background: rgba(47,58,51,.35); display: grid; place-items: center; z-index: 40; }
 .modal { width: 560px; max-width: calc(100vw - 60px); max-height: calc(100vh - 60px); overflow: auto;
-  background: var(--card); border-radius: 20px; box-shadow: 0 24px 60px rgba(47,58,51,.3);
-  padding: 24px 26px; animation: bopIn .4s cubic-bezier(.2,.9,.3,1.2) both; }
-.modal.wide { width: 780px; }
-.modal h3 { margin: 0 0 10px; font-size: 17px; color: var(--ink); display: flex; align-items: center; gap: 10px; }
-.modal h3 img { width: 40px; height: 40px; object-fit: contain; }
-.modal .mbody { font-size: 13.5px; line-height: 1.65; color: var(--body); white-space: pre-wrap; }
-.modal .mbody.mono { font-family: var(--mono); font-size: 12px; line-height: 1.7; background: var(--pre);
-  border-radius: 12px; padding: 14px 16px; max-height: 52vh; overflow: auto; }
-.modal .mcheck { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 12.5px; color: var(--muted); }
-.modal .mrow { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
-.modal .helppills { display: flex; gap: 6px; margin: 4px 0 12px; flex-wrap: wrap; }
-.modal .helppills .quietbtn.on { background: var(--accent); color: #ffffff; }
-.mbtn { border-radius: 999px; padding: 9px 22px; font-size: 13px; font-weight: 700;
+  background: var(--card); border-radius: 22px; box-shadow: 0 24px 60px rgba(47,58,51,.3);
+  padding: 22px 26px 20px; animation: bopIn .4s cubic-bezier(.2,.9,.3,1.2) both; }
+.modal.guide { width: 600px; }
+.modal.help { width: 840px; display: flex; flex-direction: column; overflow: hidden; }
+.mhead { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.mhead img { width: 46px; height: 46px; object-fit: contain; flex: none; animation: idleBreath 3.4s ease-in-out infinite; }
+.mhead .mtitles { min-width: 0; }
+.mhead .mt { font-size: 18px; font-weight: 700; letter-spacing: -.2px; color: var(--ink); }
+.mhead .ms { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.xbtn { margin-left: auto; flex: none; display: grid; place-items: center; width: 32px; height: 32px;
+  border-radius: 999px; background: var(--quiet); color: var(--muted); font-size: 13px; font-weight: 700; }
+.xbtn:hover { color: var(--accent); }
+.modal .mbody { font-size: 14px; line-height: 1.7; color: var(--body); white-space: pre-wrap;
+  background: var(--pre); border-radius: 16px; padding: 14px 16px; }
+.modal .mcheck { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 12.5px; color: var(--muted);
+  cursor: pointer; }
+.modal .mcheck input { accent-color: var(--accent); width: 15px; height: 15px; }
+.modal .mrow { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; flex: none; }
+.minput { width: 100%; margin-top: 2px; padding: 11px 14px; border: 1.5px solid var(--hairline); border-radius: 14px;
+  font: 600 13px var(--mono); color: var(--ink); background: var(--pre); outline: none; }
+.minput:focus { border-color: var(--accent); background: #ffffff; }
+.mbtn { border-radius: 999px; padding: 9px 22px; font-size: 13.5px; font-weight: 700;
   transition: transform .12s ease, filter .12s ease; }
 .mbtn:hover { filter: brightness(1.05); }
 .mbtn:active { transform: translateY(2px) scale(.98); }
 .mbtn.primary { background: var(--accent); color: #ffffff; box-shadow: 0 4px 12px rgba(47,58,51,.14); }
 .mbtn.plain { background: var(--quiet); color: var(--muted); }
+.modal code { font-family: var(--mono); font-size: 12px; background: #ffffff; border: 1px solid var(--hairline);
+  border-radius: 7px; padding: 1px 6px; color: var(--ink); word-break: break-word; }
+.modal b { color: var(--ink); font-weight: 700; }
+
+/* help pages */
+.helptabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; flex: none; }
+.helptabs button { font-size: 12.5px; font-weight: 700; color: var(--muted); padding: 7px 15px; border-radius: 999px;
+  background: var(--quiet); transition: background .15s ease, color .15s ease; }
+.helptabs button:hover { color: var(--accent); }
+.helptabs button.on { background: var(--accent); color: #ffffff; box-shadow: 0 3px 10px rgba(42,125,150,.25); }
+.helpbody { overflow-y: auto; min-height: 0; flex: 1; padding-right: 4px; }
+.helpbody.fresh { animation: slideTab .28s ease-out both; }
+.hsec { background: var(--pre); border-radius: 18px; padding: 15px 18px 12px; margin-bottom: 12px; }
+.hsec:last-child { margin-bottom: 2px; }
+.hsec h4 { margin: 0 0 8px; display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; color: var(--ink); }
+.bub { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; background: #ffffff;
+  box-shadow: 0 1px 4px rgba(47,58,51,.10); font-size: 17px; flex: none; }
+.hitem { position: relative; font-size: 13.5px; line-height: 1.7; color: var(--body); padding: 4px 0 4px 20px; }
+.hitem::before { content: ""; position: absolute; left: 5px; top: 13px; width: 7px; height: 7px; border-radius: 999px;
+  background: #9fd8e8; }
+.hitem.num { padding-left: 34px; }
+.hitem.num::before { content: none; }
+.hitem .n { position: absolute; left: 1px; top: 6px; display: grid; place-items: center; width: 22px; height: 22px;
+  border-radius: 999px; background: var(--accent); color: #ffffff; font-size: 11.5px; font-weight: 700; }
+.hrow { display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: baseline; padding: 8px 2px;
+  font-size: 13.5px; line-height: 1.65; color: var(--body); }
+.hrow + .hrow { border-top: 1px dashed #dde4dc; }
+.hrow .term { font-weight: 700; color: var(--ink); }
+.hrow .chip { justify-self: start; }
+.gsteps { display: flex; flex-direction: column; gap: 9px; }
+.gstep { display: flex; gap: 14px; align-items: flex-start; background: var(--pre); border-radius: 16px; padding: 12px 16px;
+  animation: rowIn .34s cubic-bezier(.2,.9,.3,1.2) both; }
+.hsec .gstep { background: #ffffff; }
+.gstep .gt { font-size: 14px; font-weight: 700; color: var(--ink); margin: 1px 0 2px; }
+.gstep .gx { font-size: 13px; line-height: 1.6; color: var(--body); }
+.about { display: flex; gap: 22px; align-items: center; background: #eef6fa; border-radius: 18px; padding: 18px 24px;
+  margin-bottom: 12px; }
+.about img { width: 112px; height: 112px; object-fit: contain; flex: none; animation: idleBreath 3.4s ease-in-out infinite; }
+.about .an { font-size: 21px; font-weight: 700; color: var(--ink); }
+.about .av { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 2px; }
+.about .al { font-size: 14.5px; line-height: 1.6; color: #1f5b70; margin-top: 8px; font-weight: 600; }
+.arepo { margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -615,7 +702,7 @@ function render(vm) {
   setChip($("c-chip"), c.tone, c.chip);
   $("c-status").textContent = crd.toast.check || c.status;
   $("c-head").textContent = c.head;
-  $("c-brief").textContent = c.brief;
+  $("c-brief").innerHTML = md(c.brief);
   const cta = $("c-cta");
   cta.textContent = c.running ? s.ctaRun : (c.phase === "done" ? s.ctaAgain : s.cta);
   cta.disabled = c.running || !c.canCheck;
@@ -636,7 +723,13 @@ function render(vm) {
   }
   const custom = sel.querySelector('option[value="__custom__"]');
   if (custom) custom.textContent = s.customModel;
-  sel.value = c.model; $("sel-effort").value = c.effort;
+  sel.value = c.model;
+  const eff = $("sel-effort"), effKey = (c.efforts || []).join(",");
+  if (eff.dataset.key !== effKey) {  /* the choices follow the model (from Codex's catalog) */
+    eff.innerHTML = c.efforts.map((m) => '<option value="' + esc(m) + '">' + esc(m) + "</option>").join("");
+    eff.dataset.key = effKey;
+  }
+  eff.value = c.effort;
   $("v-repeat").textContent = c.repeat;
   const wp = $("wirepill");
   $("k-wire").textContent = c.wireEnabled ? s.wire : s.wireOff;
@@ -670,7 +763,7 @@ function render(vm) {
   setChip($("l-chip"), l.tone, l.chip);
   $("l-status").textContent = crd.toast.live || l.status;
   $("l-head").textContent = l.head;
-  $("l-brief").textContent = l.brief;
+  $("l-brief").innerHTML = md(l.brief);
   const lcta = $("l-cta");
   lcta.textContent = l.on ? s.liveStop : s.liveStart;
   lcta.classList.toggle("stop", l.on);
@@ -728,13 +821,35 @@ function selectTab(name) {
 }
 
 /* ---------------------------------------------------------------- modals */
-function closeOverlay() { $("overlay").classList.add("hidden"); $("overlay").innerHTML = ""; }
+function closeOverlay() { const ov = $("overlay"); ov.classList.add("hidden"); ov.innerHTML = ""; resetOverlay(); }
+
+/* only Help closes on a backdrop click, and only when the press also started on the backdrop
+   (a text selection dragged out of the card ends with a click on the overlay) */
+function resetOverlay() { const ov = $("overlay"); ov.onclick = null; ov.onmousedown = null; }
+function closeOnBackdrop() {
+  const ov = $("overlay");
+  let downOnBackdrop = false;
+  ov.onmousedown = (e) => { downOnBackdrop = e.target === ov; };
+  ov.onclick = (e) => { if (downOnBackdrop && e.target === ov) closeOverlay(); downOnBackdrop = false; };
+}
+
+/* help and dialog text: escaped, then `code` becomes a code chip and **bold** bold */
+function md(text) {
+  return esc(text).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+}
+
+function modalHead(title, sub, closable) {
+  return '<div class="mhead"><img src="' + window.MASCOT_SRC + '" alt=""><div class="mtitles"><div class="mt">' +
+    esc(title) + "</div>" + (sub ? '<div class="ms">' + esc(sub) + "</div>" : "") + "</div>" +
+    (closable ? '<button class="xbtn" id="m-x">&#10005;</button>' : "") + "</div>";
+}
 
 function showConfirm(opts) {
+  resetOverlay();
   const ov = $("overlay");
   ov.innerHTML =
-    '<div class="modal"><h3><img src="' + window.MASCOT_SRC + '" alt="">' + esc(opts.title) + "</h3>" +
-    '<div class="mbody">' + esc(opts.body) + "</div>" +
+    '<div class="modal">' + modalHead(opts.title) +
+    '<div class="mbody">' + md(opts.body) + "</div>" +
     (opts.checkbox ? '<label class="mcheck"><input type="checkbox" id="m-skip"> ' + esc(opts.checkbox) + "</label>" : "") +
     '<div class="mrow"><button class="mbtn plain" id="m-cancel">' + esc(opts.cancel) + "</button>" +
     '<button class="mbtn primary" id="m-ok">' + esc(opts.ok) + "</button></div></div>";
@@ -748,12 +863,12 @@ function showConfirm(opts) {
 }
 
 function showPrompt(title, initial, onOk) {
+  resetOverlay();
   const s = t();
   const ov = $("overlay");
   ov.innerHTML =
-    '<div class="modal"><h3><img src="' + window.MASCOT_SRC + '" alt="">' + esc(title) + "</h3>" +
-    '<input id="m-input" type="text" spellcheck="false" style="width:100%;box-sizing:border-box;margin-top:6px;' +
-    'padding:10px 14px;border:1px solid var(--hairline);border-radius:12px;font:600 13px var(--mono);color:var(--ink);outline-color:var(--accent)">' +
+    '<div class="modal">' + modalHead(title) +
+    '<input id="m-input" class="minput" type="text" spellcheck="false">' +
     '<div class="mrow"><button class="mbtn plain" id="m-cancel">' + esc(s.cancel) + "</button>" +
     '<button class="mbtn primary" id="m-ok">' + esc(s.ok) + "</button></div></div>";
   ov.classList.remove("hidden");
@@ -762,58 +877,120 @@ function showPrompt(title, initial, onOk) {
   const done = () => { const v = input.value.trim(); closeOverlay(); if (v) onOk(v); };
   $("m-cancel").onclick = closeOverlay;
   $("m-ok").onclick = done;
-  input.onkeydown = (e) => { if (e.key === "Enter") done(); if (e.key === "Escape") closeOverlay(); };
+  input.onkeydown = (e) => {
+    if (e.key === "Enter") done();
+    if (e.key === "Escape") { e.stopPropagation(); closeOverlay(); }
+  };
   input.focus(); input.select();
 }
 
-function showGuide() {
-  if (!crd.T) return;  // not initialised yet
-  const g = crd.HELPS[crd.vm.lang];
+/* a help page is a list of sections; an item is a string, {term, text} or {chip, tone, text} */
+function helpSections(sections) {
+  return sections.map((sec) => {
+    let n = 0;
+    const items = sec.items.map((it) => {
+      if (typeof it === "string") {
+        n += 1;
+        return sec.numbered
+          ? '<div class="hitem num"><span class="n">' + n + "</span>" + md(it) + "</div>"
+          : '<div class="hitem">' + md(it) + "</div>";
+      }
+      const left = it.chip
+        ? '<span class="chip" data-tone="' + esc(it.tone || "idle") + '">' + esc(it.chip) + "</span>"
+        : '<span class="term">' + md(it.term) + "</span>";
+      return '<div class="hrow">' + left + "<span>" + md(it.text) + "</span></div>";
+    }).join("");
+    return '<section class="hsec"><h4><span class="bub">' + esc(sec.icon) + "</span>" + esc(sec.title) + "</h4>" +
+      items + "</section>";
+  }).join("");
+}
+
+function guideSteps(g) {
+  return '<div class="gsteps">' + g.items.map((it, i) =>
+    '<div class="gstep" style="animation-delay:' + (i * 70) + 'ms"><span class="bub">' + esc(it.icon) +
+    '</span><div><div class="gt">' + md(it.title) + '</div><div class="gx">' + md(it.text) + "</div></div></div>"
+  ).join("") + "</div>";
+}
+
+function aboutPage(a) {
+  return '<div class="about"><img src="' + window.MASCOT_SRC + '" alt=""><div><div class="an">Codex Routing Detector</div>' +
+    '<div class="av">v' + esc(a.version) + '</div><div class="al">' + md(a.lead) + "</div></div></div>" +
+    '<section class="hsec">' + a.paras.map((p) => '<div class="hitem">' + md(p) + "</div>").join("") +
+    '<div class="arepo"><button class="mbtn primary" id="m-repo">' + esc(a.repo) + "</button></div></section>";
+}
+
+function setHelpTab(which) {
+  const h = crd.HELPS[crd.vm.lang];
+  document.querySelectorAll("#overlay [data-help]").forEach((b) => b.classList.toggle("on", b.dataset.help === which));
+  const body = $("m-helpbody");
+  if (which === "guide") {
+    body.innerHTML = '<section class="hsec"><h4><span class="bub">&#128075;</span>' + esc(h.guide.heading) +
+      "</h4>" + guideSteps(h.guide) + "</section>";
+  } else if (which === "about") {
+    body.innerHTML = aboutPage(h.about);
+    $("m-repo").onclick = () => call(api().open_repo());
+  } else {
+    body.innerHTML = helpSections(h[which]);
+  }
+  body.scrollTop = 0;
+  body.classList.remove("fresh"); void body.offsetWidth; body.classList.add("fresh");
+}
+
+function showHelp(which) {
+  if (!crd.T) return;  // not initialised yet (e.g. --show-help firing early)
+  const s = t();
+  const kinds = [["usage", s.helpUsage], ["terms", s.helpTerms], ["guide", s.helpGuide], ["about", s.helpAbout]];
   const ov = $("overlay");
   ov.innerHTML =
-    '<div class="modal"><h3><img src="' + window.MASCOT_SRC + '" alt="">' + esc(g.guide_heading) + "</h3>" +
-    '<div class="mbody">' + esc(g.guide_body) + "</div>" +
-    '<label class="mcheck"><input type="checkbox" id="m-skip"> ' + esc(g.guide_skip) + "</label>" +
-    '<div class="mrow"><button class="mbtn primary" id="m-ok">' + esc(g.guide_ok) + "</button></div></div>";
+    '<div class="modal help">' + modalHead(s.helpTitle, "Codex Routing Detector", true) +
+    '<div class="helptabs">' + kinds.map(([k, label]) =>
+      '<button data-help="' + k + '">' + esc(label) + "</button>").join("") + "</div>" +
+    '<div class="helpbody" id="m-helpbody"></div>' +
+    '<div class="mrow"><button class="mbtn plain" id="m-close">' + esc(s.close) + "</button></div></div>";
+  ov.classList.remove("hidden");
+  ov.querySelectorAll("[data-help]").forEach((b) => b.onclick = () => setHelpTab(b.dataset.help));
+  $("m-close").onclick = closeOverlay;
+  $("m-x").onclick = closeOverlay;
+  closeOnBackdrop();
+  setHelpTab(which);
+}
+window.showHelp = showHelp;
+
+function showGuide() {
+  if (!crd.T) return;  // not initialised yet
+  const g = crd.HELPS[crd.vm.lang].guide;
+  resetOverlay();
+  const ov = $("overlay");
+  ov.innerHTML =
+    '<div class="modal guide">' + modalHead(g.heading) + guideSteps(g) +
+    '<label class="mcheck"><input type="checkbox" id="m-skip"> ' + esc(g.skip) + "</label>" +
+    '<div class="mrow"><button class="mbtn primary" id="m-ok">' + esc(g.ok) + "</button></div></div>";
   ov.classList.remove("hidden");
   $("m-ok").onclick = () => { const skip = $("m-skip").checked; closeOverlay(); call(api().guide_closed(skip)); };
   $("m-ok").focus();
 }
 window.showGuide = showGuide;
 
-function showHelp(which) {
-  if (!crd.T) return;  // not initialised yet (e.g. --show-help firing early)
-  const s = t();
-  const h = crd.HELPS[crd.vm.lang];
-  const kinds = [["usage", s.helpUsage], ["terms", s.helpTerms], ["guide", s.helpGuide], ["about", s.helpAbout]];
-  const ov = $("overlay");
-  const pills = kinds.map(([k, label]) =>
-    '<button class="quietbtn' + (k === which ? " on" : "") + '" data-help="' + k + '">' + esc(label) + "</button>").join("");
-  const content = which === "guide" ? (h.guide_heading + "\n\n" + h.guide_body) : h[which];
-  ov.innerHTML =
-    '<div class="modal wide"><h3><img src="' + window.MASCOT_SRC + '" alt="">' + esc(APP()) + "</h3>" +
-    '<div class="helppills">' + pills + "</div>" +
-    '<div class="mbody mono">' + esc(content) + "</div>" +
-    '<div class="mrow"><button class="mbtn plain" id="m-close">' + esc(s.close) + "</button></div></div>";
-  ov.classList.remove("hidden");
-  ov.querySelectorAll("[data-help]").forEach((b) => b.onclick = () => showHelp(b.dataset.help));
-  $("m-close").onclick = closeOverlay;
-}
-window.showHelp = showHelp;
-function APP() { return "Codex Routing Detector"; }
-
 function showStopConfirm(mode) {  /* mode: "stop" | "close" */
   if (!crd.T) return;  // not initialised yet (e.g. closing right after --auto-live)
   const g = crd.HELPS[crd.vm.lang];
   const s = t();
+  const closing = mode === "close";
   showConfirm({
-    title: s.liveStop,
-    body: mode === "close" ? g.live_close_confirm : g.live_stop_confirm,
-    ok: s.liveStop, cancel: s.cancel, checkbox: null,
+    title: closing ? s.closeTitle : s.liveStop,
+    body: closing ? g.live_close_confirm : g.live_stop_confirm,
+    ok: closing ? s.close : s.liveStop, cancel: s.cancel, checkbox: null,
     onOk: () => { call(mode === "close" ? api().confirm_close() : api().stop_live_confirmed()); },
   });
 }
 window.showStopConfirm = showStopConfirm;
+
+/* Escape: cancel a question, close help, or acknowledge the guide */
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape" || $("overlay").classList.contains("hidden")) return;
+  const b = $("m-cancel") || $("m-close") || $("m-ok");
+  if (b) b.click();
+});
 
 /* ---------------------------------------------------------------- clipboard */
 function copyText(text, tab, doneMsg) {
@@ -912,11 +1089,11 @@ window.addEventListener("pywebviewready", () => {
 
 
 def _korean_faces() -> str:
-    """One @font-face per Google Fonts slice: the unicode-range keeps the browser from decoding
-    slices the page never uses."""
-    rule = ('@font-face {{ font-family: "Jua"; font-style: normal; font-weight: 400;\n'
-            '  src: url(data:font/woff2;base64,{b64}) format("woff2"); unicode-range: {ur}; }}')
-    return "\n".join(rule.format(b64=b64, ur=ur) for ur, b64 in fonts.JUA)
+    """NanumSquareRound in the weights the page uses: 400 for text, 700 for labels and titles
+    (the browser also picks it for 600), 800 for the verdict headline."""
+    rule = ('@font-face {{ font-family: "NanumSquareRound"; font-style: normal; font-weight: {w};\n'
+            '  src: url(data:font/woff2;base64,{b64}) format("woff2"); }}')
+    return "\n".join(rule.format(w=w, b64=b64) for w, b64 in sorted(fonts.NANUM_SQUARE_ROUND.items()))
 
 
 def build_page() -> str:
@@ -957,6 +1134,7 @@ class WebApp:
         self.t0 = 0.0
         self.done_secs = 0.0
         self.models = tkgui.listed_models()
+        self.model_efforts = catalog_efforts()
         cfg_model, self.cfg_tier, _ = cmc.read_config_values()
         self.opt = {"model": cfg_model or self.models[0], "effort": "low", "repeat": 1, "wire": False}
         self.have_mitm = bool(cmc.shutil.which("mitmdump"))
@@ -994,7 +1172,14 @@ class WebApp:
 
     # ------------------------------------------------------------ strings
     def s(self, key: str, **kw) -> str:
-        return tkgui.STRINGS[self.lang][key].format(**kw)
+        """Status lines and dialogs: the web window's own wording first, then the shared table."""
+        text = webtext.TEXT[self.lang].get(key) or tkgui.STRINGS[self.lang][key]
+        return text.format(**kw)
+
+    def v(self, key: str, **kw) -> str:
+        """The verdict card's headline and plain-words paragraph."""
+        text = webtext.VERDICT[self.lang][key]
+        return text.format(**kw) if kw else text
 
     def u(self, key: str, **kw) -> str:
         text = UI[self.lang][key]
@@ -1051,7 +1236,7 @@ class WebApp:
                 return f"probe {i['i']}/{i['n']} · {i['model']} ({i['effort']})"
             if self.progress and self.progress[0] == "start":
                 return self.s("starting", version=self.progress[1]["codex_version"])
-            return self.s("starting", version="...")
+            return self.u("statusPreparing")
         if self.phase == "done" and self.result is not None:
             res = self.result
             if res.error:
@@ -1085,28 +1270,58 @@ class WebApp:
         if self.phase == "idle" or self.result is None:
             return "idle", self.u("chipIdle"), self.u("idleHead")
         res = self.result
-        main = [p for p in res.probes if not p.is_control]
-        models = ", ".join(sorted({p.requested for p in main})) or "?"
         v = self._check_verdict()
         if v == "REROUTED":
             return "bad", self.u("chipBad"), self.u("badHead")
         if v == "OK":
-            return "ok", self.u("chipOk"), self.u("okHead", models=models)
+            return "ok", self.u("chipOk"), self.v("okHead", model=self._requested(res))
         if v == "CANCELLED":
             return "idle", self.u("chipIdle"), self.u("cancelledHead")
         if v == "UNSUPPORTED":
-            plan = next((p.rate_limits.get("plan_type") for p in res.probes if p.rate_limits), None) or "?"
-            return "warn", self.u("chipWarn"), self.s("banner_unsupported", models=models, plan=plan)
+            return "warn", self.u("chipWarn"), self.v("unsupportedHead")
         if res.error:
-            return "warn", self.u("chipWarn"), self.s("banner_fatal")
-        return "warn", self.u("chipWarn"), self.s("banner_error", models=models)
+            return "warn", self.u("chipWarn"), self.v("fatalHead")
+        return "warn", self.u("chipWarn"), self.v("errorHead")
+
+    @staticmethod
+    def _requested(res: cmc.CheckResult) -> str:
+        return ", ".join(sorted({p.requested for p in res.probes if not p.is_control})) or "?"
 
     def _check_brief(self) -> str:
+        """Plain words under the headline: which model was called and which one answered.
+        Plan and usage figures are left to Details and the copied report."""
         if self.phase == "running":
-            return self.s("brief_running")
-        if self.result is None:
-            return self.s("brief_idle")
-        return tkgui.build_brief(self.result, self.lang)
+            return self.v("runBrief")
+        res = self.result
+        if res is None:
+            return self.v("idleBrief")
+        if res.error:
+            return self.v("fatalBrief")
+        requested = self._requested(res)
+        main = [p for p in res.probes if not p.is_control]
+        if res.overall == "REROUTED":  # before `cancelled`: a substitution already found is kept
+            served, bad, total = set(), 0, 0
+            for p in main:
+                for r in p.responses:
+                    verdict = r.verdict(p.requested)
+                    if verdict in ("ok", "REROUTED"):
+                        total += 1
+                    if verdict == "REROUTED":
+                        bad += 1
+                        served.update(m for m in r.models_seen if not cmc.models_match(p.requested, m)[0])
+            return " ".join([self.v("badBrief", requested=requested, served=", ".join(sorted(served)) or "?",
+                                    bad=bad, total=total), self.v("badTip")])
+        if res.overall == "OK":
+            return self.v("okBrief", model=requested)
+        if res.overall == "UNSUPPORTED":
+            return self.v("unsupportedBrief", requested=requested)
+        if res.cancelled:
+            return self.v("cancelledBrief")
+        errors = sorted({r.error_code or "?" for p in main for r in p.responses if r.error_code} |
+                        {c or "?" for p in main for c, _ in p.stream_errors})
+        if errors:
+            return self.v("errorBrief", requested=requested, errors=", ".join(errors))
+        return self.v("nodataBrief", requested=requested)
 
     def _check_rows(self) -> List[dict]:
         rows: List[dict] = []
@@ -1172,6 +1387,7 @@ class WebApp:
             "canCheck": not running and not self.updating,
             "canCopy": bool(have), "canJson": bool(usable), "canLogs": bool(usable),
             "model": self.opt["model"], "effort": self.opt["effort"], "repeat": self.opt["repeat"],
+            "efforts": self.efforts_for(self.opt["model"]),
             "wire": bool(self.opt["wire"]) and self.have_mitm, "wireEnabled": self.have_mitm,
             "codexLabel": codex_label, "codexTitle": self.codex_path or "",
         }
@@ -1183,65 +1399,37 @@ class WebApp:
         copyable report) keep the session's verdicts until 지우기/Clear."""
         running = self.monitor is not None
         if not running:
-            return ("idle", self.u("liveChipOff"), self.s("banner_live_idle"), self.s("brief_live_idle"))
-        overall = self.agg.overall()
-        counts = self.agg.counts()
-        total = len(self.agg.rows)
-        requested = ", ".join(sorted({r.requested for r in self.agg.rows if r.requested})) or "?"
-        brief: List[str] = []
-        if overall == "REROUTED":
-            bad = counts.get("REROUTED", 0)
-            served = sorted({m for r in self.agg.rows for m in r.other_models()})
-            tone, chip = "bad", self.u("liveChipBad")
-            head = self.u("badHead")
-            brief.append(self.s("brief_live_rerouted", bad=bad, total=total,
-                                served=", ".join(served) or "?", requested=requested))
-            acct = self._live_account_sentence()
-            if acct:
-                brief.append(acct)
-            brief.append(self.s("brief_advice_rerouted"))
-        elif overall == "OK":
-            tone = "running" if running else "idle"
-            chip = self.u("liveChipOn") if running else self.u("liveChipOff")
-            head = self.s("banner_live_ok", n=counts.get("ok", 0))
-            brief.append(self.s("brief_live_ok", n=counts.get("ok", 0)))
-            acct = self._live_account_sentence()
-            if acct:
-                brief.append(acct)
-        elif overall == "UNSUPPORTED":
-            tone, chip = "warn", self.u("liveChipWarn")
-            head = self.s("banner_live_unsupported", models=requested)
-            brief.append(self.s("brief_live_unsupported", models=requested))
-            brief.append(self.s("brief_advice_unsupported"))
-        elif overall == "ERROR":
+            return "idle", self.u("liveChipOff"), self.v("liveIdleHead"), self.v("liveIdleBrief")
+        rows = self.agg.rows
+        requested = ", ".join(sorted({r.requested for r in rows if r.requested})) or "?"
+        # A response that is still streaming has no final verdict yet (UNKNOWN): it is neither an
+        # error nor a confirmed answer, so it only makes the card wait.
+        pending = [r for r in rows if _is_pending(r)]
+        settled = [r for r in rows if not _is_pending(r)]
+        verdicts = [r.verdict() for r in settled]
+        if "REROUTED" in verdicts:
+            served = sorted({m for r in settled for m in r.other_models()})
+            brief = " ".join([self.v("liveBadBrief", requested=requested, served=", ".join(served) or "?",
+                                     bad=verdicts.count("REROUTED"), total=len(settled)), self.v("badTip")])
+            return "bad", self.u("liveChipBad"), self.u("badHead"), brief
+        ok_turn = any(r.kind == "turn" and v == "ok" for r, v in zip(settled, verdicts))
+        if ok_turn or ("ok" in verdicts and not pending and set(verdicts) == {"ok"}):
+            return ("running", self.u("liveChipOn"), self.v("liveOkHead"),
+                    self.v("liveOkBrief", requested=requested, n=verdicts.count("ok")))
+        if "UNSUPPORTED" in verdicts:
+            return ("warn", self.u("liveChipWarn"), self.v("unsupportedHead"),
+                    self.v("liveUnsupportedBrief", requested=requested))
+        if "ERROR" in verdicts:
             errs = sorted({(r.error_code or (r.record.error_code if r.record else None) or "?")
-                           for r in self.agg.rows if r.verdict() in ("ERROR", "UNKNOWN")})
-            tone, chip = "warn", self.u("liveChipWarn")
-            head = self.s("banner_live_error", n=total)
-            brief.append(self.s("brief_live_error", errors=", ".join(errs)))
-        elif running:
-            tone, chip = "running", self.u("liveChipOn")
-            head = self.s("banner_live_waiting")
-            brief.append(self.s("brief_live_running"))
-            brief.append(self.s("brief_live_waiting"))
-        else:
-            tone, chip = "idle", self.u("liveChipOff")
-            head = self.s("banner_live_idle")
-            brief.append(self.s("brief_live_idle"))
-        if running and overall in ("REROUTED", "OK", "UNSUPPORTED", "ERROR"):
-            brief.insert(0, self.s("brief_live_running"))
-        return tone, chip, head, " ".join(brief)
-
-    def _live_account_sentence(self) -> Optional[str]:
-        rl = self.agg.rate_limits
-        if not rl or not rl.get("plan_type"):
-            return None
-        lim = rl.get("rate_limits") or {}
-        used = (lim.get("primary") or {}).get("used_percent")
-        text = self.s("brief_account", plan=rl.get("plan_type"), used=used if used is not None else "?")
-        if self.agg.overall() == "REROUTED":
-            text += " " + (self.s("brief_not_limit") if lim.get("limit_reached") is False else self.s("brief_limit"))
-        return text
+                           for r in settled if r.verdict() == "ERROR"})
+            return ("warn", self.u("liveChipWarn"), self.v("liveErrorHead"),
+                    self.v("liveErrorBrief", requested=requested, errors=", ".join(errs)))
+        if pending:
+            return "running", self.u("liveChipOn"), self.v("liveWaitHead"), self.v("livePendingBrief", requested=requested)
+        if "UNKNOWN" in verdicts:
+            return ("warn", self.u("liveChipWarn"), self.v("liveUnknownHead"),
+                    self.v("liveUnknownBrief", requested=requested))
+        return "running", self.u("liveChipOn"), self.v("liveWaitHead"), self.v("liveWaitBrief")
 
     def _live_rows(self) -> List[dict]:
         kind_name = {"warmup": self.s("kind_warmup"), "turn": self.s("kind_turn"), "error": "-"}
@@ -1274,7 +1462,7 @@ class WebApp:
             "on": running, "tone": tone, "chip": chip, "head": head, "brief": brief,
             "status": self._live_status_line(),
             "rows": self._live_rows(), "notes": "\n".join(self.live_lines),
-            "cfgModel": model or self.s("live_cfg_none"), "cfgEffort": effort or "default",
+            "cfgModel": model or self.s("live_cfg_none"), "cfgEffort": effort or self.s("live_cfg_none"),
             "cfgSource": src,
             "folder": cmc.display_path(self.live_dir), "folderFull": self.live_dir,
             "proxy": (f"127.0.0.1:{self.monitor.proxy.port}" if running and self.monitor.proxy else None),
@@ -1288,14 +1476,12 @@ class WebApp:
             self._start_threads()
             helps = {}
             for lang in ("ko", "en"):
-                st = tkgui.STRINGS[lang]
+                pages = webtext.HELP[lang]
                 helps[lang] = {
-                    "usage": tkgui.HELP_USAGE[lang],
-                    "terms": tkgui.HELP_TERMS[lang],
-                    "about": tkgui.HELP_ABOUT[lang].format(version=cmc.__version__, repo=REPO_URL),
-                    "guide_heading": st["guide_heading"], "guide_body": st["guide_body"],
-                    "guide_skip": st["guide_skip"], "guide_ok": st["guide_ok"],
-                    "live_stop_confirm": st["live_stop_confirm"], "live_close_confirm": st["live_close_confirm"],
+                    "usage": pages["usage"], "terms": pages["terms"], "guide": pages["guide"],
+                    "about": dict(pages["about"], version=cmc.__version__),
+                    "live_stop_confirm": webtext.TEXT[lang]["live_stop_confirm"],
+                    "live_close_confirm": webtext.TEXT[lang]["live_close_confirm"],
                 }
             return {
                 "t": UI, "helps": helps, "models": self.models, "efforts": EFFORTS,
@@ -1353,7 +1539,8 @@ class WebApp:
         with self.lock:
             if key == "model" and value:
                 self.opt["model"] = value
-            elif key == "effort" and value in EFFORTS:
+                self._fit_effort()
+            elif key == "effort" and value in self.efforts_for(self.opt["model"]):
                 self.opt["effort"] = value
             elif key == "repeat":
                 try:
@@ -1363,6 +1550,17 @@ class WebApp:
             elif key == "wire":
                 self.opt["wire"] = bool(value) and self.have_mitm
         self.push()
+
+    def efforts_for(self, model: str) -> List[str]:
+        """The efforts the window offers for `model`: what Codex's catalog says it supports
+        (minus ultra), or the classic four for a model the catalog does not know."""
+        return self.model_efforts.get(cmc.strip_provider_prefix(model)) or list(EFFORTS)
+
+    def _fit_effort(self) -> None:
+        """A model switch keeps the effort when the new model has it, else falls back to low."""
+        levels = self.efforts_for(self.opt["model"])
+        if self.opt["effort"] not in levels:
+            self.opt["effort"] = "low" if "low" in levels else levels[0]
 
     def pick_codex(self) -> None:
         import webview
@@ -1389,8 +1587,11 @@ class WebApp:
             if not self.confirm_before_check:
                 self._start_check()
                 return None
-            model = self.options().models[0]
-            return {"title": self.s("confirm_title"), "body": self.s("confirm_body", model=model),
+            opts = self.options()
+            body = self.s("confirm_body", model=opts.models[0])
+            if opts.repeat > 1:
+                body += " " + self.u("confirmRepeat", n=opts.repeat)
+            return {"title": self.s("confirm_title"), "body": body,
                     "checkbox": self.s("confirm_skip"), "ok": self.s("confirm_ok"),
                     "cancel": self.s("confirm_cancel")}
 
@@ -1507,7 +1708,9 @@ class WebApp:
                 self._live_note(self.s("live_needs_crypto"))
                 self.push()
                 return None
-            ask = self.confirm_live and self.confirm_before_check and not self.settings.get("skip_confirm_live")
+            # The live dialog asks for consent to the local proxy and certificate, so only its own
+            # "don't ask again" (skip_confirm_live) skips it, not the check dialog's (skip_confirm).
+            ask = self.confirm_live and not self.settings.get("skip_confirm_live")
             if not ask:
                 self._start_live()
                 return None

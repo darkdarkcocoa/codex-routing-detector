@@ -7,8 +7,10 @@ python -c "import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)" >nul 2>
   pause
   exit /b 1
 )
-python -m pip install --upgrade pyinstaller cryptography || (echo pip install pyinstaller failed. & pause & exit /b 1)
-python -m PyInstaller --noconfirm --clean --onefile --windowed --icon docs\icon.ico --name codex-routing-detector codex_routing_detector_gui.py || (echo PyInstaller failed. & pause & exit /b 1)
+python -m pip install --upgrade pyinstaller cryptography pywebview || (echo pip install failed. & pause & exit /b 1)
+rem codex-routing-detector.spec: one file, no console, docs\icon.ico, entry codex_routing_webui.py
+rem (the pywebview window; the tkinter window is bundled as its fallback).
+python -m PyInstaller --noconfirm --clean codex-routing-detector.spec || (echo PyInstaller failed. & pause & exit /b 1)
 echo.
 echo Built: %~dp0dist\codex-routing-detector.exe
 pause
