@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/mascot.png" width="150" alt="The lavender cat detective">
+  <img src="docs/mascot-animated.svg" width="190" alt="The lavender cat detective">
 </p>
 
 <h1 align="center">Codex Routing Detector</h1>

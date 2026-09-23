@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/mascot.png" width="150" alt="라벤더 고양이 탐정">
+  <img src="docs/mascot-animated.svg" width="190" alt="라벤더 고양이 탐정">
 </p>
 
 <h1 align="center">Codex Routing Detector</h1>
