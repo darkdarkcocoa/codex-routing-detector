@@ -38,7 +38,10 @@ under the SIL Open Font License 1.1; their notices and the license text are in
 writes `docs/icon.ico`. The READMEs use `docs/mood-*.png` (copies of the files in
 `design_handoff_routing_detector_ui/assets/`) and `docs/mascot-animated.svg`, which
 `tools/make_mascot_svg.py` builds from the mascot PNG: a CSS hop with twinkling sparkles and a
-floating heart, standing still for readers who prefer reduced motion.
+floating heart, standing still for readers who prefer reduced motion. `docs/social-preview.png` is
+the repository's social preview card (1280x640), rendered by `tools/make_social_preview.py` with
+headless Edge; GitHub has no API for it, so it is uploaded by hand under Settings > General >
+Social preview.
 
 The window's words live in `codex_routing_webtext.py` (Korean and English). The fallback tkinter
 window keeps its own strings in `codex_routing_detector_gui.py`.
