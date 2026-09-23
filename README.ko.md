@@ -1,268 +1,329 @@
-# Codex Routing Detector (한국어)
+<p align="center">
+  <img src="docs/mascot.png" width="150" alt="라벤더 고양이 탐정">
+</p>
 
-[English README](README.md)
+<h1 align="center">Codex Routing Detector</h1>
 
-Codex 요청에 **실제로 어떤 모델이 응답했는지** 보여주는 도구입니다. 실행하고 **검사하기**를
-누르면, 내가 고른 `gpt-6-astra`가 정말 `gpt-6-astra`로 처리됐는지, 아니면 몰래 `gpt-5.6-luna`로
-처리됐는지 알려줍니다. **라이브 모니터** 탭은 내가 Codex CLI로 작업하는 동안 요청 하나하나를
-같은 방식으로 확인합니다.
+<p align="center">
+  <b>내가 고른 모델이 정말 대답했을까요? 고양이 탐정이 확인해 드려요! 🔍</b><br>
+  <a href="https://github.com/darkdarkcocoa/codex-routing-detector/releases">다운로드</a> ·
+  <a href="README.md">English</a> ·
+  <a href="#faq">자주 묻는 질문</a>
+</p>
+
+---
+
+안녕하세요! 👋
+
+Codex에서 `gpt-6-astra`를 고르면 화면 어디에나 "gpt-6-astra"라고 나와요. 그런데 정말 astra가
+대답하고 있을까요? 이 작은 앱은 그걸 **서버**에게 직접 물어보고, 어떤 모델을 불렀고 실제로는
+어떤 모델이 대답했는지 한 문장으로 알려 드려요. 🐾
+
+- **검사**: 버튼 한 번 누르고 30초쯤 기다리면 답이 나와요.
+- **라이브 모니터**: 내가 Codex CLI로 작업하는 동안 응답 하나하나를 옆에서 지켜봐요.
 
 ![검사 후의 Codex Routing Detector 창](docs/screenshot-ko.png)
 
-## 왜 만들었나
+## 왜 만들었냐면요 💭
 
-2026년 9월, Codex에서 `gpt-6-astra`를 골라 쓰는데 답이 갑자기 하위 모델 수준으로 떨어지고
-"Selected model is at capacity" 오류가 잦아졌습니다. Codex 클라이언트와 `chatgpt.com` 사이의
-통신을 캡처해 보니 이유가 보였습니다. 요청에는 `model: gpt-6-astra`라고 적혀 있었는데, 서버가
-돌려준 응답 객체에는 `model: gpt-5.6-luna`라고 적혀 있었습니다. 같은 시간에 `gpt-5.6-sol`,
-`terra`, `luna` 요청은 요청한 대로 처리됐고, 계정의 사용량 한도는 한참 남아 있었고,
-클라이언트에는 아무 알림도 오지 않았습니다. Codex 프로토콜에는 `model/rerouted` 알림과
-"한도 때문에 전환됨" 배너가 있는데 둘 다 나타나지 않았습니다. 화면은 astra라고 표시하고,
-사용량은 astra 기준으로 차감되고, 답은 luna에서 왔습니다. 다른 사용자들도 일반 Plus·Pro
-계정에서 같은 현상을 따로 재현했습니다.
+2026년 9월, `gpt-6-astra`가 갑자기 하위 모델처럼 느껴지기 시작했어요. "Selected model is at
+capacity" 오류도 자주 떴고요. 그래서 Codex와 `chatgpt.com` 사이의 통신을 들여다봤더니, 요청에는
+`model: gpt-6-astra`라고 적혀 있는데 서버가 돌려준 응답에는 `model: gpt-5.6-luna`라고 적혀
+있었어요. 😿 사용량 한도는 한참 남아 있었고, Codex에는 "모델이 바뀌었다"는 알림이 하나도 없었어요.
+화면은 계속 astra라고 표시했고, 사용량도 astra 기준으로 차감됐어요. 다른 분들도 일반 Plus·Pro
+계정에서 같은 현상을 따로 재현했어요.
 
-Codex 안에서는 이걸 볼 수 없습니다. 화면과 로컬 세션 로그는 **요청한** 모델만 기록하기
-때문입니다. 이 도구는 **서버가** 응답 객체에 적어 보낸 모델명, 즉 실제로 실행된 모델을 읽어서
-불일치를 보고합니다. 서버 상태는 시간에 따라 바뀝니다(같은 계정이 한 시간 안에 정상과
-바꿔치기를 오갔습니다). 그러니 중요할 때마다 다시 확인하세요.
+Codex 안에서는 이걸 볼 수 없어요. 화면과 로컬 로그에는 **요청한** 모델만 남기 때문이에요. 이
+앱은 서버가 응답에 적어 보낸 모델명, 즉 실제로 실행된 모델을 읽어요. 서버 상태는 시간에 따라
+바뀌기도 해요(같은 계정이 한 시간 안에 정상과 바꿔치기를 오갔어요). 그러니 중요할 때마다 한 번씩
+확인해 보세요. ✨
 
-## 설치
+## 설치 📦
 
-- **Windows, Python 없음**: [Releases](https://github.com/darkdarkcocoa/codex-routing-detector/releases)에서
-  `codex-routing-detector.exe`를 받아 더블클릭합니다. 처음 한 번 SmartScreen 경고가 뜨면
-  "추가 정보" → "실행"을 누르세요(코드 서명이 없어서 그렇습니다).
-- **Python 3.8 이상**: `pipx install git+https://github.com/darkdarkcocoa/codex-routing-detector`로
-  설치한 뒤 `codex-routing-detector-gui`(창) 또는 `codex-routing-detector`(터미널)를
-  실행합니다. 라이브 모니터가 인증서를 만들 때 쓰는 `cryptography`도 함께 설치됩니다. 창을
-  띄우려면 pywebview가 더 필요합니다(`pipx inject codex-routing-detector pywebview`). 없으면
-  단순한 tkinter 창이 대신 열립니다(`--tk`로 일부러 그 창을 열 수도 있습니다).
+- **Windows, Python 없이**: [Releases](https://github.com/darkdarkcocoa/codex-routing-detector/releases)에서
+  `codex-routing-detector.exe`를 받아 더블클릭하세요. 코드 서명이 없어서 처음 한 번 SmartScreen
+  경고가 떠요. "추가 정보" → "실행"을 누르면 돼요.
+- **Python 3.8 이상**:
+  ```
+  pipx install git+https://github.com/darkdarkcocoa/codex-routing-detector
+  pipx inject codex-routing-detector pywebview
+  ```
+  설치한 뒤 `codex-routing-detector-gui`(창)나 `codex-routing-detector`(터미널)를 실행하세요.
+  pywebview가 없으면 단순한 tkinter 창이 대신 열려요(`--tk`로 일부러 열 수도 있어요).
 
-어느 쪽이든 ChatGPT로 로그인된 Codex CLI 또는 Codex Desktop이 필요합니다. 라이브 모니터는
-CLI가 있어야 합니다(아래 참고).
+ChatGPT로 로그인된 Codex CLI나 Codex Desktop도 있어야 해요. 라이브 모니터는 CLI가 필요해요.
 
-## 바로 쓰기
+## 바로 쓰기 🚀
 
-설정할 것 없이 켜서 **검사하기**만 누르면 됩니다.
+설정할 건 없어요.
 
-1. `codex-routing-detector.exe`(또는 `codex-routing-detector-gui`)를 실행합니다.
-2. **검사하기**를 누르고 작은 확인 창에서 **검사 시작**을 누릅니다. Codex에 짧은 프롬프트
-   하나를 보낸다는 안내이며, "다시 묻지 않기"를 켜면 다음부터는 뜨지 않습니다. 모델은
-   `~/.codex/config.toml`에 적힌 것을, 로그인은 Codex의 것을 그대로 씁니다.
-3. 30초쯤 뒤 창 맨 위의 큰 카드를 봅니다.
-   - **바꿔치기 감지**(빨강): 서버가 다른 모델로 응답했습니다. 아래 목록에
-     `gpt-6-astra → gpt-5.6-luna`처럼 요청한 모델과 실제 응답 모델이 나란히 보입니다.
-   - **정상**(초록): 고른 모델이 응답했습니다.
-   - **확인 필요**(주황): 요금제에 그 모델이 없어 서버가 거절했거나(다른 모델을 고르세요),
-     "at capacity" 같은 서버 오류가 났습니다(잠시 뒤 **다시 검사**를 누르세요).
+1. 앱을 열어요. 모델은 `~/.codex/config.toml`에 적힌 것을, 로그인은 Codex의 것을 그대로 써요.
+2. **검사하기**를 눌러요. Codex에 짧은 프롬프트 하나를 보낸다는 안내 창이 떠요. 다음부터 안
+   보고 싶으면 "다시 묻지 않기"를 켜 두세요.
+3. 30초쯤 뒤, 맨 위의 큰 카드가 결과를 알려 줘요.
 
-제목 아래 문단에 무슨 일이 있었고 무엇을 하면 되는지가 쉬운 말로 적힙니다. 그 아래
-**응답 기록** 목록과 **상세 정보**에 증거(응답 ID, 플랜, 사용량)가 있습니다.
+| | 카드 | 뜻 |
+|:-:|---|---|
+| <img src="docs/mood-rerouted.png" width="40"> | **바꿔치기 감지** (빨강) | 다른 모델이 대답했어요. 아래 목록에 `gpt-6-astra → gpt-5.6-luna`처럼 요청한 모델과 실제로 대답한 모델이 나란히 보여요. |
+| <img src="docs/mood-ok.png" width="40"> | **정상** (초록) | 고른 모델이 대답했어요. 🎉 |
+| <img src="docs/mood-error.png" width="40"> | **확인 필요** (주황) | 요금제에 없는 모델이라 서버가 거절했거나(다른 모델을 골라 주세요), "at capacity" 같은 서버 오류가 났어요(잠시 뒤 **다시 검사**를 눌러 주세요). |
 
-검사는 이게 전부입니다. 아래는 알아 두면 좋은 내용입니다.
+제목 아래 문장이 무슨 일이 있었는지 쉬운 말로 설명해 줘요. 그 아래 **응답 기록**과 **상세
+정보**에는 증거(응답 ID, 플랜, 사용량)가 있어요.
 
-## 라이브 모니터 (Codex CLI 전용)
+## 라이브 모니터 👀
 
-두 번째 탭은 검사 요청을 보내는 대신 내 Codex 세션을 그대로 지켜봅니다. **모니터링 시작**을
-누르면 Codex CLI가 새 터미널 창에서 열리고, 거기서 보내는 요청마다 서버가 답하는 즉시 목록에
-한 줄씩 쌓입니다(Codex가 요청한 모델, 실제로 답한 모델, 판정). 맨 위 카드가 누적 집계를
-보여 주므로, 작업 도중에 바꿔치기가 시작되면 그 순간 바로 드러납니다.
+두 번째 탭은 검사 요청을 보내는 대신 실제 Codex CLI 세션을 지켜봐요. **모니터링 시작**을 누르면
+새 터미널 창에 Codex가 열려요. 거기서 요청을 보낼 때마다 서버가 답하는 즉시 목록에 한 줄씩
+쌓여요. Codex가 요청한 모델, 실제로 대답한 모델, 판정이 함께 나와요. 작업 도중에 바꿔치기가
+시작되면 그 순간 바로 보여요.
 
 ![세션 중의 라이브 모니터 탭](docs/screenshot-live-ko.png)
 
-탭을 처음 열면 짧은 안내 팝업이 뜹니다. 오른쪽 위 **?** 버튼의 *라이브 모니터 안내*에서 다시 볼
-수 있습니다.
+- **추가 비용이 없어요.** 모니터는 스스로 요청을 보내지 않아요.
+- **세션** 줄에는 `config.toml`의 `model`과 `model_reasoning_effort`가 보여요. **작업 폴더**는
+  Codex 창이 열릴 폴더이고, 한 번 고르면 기억해요.
+- **중지**를 누르면 Codex 창도 닫혀요. Codex를 직접 끝내도(`/exit` 또는 Ctrl-C) 모니터가 끝나요.
+  기록은 **지우기**를 누를 때까지 남고, **보고서 복사**로 클립보드에 담을 수 있어요.
+- 오른쪽 위 **?** 버튼을 누르면 짧은 안내를 다시 볼 수 있어요.
+- **Codex 데스크톱 앱은 지켜볼 수 없어요.** 다른 프로그램이 넣어 주는 프록시 설정을 받지 않기
+  때문이에요. 데스크톱 앱 사용자도 검사 탭은 그대로 쓸 수 있어요.
+- Windows에서 테스트했어요. macOS·Linux에서도 터미널을 열어 보긴 하지만, **중지**로 그 창을 닫을
+  수는 없으니 Codex를 직접 끝내 주세요.
 
-- **세션** 줄은 `~/.codex/config.toml`의 `model`과 `model_reasoning_effort`를 보여 주고,
-  파일이 바뀌면 다시 읽습니다. Codex가 무엇을 요청할지 미리 알 수 있습니다. **config.toml**을
-  누르면 파일이 열립니다.
-- **작업 폴더**는 Codex 창이 열릴 폴더(내 프로젝트)입니다. 시작 버튼 옆의 경로를 눌러 바꾸며,
-  한 번 고르면 기억합니다.
-- **중지**를 누르면 Codex 창도 닫힙니다. 모니터 없이는 그 창이 서버에 연결할 수 없기
-  때문입니다. Codex를 직접 끝내도(`/exit` 또는 Ctrl-C) 모니터가 끝납니다. 응답 기록은
-  **지우기**를 누를 때까지 남고, **보고서 복사**로 클립보드에 넣을 수 있습니다.
-- 추가 비용은 없습니다. 모니터는 스스로 요청을 보내지 않습니다.
-- 원리: Codex CLI를 실행할 때 `HTTPS_PROXY`는 이 도구에 내장된 작은 프록시(127.0.0.1에서만
-  연결을 받습니다)를, `CODEX_CA_CERTIFICATE`는 이번 세션용으로 만든 인증서를 가리키게 합니다.
-  시스템 인증서 저장소에는 아무것도 설치하지 않고, 통신 내용을 한 바이트도 바꾸지 않으며,
-  디스크에 저장하지도 않습니다. 프롬프트·파일·답변은 그대로 지나가고, 모델명·응답 ID·상태·
-  오류 코드만 메모리에 둡니다. (세션용 인증서와 개인 키는 모니터가 멈출 때까지 전용 임시
-  폴더에 있고, 고른 작업 폴더는 설정 파일에 기억됩니다.)
-- Windows에서 테스트했습니다. macOS·Linux에서도 터미널 창을 열도록 시도하지만, 그 창이
-  모니터와 분리되어 **중지**를 눌러도 닫히지 않습니다. Codex를 직접 끝내세요.
-- **Codex 데스크톱 앱은 감시할 수 없습니다.** 패키지(MSIX) 형태로 설치되는 앱이라 다른
-  프로그램이 이런 설정을 넣어 줄 수 없고, 실제 응답 모델을 디스크 어디에도 남기지 않습니다.
-  데스크톱 앱 사용자는 검사 탭에서 한 번에 한 번씩 같은 판정을 받을 수 있습니다.
+<a name="faq"></a>
 
-터미널에서는 `codex-routing-detector --live`가 Codex TUI를 새 창에 열고, Codex가 끝나거나
-Ctrl-C를 누를 때까지 응답마다 한 줄씩 출력합니다. `--live-dir DIR`로 폴더를 고르고, `--` 뒤의
-인자는 codex에 그대로 넘어갑니다(예: `--live -- exec "hello"`). 하나라도 다른 모델이 답하면
-종료 코드는 2입니다.
+## 자주 묻는 질문 💬
 
-## 추가 설명
+### 이거 쓰면 Codex 계정이 의심 계정으로 찍히지 않을까요?
 
-- **모델**: 검사하고 싶은 모델입니다. 목록은 Codex의 모델 카탈로그에서 가져오고, 맨 아래
-  *직접 입력...*으로 목록에 없는 이름도 적을 수 있습니다. `openai/gpt-6-astra`처럼 앞에 `openai/`가
-  붙은 이름은 `gpt-6-astra`로 바꿔 검사하고, 상세 정보에 그 사실을 적어 둡니다. Codex의 모델
-  이름에는 이런 접두사가 없고, 서버는 접두사가 붙은 이름을 "not supported when using Codex with a
-  ChatGPT account"라며 거절하기 때문입니다. (터미널 버전은 `--control`로 비교용
-  모델을 하나 더 검사할 수 있습니다. 그쪽은 정상인데 내 모델만 다르면 내 모델에만 바꿔치기가
-  일어난다는 뜻입니다. 창은 단순함을 위해 이 기능을 넣지 않았습니다.)
-- **반복**: 검사를 N번(1~10) 돌립니다. 서버 상태가 시간에 따라 바뀌니, 세 번쯤 돌리면
-  안정적인지 오락가락하는지 보입니다.
-- **노력**: 검사에 보낼 reasoning effort입니다. 창은 Codex 모델 목록에 적힌 대로 고른 모델이
-  지원하는 단계만 보여 줍니다(GPT-6 Sol과 Luna는 `max`까지). 단, `ultra`는 하위 에이전트를 여럿
-  띄워 검사용으로는 비용이 지나치게 커서 뺐습니다. `low`가 가장 저렴하고, 지금까지 관찰된
-  바꿔치기는 이 값과 무관했습니다.
-- **Wire 모드**: 판정은 같고 증거를 얻는 위치만 다릅니다. 기본 모드는 Codex 프로세스 안에서
-  서버 프레임을 읽고, Wire 모드는 mitmproxy로 프로세스 바깥에서 통신을 통째로 기록합니다
-  (Codex가 보낸 요청까지). 남을 설득할 증거가 필요할 때 켜세요. `pip install mitmproxy`가
-  필요하며, 설치 전에는 스위치가 비활성화되어 있습니다.
-- **codex · 자동 탐지**: `codex` 실행 파일은 도구가 알아서 찾습니다(PATH, npm 패키지, Codex
-  Desktop 번들). 못 찾는 드문 경우에만 설정 줄 오른쪽 끝의 이 글자를 눌러 직접 고르세요.
-- **웜업 / 턴**: Codex는 세션마다 요청을 두 번 보냅니다. *웜업*은 사용자 입력 없이 연결을
-  여는 자동 요청이고, *턴*은 실제 프롬프트입니다. 둘 다 목록에 나오며, 어느 쪽이든 다른 모델이
-  응답하면 REROUTED이고 **ok**는 턴이 정상일 때만 줍니다.
-- **보고서 복사 / JSON 저장 / 로그 폴더**: 응답 ID 전체가 든 텍스트 보고서(이슈·문의용), 같은
-  내용의 JSON, 서버 프레임 원문이 든 폴더입니다.
-- **NEW 배지 / 자동 업데이트**: 시작할 때 새 릴리스가 있는지 봅니다. 있으면 왼쪽 아래 버전
-  표시가 빨간 NEW 배지로 바뀌고(누르면 릴리스 페이지), exe는 새 파일을 받아 검증한 뒤 스스로
-  다시 실행됩니다. 끄는 방법은 아래 "업데이트"에 있습니다.
-- **한국어 / EN**: 오른쪽 위 전환 버튼으로 도움말까지 모든 글자를 바꿉니다.
+평소 Codex를 쓰는 것과 다른 일은 하지 않아요. 검사는 내 로그인 그대로 내 Codex CLI를 실행해서
+`Reply with exactly the single word: pong`이라는 프롬프트 하나를 보내요. 서버 입장에서는 내가
+Codex에 직접 그렇게 입력한 것과 똑같아요. 라이브 모니터는 스스로 아무것도 보내지 않아요. Codex의
+통신을 한 바이트도 바꾸지 않고 그대로 전달하는데, 이 구성은 회사의 TLS 검사 프록시 환경을 위해
+Codex가 공식 지원하는 방식이에요([`CODEX_CA_CERTIFICATE`](https://developers.openai.com/codex/auth)).
+눈에 보이는 차이는 딱 하나예요. OpenAI와의 암호화 연결을 Codex 대신 Python이 맺는다는 점인데,
+회사 프록시 뒤에서 Codex를 쓸 때도 똑같이 그래요. OpenAI가
+[공개한 사이버 안전 검사](https://developers.openai.com/api/docs/guides/safety-checks/cybersecurity)는
+무엇을 요청했는지와 계정의 활동 패턴을 보는데, 한 단어짜리 "pong"에는 문제 될 내용이 없어요. 다만
+OpenAI가 기준을 전부 공개하지는 않아서 누구도 위험이 전혀 없다고 장담할 수는 없어요. 검사를 짧은
+간격으로 계속 돌리는 것만 피해 주세요.
 
-## 터미널 버전
+### 검사 한 번에 비용이 얼마나 드나요?
+
+작은 요청 2개예요. Codex가 원래 보내는 웜업과 턴 하나예요. 시스템 프롬프트와 도구 정의 때문에
+요청마다 입력 토큰이 1만 2천~1만 6천 개쯤 들고, 답은 몇 토큰뿐이에요. 다른 Codex 사용처럼
+사용량에서 차감돼요. 라이브 모니터는 추가 비용이 없어요.
+
+### 무엇을 저장하나요?
+
+- **검사**: 서버가 보낸 메시지 원문을 전용 임시 폴더에 남겨요. **로그 폴더**로 열어 볼 수 있어요.
+  내가 보낸 요청 본문, 인증 헤더, 쿠키는 저장하지 않아요.
+- **라이브 모니터**: 모델명·응답 ID·상태·시각·오류 코드만 메모리에 둬요. **지우기**를 누르거나
+  창을 닫으면 사라지고, 디스크에는 아무것도 쓰지 않아요.
+
+자세한 내용은 [개인정보 상세](#개인정보-상세)에 있어요.
+
+### 앱이 알아서 인터넷에 접속하나요?
+
+시작할 때 새 버전이 있는지 `api.github.com`에 익명 요청을 하나 보내는 게 전부예요. 새 버전이
+있으면 버전 표시가 빨간 **NEW** 배지로 바뀌고, Windows exe는 새 파일을 받아 GitHub가 공개한
+SHA-256으로 검증한 뒤 스스로 다시 실행돼요. `--no-auto-update`는 배지만 남기고 파일은 바꾸지
+않아요. `--no-update-check`나 환경 변수 `CODEX_ROUTING_DETECTOR_NO_UPDATE=1`은 확인 자체를 꺼요.
+폰트와 그림은 프로그램 안에 들어 있어서, 창은 네트워크에서 아무것도 받아 오지 않아요.
+
+### `openai/gpt-6-astra`가 왜 `gpt-6-astra`로 바뀌나요?
+
+Codex의 모델 이름에는 이런 접두사가 없고, 서버는 접두사가 붙은 이름을 "not supported when using
+Codex with a ChatGPT account"라며 거절해요. 그래서 접두사를 떼고 검사한 뒤, **상세 정보**에 그
+사실을 적어 둬요.
+
+### 바꿔치기가 나왔어요. 무엇을 제보하면 되나요?
+
+응답 ID, `created_at` 시각(UTC), 요청한 모델과 실제 모델, 플랜과 사용량 줄, Codex 버전이 있으면
+돼요. **보고서 복사**(터미널에서는 `--json`)가 전부 모아 줘요. 📮
+
+## 창의 설정들 🎛️
+
+- **모델**: 검사할 모델이에요. 목록은 Codex의 모델 카탈로그에서 가져오고, *직접 입력...*으로
+  다른 이름도 적을 수 있어요.
+- **반복**: 검사를 1~10번 돌려요. 서버 상태가 시간에 따라 바뀌니까, 세 번쯤 돌리면 안정적인지
+  오락가락하는지 보여요.
+- **노력**: 검사에 보낼 reasoning effort예요. 고른 모델이 지원하는 단계만 보여 줘요(GPT-6 Sol과
+  Luna는 `max`까지). `ultra`는 하위 에이전트를 여럿 띄워서 검사용으로는 비용이 너무 커서 뺐어요.
+  `low`가 가장 저렴하고, 지금까지 본 바꿔치기는 이 값과 상관없었어요.
+- **Wire 모드**: 판정은 같지만, mitmproxy로 Codex 바깥에서 통신을 기록해요. Codex가 보낸 요청까지
+  남아서 남을 설득할 증거가 필요할 때 좋아요. `pip install mitmproxy`로 설치하면 켤 수 있어요.
+- **codex · 자동 탐지**: `codex` 실행 파일을 알아서 찾아요. 못 찾을 때만 눌러서 직접 골라 주세요.
+- **웜업 / 턴**: Codex는 세션마다 요청을 두 번 보내요. 자동으로 가는 웜업과 실제 프롬프트인
+  턴이에요. 어느 쪽이든 다른 모델이 대답하면 바꿔치기예요.
+- **보고서 복사 / JSON 저장 / 로그 폴더**: 증거를 텍스트로, JSON으로, 서버 메시지 원문으로 줘요.
+- 오른쪽 위 **한국어 / EN**으로 도움말까지 모든 글자를 바꿀 수 있어요.
+
+## 터미널 버전 ⌨️
 
 ```
-codex-routing-detector                 # config.toml의 모델 + 대조군(gpt-5.6-sol) 확인
-codex-routing-detector -m gpt-6-astra  # 특정 모델만
-codex-routing-detector -r 3            # 3번 반복
+codex-routing-detector                        # config.toml의 모델 + 대조군 모델
+codex-routing-detector -m gpt-6-astra         # 특정 모델만
+codex-routing-detector -r 3                   # 3번 반복
 codex-routing-detector --json out.json --full-ids
-codex-routing-detector --wire          # mitmproxy로 패킷 수준 확인
-codex-routing-detector --live          # 내 Codex CLI 세션을 새 창에 열고 실시간으로 감시
+codex-routing-detector --wire                 # mitmproxy로 패킷 수준 확인
+codex-routing-detector --live                 # 내 Codex CLI 세션을 새 창에서 지켜보기
 ```
 
-종료 코드는 0(모두 요청대로 응답), 2(대조군을 포함해 하나라도 다른 모델이 응답), 1(확인
-실패 또는 인자 오류)입니다. 나머지 옵션은 `--help`에 있습니다.
+소스에서 바로 쓸 때는 `python codex_routing_detector.py`로 똑같이 돼요.
 
-## 용어와 판정
+종료 코드는 `0`(모두 요청대로 응답), `2`(대조군을 포함해 하나라도 다른 모델이 응답), `1`(확인
+실패 또는 인자 오류)이에요.
 
-- **요청한 모델 / 실제 응답 모델**: 클라이언트가 요청에 적은 모델명 / 서버가 응답 객체
-  (`response.created`, `response.completed`)에 적은 모델명입니다. 후자가 실제로 응답한
-  모델입니다.
-- **턴**: 실제 요청입니다. 프롬프트가 서버로 가고 모델이 답합니다.
-- **웜업**: Codex가 턴 직전에 스스로 보내는 요청입니다. 사용자 입력 없이 연결을 열고 시스템
-  프롬프트를 미리 올려 둡니다. 고른 모델로 보내는 진짜 요청이라, 웜업이 다른 모델로
-  응답돼도 바꿔치기의 증거가 됩니다.
-- `REROUTED`: 응답 객체에 다른 모델명이 있습니다(웜업이든 턴이든, 이후 실패했더라도).
-- `ok`: 요청대로 응답했고 턴이 정상 완료됐습니다.
-- `UNSUPPORTED`: 서버가 이 계정에서는 그 모델을 쓸 수 없다고 거절했습니다("not supported
-  when using Codex with a ChatGPT account" 등). 요금제에 없는 모델이며 바꿔치기가 아닙니다.
-  이때 웜업이 요금제 기본 모델로 응답된 것은 바꿔치기로 세지 않습니다.
-- `ERROR`: 서버 오류입니다. 예: `server_is_overloaded`(Codex 화면의 "Selected model is at
-  capacity"). 바꿔치기가 아니니 다시 시도하세요.
-- `UNKNOWN`: 확인할 수 없습니다. `model` 필드가 없거나, 턴이 완료 전에 끊겼거나, 웜업 응답만
-  보인 경우입니다. 이유는 보고서의 해당 행 아래(창에서는 **상세 정보**)에 적힙니다.
-- `NO_DATA`: WebSocket 프레임이 전혀 없습니다. 같은 자리에 Codex 종료 코드와 마지막 오류 줄이
-  적힙니다(로그인 안 됨 등). Codex가 정상 종료했는데 프레임이 없으면 HTTP로 통신하는 구버전
-  Codex이므로 `--wire`를 쓰거나 Codex를 업데이트하세요. 사용자 지정 `model_provider`(Bedrock,
-  OSS 등)는 `chatgpt.com`을 거치지 않아 이 도구로 확인할 수 없습니다.
+<details>
+<summary><b>모든 옵션</b></summary>
 
-## 동작 원리
+| 옵션 | 뜻 |
+|---|---|
+| `-m/--model MODEL` | 검사할 모델(여러 번 지정 가능). 기본값: `~/.codex/config.toml`의 `model`, 없으면 `gpt-6-astra` |
+| `--control MODEL` / `--no-control` | 함께 검사할 대조군 모델(기본 `gpt-5.6-sol`, 검사 모델과 같으면 건너뜀). 대조군은 정상인데 내 모델만 다르면 그 모델에만 바꿔치기가 일어난다는 뜻이에요 |
+| `-e/--effort LEVEL` | 검사에 쓸 `model_reasoning_effort`. 기본 `low`이고, `config.toml`의 값은 쓰지 **않아요** |
+| `-t/--tier TIER` | `service_tier` 지정. 기본값은 `config.toml`에 적힌 값 |
+| `-r/--repeat N` | 검사를 N번 반복 |
+| `--prompt TEXT` | 검사 턴에 쓸 프롬프트(특별한 이유가 없으면 기본값을 쓰세요) |
+| `--timeout SEC` | 검사 하나의 제한 시간(기본 240초). 넘으면 프로세스 트리 전체를 종료해요 |
+| `--codex PATH` | codex 실행 파일(`CODEX_BIN`도 가능) |
+| `--wire` | trace 로그 대신 mitmproxy 사용 |
+| `--live` | 실제 Codex CLI 세션을 새 터미널 창에서 지켜보기. `--` 뒤의 인자는 codex로 넘어가요 |
+| `--live-dir DIR` | `--live`에서 Codex를 열 폴더(기본: 현재 폴더) |
+| `--json FILE` | 기계가 읽을 수 있는 보고서 |
+| `--out DIR` | 로그를 남길 폴더(기본: 새 전용 임시 폴더) |
+| `--full-ids` | 응답 ID 전체 출력 |
+| `--no-update-check` / `--no-auto-update` | 자주 묻는 질문 참고 |
+| `--version` | 버전 출력 |
 
-기본(trace) 모드는 실제 `codex` 실행 파일을 `RUST_LOG=tungstenite::protocol=trace`로
-실행합니다. `tungstenite`는 Codex가 내부에서 쓰는 WebSocket 라이브러리로, 이 로그 레벨에서는
-소켓에서 받은 메시지를 Codex 코드가 손대기 전에 원문 그대로 로그에 남깁니다. 도구는 거기서
-서버의 `response.created` / `response.completed`에 적힌 `model`을 읽습니다. `--wire` 모드는
-임시 인증서로 로컬 mitmproxy를 띄워 WebSocket 양방향을 기록하며(OS 인증서 저장소는 건드리지
-않음), 끝나면 인증서와 프록시를 지웁니다. 두 모드를 나란히 돌려 서버 응답 객체가 동일함을
-확인했습니다.
+</details>
 
-라이브 모니터는 `--wire`와 같은 방식을 mitmproxy 없이 구현한 것입니다. `codex_routing_proxy.py`는
-CONNECT 프록시로, 세션마다 새로 만든 인증 기관(EC P-256, `cryptography` 패키지 사용)으로 TLS를
-종료(TLS termination)하고 실제 서버 쪽으로 다시 암호화해 모든 바이트를 그대로 중계합니다.
-responses WebSocket에 한해 프레임(마스킹, 분할, context takeover가 있는 `permessage-deflate`)을
-해독해서 클라이언트의 `response.create`에 적힌 모델과 서버의 `response.created` /
-`response.completed` 객체를 읽습니다. `codex_routing_live.py`가 이를 응답당 한 행으로 정리하고
-Codex 창을 열고 닫습니다.
+## 속 이야기 🔧
 
-프로브(검사용으로 보내는 짧은 Codex 턴)마다 새 Codex 세션을 씁니다(`--ephemeral`, 샌드박스
-read-only, notify 훅 끔). Codex는 세션마다 요청을 두 번 보냅니다(웜업 + 턴). 둘 다 목록에
-나오며, 어느 하나라도 다른 모델명을 담으면 `REROUTED`이고 `ok`는 턴이 정상 완료됐을 때만
-줍니다.
+<details>
+<summary><b>판정 종류 전부</b></summary>
 
-## 비용과 프라이버시
+- `REROUTED`: 서버의 응답 객체에 요청과 다른 모델명이 적혀 있어요. 대소문자 차이는 그냥
+  넘어가고, 요청한 모델의 날짜 붙은 스냅샷(`gpt-6-astra-2026-09-01`)은 인정하되 행 아래에 적어
+  둬요. `response.created`와 `response.completed` 사이에 모델명이 바뀌어도 `REROUTED`예요.
+- `ok`: 요청대로 응답했고 턴이 정상 완료됐어요.
+- `UNSUPPORTED`: 서버가 이 계정에서는 그 모델을 쓸 수 없다고 거절했어요("not supported when using
+  Codex with a ChatGPT account" 등). 요금제에 없는 모델이라는 뜻이고 바꿔치기가 아니에요. 이때
+  웜업이 요금제 기본 모델로 응답된 건 바꿔치기로 세지 않아요.
+- `ERROR`: 서버 오류예요. 예: `server_is_overloaded`(Codex 화면의 "Selected model is at capacity").
+  응답 객체가 있었다면 요청한 모델명이 적혀 있었어요. 다시 시도하세요. 다른 모델명을 적은 뒤
+  실패한 응답은 여전히 `REROUTED`예요.
+- `UNKNOWN`: 확인할 수 없었어요. 응답 객체에 `model` 필드가 없거나, 턴이 `completed`까지 가지
+  못했거나(시간 초과, 비정상 종료, `incomplete`, `cancelled`), 웜업만 보인 경우예요.
+- `NO_DATA`: WebSocket 메시지가 하나도 없었어요. Codex 종료 코드와 마지막 오류 줄을 함께 적어요
+  (로그인 안 됨, API 키 모드, 네트워크 없음 등). Codex가 정상 종료했는데 WebSocket 통신이 없었다면
+  HTTP로 통신하는 구버전 Codex이니 `--wire`를 쓰거나 업데이트하세요. 사용자 지정
+  `model_provider`(Bedrock, OSS 등)는 `chatgpt.com`을 거치지 않아서 확인할 수 없어요.
 
-- 검사 한 번에 모델당 요청 2개(웜업 + 턴)가 나갑니다. 창은 한 번에 2개, 터미널은 기본 대조군을
-  포함해 4개입니다. 시스템 프롬프트 때문에 입력 토큰이 요청마다 1만 2천~1만 6천 개쯤 들지만
-  출력은 몇 토큰뿐이라, 일반 Codex 사용량에서 조금 차감됩니다.
-- 로그는 마지막 줄에 찍힌 폴더(기본은 새 임시 폴더)에 남습니다. 서버 프레임(스레드·세션 ID,
-  계정 사용자 ID `safety_identifier`, 검사 프롬프트, 플랜과 사용량)이 들어 있습니다. 요청
-  본문(작업 폴더 경로 포함)은 저장 전에 버리고, 인증 헤더와 쿠키는 애초에 로그에 찍히지
-  않으며, `x-codex-turn-state` 토큰은 가립니다. 홈 폴더 경로는 `~`로 적습니다. 필요 없으면
-  폴더를 지우세요.
-- `--json` 보고서에는 사용자 이름이 든 경로가 없습니다. 플랜·사용량·크레딧 잔액은 이슈 제보에
-  유용해서 남겨 두니, 공유하기 싫으면 지우세요.
-- 도구가 스스로 하는 네트워크 통신은 아래의 업데이트 확인뿐입니다. 창의 폰트와 그림은
-  프로그램에 들어 있고, trace 모드에서는 이미 설치된 Codex를 실행하기만 합니다. `--wire`
-  모드에서는 프로브 동안 Codex의 모든 HTTPS 요청(토큰 갱신, 원격 측정 포함)이 이 도구가 띄운
-  로컬 mitmproxy를 지나가며, 기록되는 것은 responses WebSocket뿐입니다.
-- 라이브 모니터는 모델명·응답 ID·상태·시각·오류 코드만 메모리에 두며, 지우기를 누르거나 창을
-  닫으면 사라집니다. 원문 메시지는 어디에도 쓰지 않습니다. 세션 동안 Codex의 모든 HTTPS
-  통신(토큰 갱신, 원격 측정, 네트워크 MCP 서버 포함)이 127.0.0.1의 내장 프록시를 지나가며,
-  해독하는 것은 responses WebSocket뿐입니다. 인증 기관은 세션 전용 임시 폴더에 있다가
-  모니터가 멈추면 지워집니다.
-- 샌드박스가 read-only여도 사용자 지정 `--prompt`로 모델이 파일을 읽어 OpenAI로 보내게 할 수
-  있습니다(다른 Codex 턴과 같습니다). 특별한 이유가 없으면 기본 프롬프트를 쓰세요.
+</details>
 
-## 업데이트
+<details>
+<summary><b>동작 원리</b></summary>
 
-시작할 때 `api.github.com`에 익명 요청 하나를 보내 새 릴리스가 있는지 봅니다(사용자에 대한
-정보는 보내지 않습니다). 있으면 왼쪽 아래 버전 표시가 빨간 **NEW** 배지로 바뀝니다(누르면
-릴리스 페이지). **Windows exe는 스스로 업데이트합니다.** 새 exe를 자기 옆에 내려받아 크기·MZ
-헤더·GitHub가 공개하는 SHA-256으로 검증한 뒤, 옛 프로세스가 끝나면 파일을 교체하고 새 버전으로
-다시 실행되어 "v…로 업데이트됨"이라고 표시합니다. 시작 직후에만 하고, 검사 중에는 하지 않으며,
-exe 폴더에 쓰기 가능할 때만 합니다. `--no-auto-update`는 배지만 남기고 파일을 바꾸지 않으며,
-`--no-update-check` 또는 환경변수 `CODEX_ROUTING_DETECTOR_NO_UPDATE=1`은 확인 자체를 끕니다.
-pip/pipx 설치는 건드리지 않고 배지와 `pipx upgrade codex-routing-detector` 안내만 보여 줍니다.
+**검사(기본 trace 모드).** 실제 `codex exec`를
+`RUST_LOG=tungstenite::protocol=trace,tungstenite::protocol::frame=off`로 실행해요. `tungstenite`는
+Codex 안의 WebSocket 라이브러리로, 이 로그 레벨에서는 받은 메시지를 Codex 코드가 손대기 전에 원문
+그대로 남겨요. 앱은 거기서 서버의 `response.created` / `response.completed`에 적힌
+`response.model`을 읽어요. 보내는 메시지는 압축된 채로 기록되기 때문에, *요청한* 모델은 앱이
+넘기는 `-c model=...` 값을 쓰고 Codex 시작 화면의 `model:` 줄과 대조해요.
 
-## 제보할 때
+검사마다 새 Codex 세션을 써요(지원하는 버전에서는 `--ephemeral`, 샌드박스 `read-only`, `notify`
+훅 끔. MCP 서버와 플러그인은 그대로 로드돼요).
 
-`REROUTED`가 나오면 응답 ID, `created_at`(UTC), 요청/응답 모델 쌍, 플랜과 사용량 줄, Codex
-버전이 유용합니다. `--json`이 전부 기록하고, 창의 **보고서 복사**도 같은 내용을 텍스트로
-클립보드에 넣습니다.
+**Wire 모드.** 전용 임시 폴더에 만든 일회용 인증 기관으로 mitmproxy를 로컬 HTTPS 프록시로 띄워요.
+Codex를 실행할 때 `HTTPS_PROXY`는 그 프록시를, `CODEX_CA_CERTIFICATE`는 그 인증서를 가리키게 해서
+시스템 인증서 저장소에는 아무것도 설치하지 않아요. responses WebSocket의 양방향을 기록해요.
+2026-09-22에 trace 모드와 Wire 모드를 나란히 돌려 서버 응답 객체가 똑같다는 걸 확인했어요.
 
-## 디자인
+**라이브 모니터.** 같은 방식을 mitmproxy 없이 구현했어요. `codex_routing_proxy.py`는
+127.0.0.1에서만 연결을 받는 CONNECT 프록시로, 세션마다 새로 만든 인증 기관(EC P-256,
+`cryptography` 패키지 사용)으로 TLS를 종료하고 실제 서버 쪽으로 다시 암호화해서 모든 바이트를
+그대로 중계해요. responses WebSocket에서만 프레임(마스킹, 분할, context takeover가 있는
+`permessage-deflate`)을 해독해 클라이언트의 `response.create`에 적힌 모델과 서버의 응답 객체를
+읽어요. `codex_routing_live.py`가 이를 응답당 한 줄로 정리해요.
 
-창은 `design_handoff_routing_detector_ui/`의 "Soft Sheet" 디자인을 따릅니다. 커다란 판정 카드
-안에서 라벤더 고양이 탐정 마스코트가 상태에 따라 움직이고, 컨트롤은 알약(pill) 모양, 결과는
-여백 있는 목록이며, 색은 세이지 톤 배경 위에 청록 강조색 하나입니다. 화면은 pywebview(내장
-브라우저 뷰)가 그리고, 검사 로직은 전부 Python에 있습니다.
+</details>
 
-마스코트 그림과 폰트 세 종은 프로그램에 내장되어 있습니다(`codex_routing_assets.py`,
-`codex_routing_fonts.py`). 영문은 Fredoka, 한글은 나눔스퀘어라운드, 응답 ID와 시각은 JetBrains
-Mono입니다. 그래서 창은 네트워크에서 아무것도 받아 오지 않습니다. 세 폰트 모두 SIL 오픈 폰트
-라이선스 1.1을 따르며, 저작권 안내와 라이선스 전문은 `docs/FONT-LICENSES.txt`에 있습니다.
-`tools/make_assets.py`가 원본 PNG에서 그림과 `docs/icon.ico`를 다시 만들어 줍니다.
+<a name="개인정보-상세"></a>
+<details>
+<summary><b>개인정보 상세</b></summary>
 
-![라이브 모니터 안내](docs/screenshot-guide-ko.png)
+- **검사 로그**는 마지막에 출력되는 폴더(`--out`이 없으면 전용 임시 폴더)에 남아요. 서버 메시지,
+  즉 스레드·세션 ID, `safety_identifier`에 든 계정 사용자 ID, 검사 프롬프트, 플랜과 사용량이
+  들어 있어요. 내가 보낸 메시지(작업 폴더 경로를 포함한 요청 전체)는 저장 전에 버려요. Wire
+  모드에서는 클라이언트 요청을 라우팅 관련 필드(`model`, `service_tier`, `reasoning` 등)만 남기고
+  줄여요. 인증 헤더와 쿠키는 기록되지 않고, `x-codex-turn-state` 토큰은 가리고, 홈 폴더 경로는
+  `~`로 적어요. 필요 없으면 폴더를 지워 주세요.
+- **`--json` 보고서**에는 사용자 이름이 든 경로가 없어요. 다만 플랜·사용량·크레딧 잔액은 제보에
+  유용해서 남겨 두니, 공유하기 싫으면 지워 주세요.
+- **업데이트 확인 말고는 앱이 스스로 하는 네트워크 통신이 없어요.** trace 모드에서는 이미 설치된
+  Codex를 실행하기만 해요. Wire 모드에서는 검사하는 동안 Codex의 모든 HTTPS 요청(토큰 갱신, 원격
+  측정 포함)이 로컬 mitmproxy를 지나가고, 기록하는 건 responses WebSocket뿐이에요.
+- **라이브 모니터**: 세션 동안 Codex의 모든 HTTPS 통신(토큰 갱신, 원격 측정, 네트워크 MCP 서버
+  포함)이 127.0.0.1의 내장 프록시를 지나가고, 해독하는 건 responses WebSocket뿐이에요. 인증
+  기관과 개인 키는 전용 임시 폴더에 있다가 모니터가 멈추면 지워져요. 고른 작업 폴더는 설정
+  파일에 기억돼요.
+- **자동 업데이트**는 시작 직후에만 하고, 검사 중에는 하지 않고, exe 폴더에 쓰기 권한이 있을 때만
+  해요. 크기, `MZ` 헤더, GitHub가 공개한 SHA-256을 확인한 뒤 옛 프로세스가 끝나면 파일을 바꾸고
+  "v…로 업데이트됨"이라고 알려 줘요. pip/pipx 설치는 건드리지 않고, 배지와 `pipx upgrade` 안내만
+  보여 줘요.
+- 검사는 `read-only` 샌드박스에서 돌지만, 사용자 지정 `--prompt`로는 다른 Codex 턴처럼 모델이
+  파일을 읽어 OpenAI로 보내게 할 수 있어요.
 
-## 테스트와 빌드
+</details>
+
+<details>
+<summary><b>Codex를 찾는 방법</b></summary>
+
+`PATH`에서 `codex`를 찾고, npm 패키지 안의 네이티브 실행 파일을 실행해요(npm, yarn,
+심볼릭 링크 방식의 pnpm. Windows의 `codex.cmd`는 실제 실행 파일로 풀어요). CLI가 없으면 Windows
+데스크톱 번들(`%LOCALAPPDATA%\OpenAI\Codex\bin\*\codex.exe`)과, 검증하지는 않았지만 macOS의
+`/Applications/Codex.app/Contents/Resources/codex`를 찾아봐요. 그래도 없으면 `--codex PATH`,
+`CODEX_BIN` 환경 변수, 또는 창의 **codex · 자동 탐지**를 쓰세요.
+
+</details>
+
+<details>
+<summary><b>앱 없이 직접 확인하기</b></summary>
+
+`--ephemeral`을 모르는 Codex 버전에서는 그 옵션을 빼 주세요.
+
+bash / Git Bash:
 
 ```
-python -m unittest discover -s tests -v   # 파서·판정·창 테스트 (실제 Codex 호출 없음)
-build_exe.bat                             # dist\codex-routing-detector.exe 빌드 (PyInstaller)
+RUST_LOG='tungstenite::protocol=trace,tungstenite::protocol::frame=off' codex exec --ephemeral -s read-only --skip-git-repo-check \
+  -c model=gpt-6-astra "Reply with exactly the single word: pong" 2>&1 </dev/null \
+  | grep -o '"type":"response.completed","response":{"id":"[^"]*"[^}]*"model":"[^"]*"' \
+  | grep -o '"model":"[^"]*"'
 ```
 
-- `tests/test_parse.py`는 프레임 파서와 판정을 검증합니다. 제한 시간을 넘긴 프로브가 프로세스
-  트리 전체를 종료하는지도 확인합니다.
-- `tests/test_webui.py`는 창을 띄우지 않고, 페이지가 그리는 데이터를 통해 창의 로직을
-  검증합니다.
-- `tests/test_gui.py`와 `tests/test_gui_live.py`는 대체용 tkinter 창을 화면 밖에 만들어 두 탭을
-  구동합니다(tkinter가 화면을 쓸 수 없는 환경에서는 건너뜁니다).
-- `tests/test_live.py`는 내장 프록시를 로컬 TLS WebSocket 에코 서버에 대고 끝까지 돌려 봅니다
-  (CONNECT, 임시 인증 기관, 마스킹·압축 프레임).
+PowerShell:
 
-`tests/fixtures`는 2026-09-22 실제 캡처에서 ID를 자리표시자로 바꾼 두 개의 전체 실행
-기록입니다(astra 요청이 luna로 처리된 것, `server_is_overloaded`로 끝난 것).
-`python codex_routing_webui.py --fake --auto-check`는 실제 검사 대신 이 샘플 데이터로 창을
-보여 주고, `--fake --fake-live`는 라이브 탭을 샘플 행으로 채웁니다. 둘 다 개발용이며, exe에는
-샘플 데이터가 들어 있지 않습니다.
+```
+$env:RUST_LOG = 'tungstenite::protocol=trace,tungstenite::protocol::frame=off'
+codex exec --ephemeral -s read-only --skip-git-repo-check -c model=gpt-6-astra "Reply with exactly the single word: pong" 2>&1 |
+  Select-String -Pattern '"type":"response.completed".*?"model":"([^"]+)"' | ForEach-Object { $_.Matches[0].Groups[1].Value }
+Remove-Item Env:RUST_LOG
+```
+
+둘 다 실제로 응답한 모델을 웜업에 한 번, 턴에 한 번 출력해요. 턴이 실패하면("at capacity" 등)
+아무것도 출력하지 않으니 다시 실행해 주세요.
+
+</details>
+
+## 만든 것들 💜
+
+- 라벤더 고양이 탐정과 "Soft Sheet" 창 디자인은 `design_handoff_routing_detector_ui/`에 있어요.
+- 폰트: Fredoka(영문), 나눔스퀘어라운드(한글), JetBrains Mono(응답 ID와 시각). 모두 SIL 오픈 폰트
+  라이선스 1.1을 따르고, 저작권 안내는 [`docs/FONT-LICENSES.txt`](docs/FONT-LICENSES.txt)에 있어요.
+- 빌드, 테스트, 디자인 메모: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
+- [MIT 라이선스](LICENSE)로 공개해요.
+
+<p align="center">즐거운 코딩 되세요! 부른 모델이 늘 제대로 대답하길 바라요 🐾</p>

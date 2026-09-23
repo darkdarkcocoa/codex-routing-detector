@@ -1,305 +1,322 @@
-# Codex Routing Detector
+<p align="center">
+  <img src="docs/mascot.png" width="150" alt="The lavender cat detective">
+</p>
 
-[한국어 설명 (Korean)](README.ko.md)
+<h1 align="center">Codex Routing Detector</h1>
 
-Shows which model **actually** answers your Codex requests. Run it, press Check, and it tells
-you whether the `gpt-6-astra` you selected was really served by `gpt-6-astra` or quietly by
-`gpt-5.6-luna`. The **Live monitor** tab does the same for your own Codex CLI session, request
-by request, while you work.
+<p align="center">
+  <b>Did the model you picked really answer? Let the cat detective check! 🔍</b><br>
+  <a href="https://github.com/darkdarkcocoa/codex-routing-detector/releases">Download</a> ·
+  <a href="README.ko.md">한국어</a> ·
+  <a href="#faq">FAQ</a>
+</p>
+
+---
+
+Hi there! 👋
+
+You pick `gpt-6-astra` in Codex, and Codex happily says "gpt-6-astra" everywhere. But is
+astra really the one answering? This little app asks the **server** and tells you, in one
+friendly sentence, which model you called and which model actually replied. 🐾
+
+- **Check**: press one button, wait about 30 seconds, and get the answer.
+- **Live monitor**: keeps an eye on your own Codex CLI session while you work, response by
+  response.
 
 ![Codex Routing Detector after a check](docs/screenshot.png)
 
-## Why this exists
+## Why I made this 💭
 
-In September 2026 many Codex users noticed that `gpt-6-astra` suddenly felt like a smaller
-model, alongside bursts of "Selected model is at capacity" errors. Capturing the traffic between
-the Codex client and `chatgpt.com` showed why: the request said `model: gpt-6-astra`, but the
-server's own response object said `model: gpt-5.6-luna`. Requests for `gpt-5.6-sol`, `terra` and
-`luna` in the same minutes were served correctly, the account was nowhere near its usage limit,
-and the client was never told. Codex has a `model/rerouted` notification and a "switched
-because of usage limits" banner in its protocol, and neither fired. The UI kept saying astra;
-the usage meter charged for astra; the answers came from luna. The same thing was reproduced
-independently by other people on ordinary Plus and Pro accounts.
+In September 2026, `gpt-6-astra` suddenly started to feel like a smaller model, together with
+bursts of "Selected model is at capacity". So I looked at the traffic between Codex and
+`chatgpt.com`. The request said `model: gpt-6-astra`, but the server's own response said
+`model: gpt-5.6-luna`. 😿 The account was far from its usage limit, Codex showed no "rerouted"
+notice, the window kept saying astra, and the usage meter kept charging for astra. Other people
+reproduced the same thing on ordinary Plus and Pro accounts.
 
-You cannot see this from inside Codex: the UI and the local session logs only record the model
-you *asked for*. This tool reads the model name the **server** puts into its response objects,
-which is the model that actually ran, and reports the mismatch. The state changes over time (the
-same account went back and forth between OK and REROUTED within an hour), so check whenever it
-matters.
+You can't see this from inside Codex, because the window and the local logs only record the
+model you *asked for*. This app reads the model name the server writes into its response, which
+is the model that really ran. The state also changes over time (one account went back and forth
+between OK and rerouted within an hour), so check whenever it matters. ✨
 
-## Install
+## Install 📦
 
-- **Windows, no Python**: download `codex-routing-detector.exe` from
-  [Releases](https://github.com/darkdarkcocoa/codex-routing-detector/releases) and double-click it
-  (SmartScreen warns once: "More info" -> "Run anyway").
-- **Python 3.8+**: `pipx install git+https://github.com/darkdarkcocoa/codex-routing-detector`,
-  then run `codex-routing-detector-gui` (window) or `codex-routing-detector` (terminal).
-  `cryptography`, which the live monitor needs for its certificates, is installed along with it.
-  The window also needs pywebview: `pipx inject codex-routing-detector pywebview`. Without it
-  you get a simpler tkinter window instead (`--tk` opens that one on purpose).
+- **Windows, no Python needed**: download `codex-routing-detector.exe` from
+  [Releases](https://github.com/darkdarkcocoa/codex-routing-detector/releases) and double-click
+  it. The exe has no code signature, so SmartScreen warns once: "More info" → "Run anyway".
+- **Python 3.8+**:
+  ```
+  pipx install git+https://github.com/darkdarkcocoa/codex-routing-detector
+  pipx inject codex-routing-detector pywebview
+  ```
+  Then run `codex-routing-detector-gui` (window) or `codex-routing-detector` (terminal).
+  Without pywebview you get a simpler tkinter window (`--tk` opens that one on purpose).
 
-Either way you need a Codex CLI or Codex Desktop that is signed in with ChatGPT (the live
-monitor needs the CLI, see below).
+You also need a Codex CLI or Codex Desktop that is signed in with ChatGPT. The live monitor
+needs the CLI.
 
-## Quick start
+## Quick start 🚀
 
-No setup. Open it and press **Check**.
+There is nothing to set up.
 
-1. Start `codex-routing-detector.exe` (or `codex-routing-detector-gui`).
-2. Press **Check** and confirm the small dialog (it explains that one short prompt goes to Codex;
-   tick "Don't ask again" to skip it next time). The app already knows your model from
-   `~/.codex/config.toml` and your Codex login.
-3. About 30 seconds later, read the big card at the top:
-   - **Rerouted** (red): the server answered with a different model. The list below shows the
-     pair, for example `gpt-6-astra → gpt-5.6-luna`.
-   - **All good** (green): the model you chose answered.
-   - **Needs a look** (amber): either your plan does not include that model (the server refused
-     it; pick another one), or the server returned an error such as "at capacity" (press
-     **Check again** in a moment).
+1. Open the app. It already knows your model (from `~/.codex/config.toml`) and uses your Codex
+   login.
+2. Press **Check**. A small dialog explains that one short prompt goes to Codex. Tick
+   "Don't ask again" if you don't want to see it next time.
+3. About 30 seconds later, the big card at the top tells you what happened:
 
-The paragraph under the headline says in plain words what happened and what to do next. The
-**Responses** list and the **Details** section underneath carry the evidence (response ids,
-plan, usage).
+| | Card | What it means |
+|:-:|---|---|
+| <img src="docs/mood-rerouted.png" width="40"> | **Rerouted** (red) | Another model answered. The list below shows the pair, for example `gpt-6-astra → gpt-5.6-luna`. |
+| <img src="docs/mood-ok.png" width="40"> | **All good** (green) | The model you picked answered. 🎉 |
+| <img src="docs/mood-error.png" width="40"> | **Needs a look** (amber) | Your plan doesn't include that model (pick another one), or the server returned an error such as "at capacity" (press **Check again** in a moment). |
 
-That is the whole check. Everything below is optional.
+The sentence under the headline explains it in plain words. **Responses** and **Details** below
+it hold the evidence: response ids, plan and usage.
 
-## Live monitor (Codex CLI only)
+## Live monitor 👀
 
-The second tab watches a real Codex session instead of sending a probe. Press **Start
-monitoring**: a new terminal window opens with the Codex CLI, and every request you make there
-is listed as soon as the server answers, with the model Codex asked for, the model that really
-answered and the verdict. The card at the top keeps a running total, so a substitution that
-starts halfway through your afternoon shows up the moment it happens.
+The second tab watches a real Codex CLI session instead of sending a probe. Press **Start
+monitoring**: a new terminal window opens with Codex, and every request you make there shows up
+as soon as the server answers, with the model Codex asked for, the model that really answered,
+and the verdict. If a substitution starts halfway through your afternoon, you see it right
+away.
 
 ![Live monitor tab during a session](docs/screenshot-live.png)
 
-A short guide pops up the first time you open the tab; the **?** button at the top right brings
-it back (*Live monitor guide*).
+- **It costs nothing extra.** The monitor sends no requests of its own.
+- **Session** shows the `model` and `model_reasoning_effort` from `config.toml`. **Folder** is
+  where the Codex window opens, and the app remembers it.
+- **Stop** closes the Codex window too. Closing Codex yourself (`/exit` or Ctrl-C) ends the
+  monitor as well. Rows stay until you press **Clear**, and **Copy report** puts them on the
+  clipboard.
+- The **?** button at the top right brings back the short guide.
+- **The Codex desktop app can't be watched**, because it doesn't take proxy settings from
+  another program. Desktop users can still use the Check tab.
+- It was tested on Windows. On macOS and Linux the terminal opens on a best-effort basis, and
+  **Stop** can't close it there, so close Codex yourself.
 
-- The **Session** row mirrors `model` and `model_reasoning_effort` from `~/.codex/config.toml`
-  and re-reads them when the file changes, so you can see what Codex is going to ask for.
-  Click **config.toml** to open the file.
-- **Folder**, next to the Start button, is where the Codex window opens (your project). Click
-  the path to change it; it is remembered.
-- **Stop** closes the Codex window, because that window cannot reach the server without the
-  monitor. Closing Codex yourself (`/exit` or Ctrl-C) ends the monitor too. The rows stay until
-  you press **Clear**, and **Copy report** puts them on the clipboard.
-- It costs nothing extra: the monitor sends no requests of its own.
-- It works by starting the Codex CLI with `HTTPS_PROXY` pointing at a small proxy built into
-  this tool (listening on 127.0.0.1 only) and `CODEX_CA_CERTIFICATE` pointing at a certificate
-  that is created for the session and deleted afterwards. Nothing is installed in the system
-  certificate store, no byte is changed, and no traffic is written to disk: prompts, files and
-  answers pass through and only model names, response ids, statuses and error codes are kept
-  in memory. (The session certificate and its private key live in a private temp folder until
-  the monitor stops; the working folder you pick is remembered in the settings file.)
-- Tested on Windows. On macOS and Linux the terminal window is opened on a best-effort basis
-  and detaches from the monitor, so **Stop** does not close it there; close Codex yourself.
-- **The Codex desktop app cannot be watched.** It is a packaged (MSIX) application that does
-  not take these settings from another program, and it keeps no record of the served model
-  anywhere on disk. Desktop users get the same answer from the Check tab, one probe at a time.
+<a name="faq"></a>
 
-On the command line: `codex-routing-detector --live` opens the Codex TUI in a new window and
-prints one line per response until Codex exits or you press Ctrl-C; `--live-dir DIR` picks the
-folder, and anything after `--` is passed to codex (for example `--live -- exec "hello"`). Exit
-code 2 if any response was served by another model.
+## FAQ 💬
 
-## More details (optional)
+### Can this get my Codex account flagged?
 
-- **model**: the one you want to test. The list comes from Codex's own model catalog;
-  *Type a model...* at the bottom takes any other name. A router-style name such as
-  `openai/gpt-6-astra` is checked as `gpt-6-astra`, and a note in Details says so: Codex model
-  names carry no provider prefix, and the server refuses the prefixed name as "not supported
-  when using Codex with a ChatGPT account". (The command line can also check a
-  *control* model right after it with `--control`; if that one is fine while yours is not, the
-  substitution is specific to your model. The window keeps things simple and does not do this.)
-- **repeat**: run the check N times (1 to 10). The server's behaviour changes over time, so
-  three runs tell you whether it is stable or flickering.
-- **effort**: reasoning effort sent with the probe. The window offers the levels the chosen model
-  supports according to Codex's catalog (GPT-6 Sol and Luna go up to `max`), except `ultra`,
-  which spawns sub-agents and is far too costly for a probe. `low` is the cheapest; the
-  substitution seen so far did not depend on it.
-- **Wire mode**: same verdict, different evidence. The default reads the server frames from
-  inside the Codex process; wire mode records the traffic outside it with mitmproxy, including
-  what Codex sent. Use it when you need to convince someone else. It needs
-  `pip install mitmproxy`; until then the switch is disabled.
-- **codex · auto-detect**: the tool finds your `codex` binary by itself (PATH, npm package,
-  Codex Desktop bundle). In the rare case where it cannot, click it (at the right end of the
-  Setup row) and pick the binary by hand.
-- **warm-up / turn**: Codex sends two requests per session. The *warm-up* is an automatic
-  request with no user input that opens the connection; the *turn* is the real prompt. Both are
-  listed. Either one answered by another model counts as REROUTED; **ok** needs the turn.
-- **Copy report / Save JSON / Log folder**: the text report with full response ids (for a bug
-  report or a support ticket), the same as JSON, and the folder with the raw server frames.
-- **NEW badge / auto-update**: at startup the app looks for a newer release. If there is one,
-  the version number at the bottom left turns into a red NEW badge that links to the release
-  page, and the exe downloads the update, verifies it and restarts itself. See
-  "Cost and privacy" for how to turn that off.
-- **한국어 / EN** at the top right switches every label, the help texts included.
+It does nothing that ordinary Codex use doesn't. A check runs your own Codex CLI, signed in as
+you, with the prompt `Reply with exactly the single word: pong`. To the server, that is exactly
+the same as typing it into Codex yourself. The live monitor sends nothing of its own. It passes
+Codex's traffic through byte for byte, using the setup Codex officially supports for company
+networks with TLS-inspecting proxies
+([`CODEX_CA_CERTIFICATE`](https://developers.openai.com/codex/auth)). The one visible
+difference is that the encrypted connection to OpenAI is opened by Python instead of by Codex,
+which is also what happens behind a company proxy. OpenAI's
+[published cyber-safety checks](https://developers.openai.com/api/docs/guides/safety-checks/cybersecurity)
+look at what you ask for and at patterns on the account, and a one-word "pong" asks for nothing.
+OpenAI doesn't publish every rule, so nobody can promise zero risk. Just don't run checks in a
+tight loop.
 
-## How Codex is found
+### What does a check cost?
 
-The tool looks for `codex` on `PATH` and runs the native binary inside the npm package (npm,
-yarn, pnpm-as-symlink; `codex.cmd` on Windows is resolved to the binary). Without a CLI it
-tries the Windows Desktop bundle (`%LOCALAPPDATA%\OpenAI\Codex\bin\*\codex.exe`) and, unverified,
-`/Applications/Codex.app/Contents/Resources/codex` on macOS. Otherwise pass `--codex PATH`, set
-`CODEX_BIN`, or click **codex · auto-detect** in the window. `--wire` additionally needs
-`pip install mitmproxy` (7.0 or newer).
+Two small requests: Codex's usual warm-up plus one turn. Each carries about 12-16k input tokens
+of system prompt and tool definitions, and the answer is a few tokens. It counts against your
+Codex usage like any other turn. The live monitor adds nothing.
 
-## Command line
+### What does it keep?
 
-The same check from a terminal: `codex-routing-detector` after a pipx install, or
-`python codex_routing_detector.py` from a checkout, as below.
+- **Check**: raw server messages go to a private temp folder, which you can open with **Log
+  folder**. Your request bodies, auth headers and cookies are never saved.
+- **Live monitor**: only model names, response ids, statuses, times and error codes, in memory,
+  until you press **Clear** or close the window. Nothing is written to disk.
+
+The details are under [Privacy in detail](#privacy-in-detail).
+
+### Does it talk to the internet on its own?
+
+It makes one anonymous request to `api.github.com` at startup to look for a new release, and
+nothing else. When a new release exists, the version label turns into a red **NEW** badge and
+the Windows exe updates itself: it downloads the new file, checks its SHA-256 against GitHub,
+and restarts. `--no-auto-update` keeps the badge but never replaces the file.
+`--no-update-check` or `CODEX_ROUTING_DETECTOR_NO_UPDATE=1` turns the check off completely. The
+fonts and pictures are built into the program, so the window loads nothing from the network.
+
+### Why does `openai/gpt-6-astra` become `gpt-6-astra`?
+
+Codex model names have no provider prefix, and the server refuses the prefixed name ("not
+supported when using Codex with a ChatGPT account"). So the app checks the plain name and says
+so under **Details**.
+
+### I saw "Rerouted". What should I report?
+
+Send the response ids, the `created_at` times (UTC), the requested/served pair, your plan and
+usage line, and your Codex version. **Copy report** (or `--json` on the command line) puts all
+of it together for you. 📮
+
+## Window options 🎛️
+
+- **model**: the model to test. The list comes from Codex's own catalog. *Type a model...* takes
+  any other name.
+- **repeat**: run the check 1 to 10 times. The server changes over time, so three runs show
+  whether it is stable or flickering.
+- **effort**: the reasoning effort sent with the probe. Only the levels the chosen model
+  supports are offered (GPT-6 Sol and Luna go up to `max`). `ultra` is left out, because it
+  spawns sub-agents and costs far too much for a probe. `low` is the cheapest, and the
+  substitutions seen so far didn't depend on it.
+- **Wire mode**: gives the same verdict, but records the traffic from outside Codex with
+  mitmproxy, including what Codex sent. It is useful when you need to convince someone. Install
+  it with `pip install mitmproxy`.
+- **codex · auto-detect**: finds your `codex` by itself. Click it only if it can't.
+- **warm-up / turn**: Codex sends two requests per session: an automatic warm-up and the real
+  turn. Either one answered by another model counts as rerouted.
+- **Copy report / Save JSON / Log folder**: the evidence as text, as JSON, and as raw server
+  messages.
+- **한국어 / EN** at the top right switches every label, help included.
+
+## Command line ⌨️
 
 ```
-python codex_routing_detector.py                      # model from ~/.codex/config.toml + control
-python codex_routing_detector.py -m gpt-6-astra       # a specific model
-python codex_routing_detector.py -m gpt-6-astra -m gpt-5.5 --no-control
-python codex_routing_detector.py -e high -t priority  # probe with a given effort / service tier
-python codex_routing_detector.py -r 3                 # repeat each probe 3 times
-python codex_routing_detector.py --json result.json --full-ids
-python codex_routing_detector.py --wire               # packet-level capture with mitmproxy
+codex-routing-detector                        # model from config.toml + control model
+codex-routing-detector -m gpt-6-astra         # a specific model
+codex-routing-detector -r 3                   # repeat each probe 3 times
+codex-routing-detector --json out.json --full-ids
+codex-routing-detector --wire                 # packet-level capture with mitmproxy
+codex-routing-detector --live                 # watch a Codex CLI session in a new window
 ```
+
+From a checkout, `python codex_routing_detector.py` does the same.
+
+Exit codes: `0` means every checked model was served as requested, `2` means at least one probe
+(control included) was served by another model, and `1` means a model couldn't be checked or
+there was a usage error.
+
+<details>
+<summary><b>All options</b></summary>
 
 | Option | Meaning |
 |---|---|
-| `-m/--model MODEL` | model to check (repeatable). Default: top-level `model` in `~/.codex/config.toml`, else `gpt-6-astra` |
-| `--control MODEL` / `--no-control` | control model run alongside (default `gpt-5.6-sol`; skipped when it equals the checked model) |
-| `-e/--effort LEVEL` | `model_reasoning_effort` for the probes. Default `low` (cheapest); the value in `config.toml` is **not** used |
+| `-m/--model MODEL` | model to check (repeatable). Default: `model` in `~/.codex/config.toml`, else `gpt-6-astra` |
+| `--control MODEL` / `--no-control` | control model checked alongside (default `gpt-5.6-sol`; skipped when it equals the checked model). If the control is fine and yours is not, the substitution is specific to your model |
+| `-e/--effort LEVEL` | `model_reasoning_effort` for the probes. Default `low`; the value in `config.toml` is **not** used |
 | `-t/--tier TIER` | `service_tier` override. Default: whatever `config.toml` says, if anything |
 | `-r/--repeat N` | run every probe N times |
-| `--prompt TEXT` | prompt used for the probe turn |
+| `--prompt TEXT` | prompt for the probe turn (keep the default unless you know why) |
 | `--timeout SEC` | per-probe timeout (default 240); the whole process tree is killed on timeout |
 | `--codex PATH` | codex binary (also `CODEX_BIN`) |
 | `--wire` | use mitmproxy instead of trace logging |
-| `--live` | watch a real Codex CLI session in a new terminal window (built-in proxy); arguments after `--` go to codex |
+| `--live` | watch a real Codex CLI session in a new terminal window; arguments after `--` go to codex |
 | `--live-dir DIR` | folder to open Codex in for `--live` (default: current directory) |
 | `--json FILE` | machine-readable report |
 | `--out DIR` | keep raw logs here (default: a new private temp dir) |
-| `--full-ids` | print full response ids (for bug reports) |
+| `--full-ids` | print full response ids |
+| `--no-update-check` / `--no-auto-update` | see the FAQ |
 | `--version` | print the tool version |
 
-Exit code: `0` every checked model was served as requested (a control probe or a repeat that
-hit a server error does not change this; the summary says so), `2` at least one probe (control
-included) was served by a different model, `1` a model could not be checked at all, or a usage
-error.
+</details>
 
-## How it works
+## Under the hood 🔧
 
-**trace (default).** The tool runs the real `codex exec` with
-`RUST_LOG=tungstenite::protocol=trace,tungstenite::protocol::frame=off`. `tungstenite` is the
-WebSocket library underneath Codex. At trace level it logs every message it receives from the
-socket, verbatim, before any Codex code sees it. The tool parses those `Received message {...}`
-lines and reads `response.model` from the server's `response.created` / `response.completed`
-events. Outgoing frames are logged compressed, so the *requested* model is the `-c model=...`
-value the tool passes, cross-checked against the `model:` line Codex prints in its banner.
+<details>
+<summary><b>Reading the result: every verdict</b></summary>
 
-**--wire.** mitmproxy runs as a local HTTPS proxy with a throw-away certificate authority
-created in a private temp directory. Codex is started with `HTTPS_PROXY` pointing at the proxy
-and `CODEX_CA_CERTIFICATE` pointing at that certificate (Codex's own custom-CA setting), so
-nothing is installed into the OS certificate store; the proxy and its temporary certificate are
-removed when the run ends, is cancelled, or the window is closed. Both directions of the
-responses WebSocket are recorded, including the requested model in the client's
-`response.create` frame. Trace mode and wire mode were checked against each other on
-2026-09-22: the server response objects were identical.
-
-**Live monitor.** The same idea as `--wire`, without mitmproxy: `codex_routing_proxy.py` is a
-CONNECT proxy that terminates TLS with a per-session certificate authority (EC P-256, made with
-the `cryptography` package), re-encrypts towards the real server, relays every byte unchanged
-and, on the responses WebSocket only, decodes the frames (masking, fragmentation and
-`permessage-deflate` with context takeover) to read the client's `response.create` model and
-the server's `response.created` / `response.completed` objects. `codex_routing_live.py` turns
-those into one row per response and starts and stops the Codex window.
-
-Each probe is a fresh Codex session (`--ephemeral` where the Codex version supports it, sandbox
-`read-only`, the `notify` hook disabled; your MCP servers and plugins still load). Codex sends
-two requests per session: a warm-up request without user input and the real turn. Both are
-shown. A response object that names another model, warm-up or turn, makes the probe
-`REROUTED` (it is direct evidence); `ok` requires the turn itself to be served as requested,
-so a probe whose turn failed is `ERROR`, not `ok`.
-
-## Reading the result
-
-- `REROUTED` - the server's response object names a different model than requested.
-  Case differences are accepted silently; a dated snapshot of exactly the requested model
+- `REROUTED`: the server's response object names a different model than requested. Case
+  differences are accepted silently. A dated snapshot of exactly the requested model
   (`gpt-6-astra-2026-09-01`) is accepted and noted under the row. A model whose name changes
-  between `response.created` and `response.completed` is `REROUTED` and noted.
-- `ok` - served as requested.
-- `UNSUPPORTED` - the server refused the model for this account ("not supported when using Codex
-  with a ChatGPT account" and similar): your plan does not include it. A warm-up answered by the
-  plan's default model in that situation is not counted as a substitution.
-- `ERROR` - the server answered with an error (for example `server_is_overloaded`, which Codex
-  shows as "Selected model is at capacity") and the response object, if there was one, named
-  the requested model. Run again. (A response that named another model and then failed is
-  still `REROUTED`.)
-- `UNKNOWN` - the model could not be confirmed: a response object without a `model` field, a
-  turn that never reached `completed` (timeout, crash, `incomplete`, `cancelled`), or only the
-  warm-up response was seen. The note under the row says which.
-- `NO_DATA` - no WebSocket frames were seen. The note under the row quotes Codex's exit code
-  and last error line (typically: not signed in, API-key mode, no network), or, if Codex
-  exited cleanly without any WebSocket traffic, suggests `--wire` or an upgrade (older Codex
-  streams over HTTP). A custom `model_provider` (Bedrock, OSS) never reaches `chatgpt.com` and
-  shows up the same way; it cannot be checked with this tool.
+  between `response.created` and `response.completed` is `REROUTED`.
+- `ok`: served as requested, and the turn completed.
+- `UNSUPPORTED`: the server refused the model for this account ("not supported when using Codex
+  with a ChatGPT account" and similar), so your plan doesn't include it. A warm-up answered by
+  the plan's default model in that situation isn't counted as a substitution.
+- `ERROR`: the server answered with an error (for example `server_is_overloaded`, which Codex
+  shows as "Selected model is at capacity"), and the response object, if any, named the
+  requested model. Run again. A response that named another model and then failed is still
+  `REROUTED`.
+- `UNKNOWN`: the model couldn't be confirmed. The response object had no `model` field, the
+  turn never reached `completed` (timeout, crash, `incomplete`, `cancelled`), or only the
+  warm-up was seen.
+- `NO_DATA`: no WebSocket messages were seen. The note quotes Codex's exit code and last error
+  line (typically: not signed in, API-key mode, no network). If Codex exited cleanly without any
+  WebSocket traffic, it is an older Codex that streams over HTTP, so try `--wire` or upgrade. A
+  custom `model_provider` (Bedrock, OSS) never reaches `chatgpt.com` and can't be checked.
 
-On the command line, the optional control probe (`--control`) tells the cases apart: if the
-control model is served correctly while your model is not, the substitution is specific to that
-model, not a broken account or client. The window runs no control probe.
+</details>
 
-## Cost and privacy
+<details>
+<summary><b>How it works</b></summary>
 
-- Each probe is two small requests (roughly 12-16k input tokens of system prompt and tool
-  definitions, a few output tokens). The window sends two requests per check; the command line
-  sends four when its default control model is on. They count against your Codex usage like
-  any other turn.
-- Raw logs are kept in the directory printed at the end (a private temp directory unless
-  `--out` is given). They contain the server frames: your thread/session ids, the account user
-  id in `safety_identifier`, the probe prompt, the plan type and usage percentages. Outgoing
-  frames (which would contain the whole request, including the working directory) are dropped
-  before saving; in `--wire` mode the client's request frames are reduced to their routing
-  fields (`model`, `service_tier`, `reasoning`, ...) and the prompt, tool list and metadata
-  are dropped. Authorization headers and cookies are never logged by the chosen log filter;
-  the `x-codex-turn-state` token, which the server sends inside a `codex.response.metadata`
-  message, is redacted before anything is written; your home directory is written as `~`.
-  Delete the directory if you do not need it.
-- The `--json` report contains no paths with your username. It does contain the rate-limit
-  block (plan, usage, credit balance) because that is useful in a bug report; remove it if
-  you would rather not share it.
-- On startup the tool makes one anonymous request to `api.github.com` to see whether a newer
-  release exists. Nothing about you is sent. If there is one, the version label in the window
-  turns into a red NEW badge that opens the release page, and the command line prints an
-  `update` line after the report. Disable the check with `--no-update-check` or the environment
-  variable `CODEX_ROUTING_DETECTOR_NO_UPDATE=1`.
-- The **Windows exe updates itself**: it downloads the new `codex-routing-detector.exe` from
-  the release next to itself, verifies size, `MZ` header and the SHA-256 digest GitHub
-  publishes for the asset, swaps the file once the old process has exited, and starts the new
-  version, which then reports "Updated to v…". This only happens right after startup, never
-  while a check is running, and only when the exe's folder is writable. `--no-auto-update`
-  keeps the badge but never replaces the file. Installs made with pip/pipx are not touched;
-  they get the badge plus the `pipx upgrade codex-routing-detector` hint.
-- Apart from that, the tool makes no network calls of its own. The window's fonts and pictures
-  are built into the program, and in trace mode the tool only runs the Codex binary you already
-  have. In `--wire` mode every HTTPS request Codex makes during the probe
-  (including token refresh and telemetry) passes through the local mitmproxy process the tool
-  launched on your machine; only the responses WebSocket is recorded.
-- The live monitor keeps only model names, response ids, statuses, timestamps and error codes,
-  in memory, until you press Clear or close the window; the raw messages are never written
-  anywhere. All of Codex's HTTPS traffic during the session (token refresh, telemetry, MCP
-  servers on the network) passes through the built-in proxy on 127.0.0.1; only the responses
-  WebSocket is decoded. The certificate authority lives in a private temp directory for the
-  session and is deleted when the monitor stops.
-- The probe runs with the sandbox in `read-only` mode, but a custom `--prompt` can still make
-  the model read files and send them to OpenAI, as any Codex turn can. Keep the default prompt
-  unless you know what you are doing.
+**Check (trace mode, the default).** The app runs the real `codex exec` with
+`RUST_LOG=tungstenite::protocol=trace,tungstenite::protocol::frame=off`. `tungstenite` is the
+WebSocket library inside Codex. At trace level it logs every message it receives, verbatim,
+before any Codex code sees it. The app reads `response.model` from the server's
+`response.created` / `response.completed` events. Outgoing messages are logged compressed, so
+the *requested* model is the `-c model=...` value the app passes, cross-checked against the
+`model:` line in Codex's banner.
 
-## Reporting
+Each probe is a fresh Codex session (`--ephemeral` where supported, sandbox `read-only`, the
+`notify` hook disabled; your MCP servers and plugins still load).
 
-If you see `REROUTED`, the useful facts for a bug report are the response ids, the
-`created_at` times (UTC), the requested/served pair, your plan type and usage line, and the
-Codex version. `--json` writes all of them, and the window's **Copy report** puts the same
-facts on the clipboard as text.
+**Wire mode.** mitmproxy runs as a local HTTPS proxy with a throw-away certificate authority in a
+private temp directory. Codex is started with `HTTPS_PROXY` pointing at it and
+`CODEX_CA_CERTIFICATE` pointing at that certificate, so nothing is installed into the system
+certificate store. Both directions of the responses WebSocket are recorded. Trace mode and wire
+mode were checked against each other on 2026-09-22, and the server response objects were
+identical.
 
-## Without Python
+**Live monitor.** The same idea without mitmproxy. `codex_routing_proxy.py` is a CONNECT proxy
+on 127.0.0.1 that terminates TLS with a per-session certificate authority (EC P-256, made with
+the `cryptography` package), re-encrypts towards the real server and relays every byte
+unchanged. Only on the responses WebSocket does it decode the frames (masking, fragmentation,
+`permessage-deflate` with context takeover) to read the client's `response.create` model and the
+server's response objects. `codex_routing_live.py` turns them into one row per response.
 
-The same check by hand. Drop `--ephemeral` on Codex versions that do not know the flag.
+</details>
+
+<a name="privacy-in-detail"></a>
+<details>
+<summary><b>Privacy in detail</b></summary>
+
+- **Check logs** are kept in the folder printed at the end (a private temp folder unless `--out`
+  is given). They contain the server messages: your thread and session ids, the account user id
+  in `safety_identifier`, the probe prompt, plan type and usage percentages. Outgoing messages
+  (which would contain the whole request, including your working directory) are dropped before
+  saving. In wire mode, the client's request messages are reduced to their routing fields
+  (`model`, `service_tier`, `reasoning`, ...). Authorization headers and cookies are never
+  logged, the `x-codex-turn-state` token is redacted, and your home directory is written as `~`.
+  Delete the folder when you don't need it.
+- **`--json` reports** contain no paths with your username. They do contain the rate-limit block
+  (plan, usage, credit balance), because it is useful in a bug report. Remove it if you would
+  rather not share it.
+- **Apart from the update check, the app makes no network calls of its own.** In trace mode it
+  only runs the Codex you already have. In wire mode, every HTTPS request Codex makes during the
+  probe (including token refresh and telemetry) passes through the local mitmproxy, and only the
+  responses WebSocket is recorded.
+- **Live monitor**: all of Codex's HTTPS traffic during the session (token refresh, telemetry,
+  MCP servers on the network) passes through the built-in proxy on 127.0.0.1, and only the
+  responses WebSocket is decoded. The certificate authority and its private key live in a
+  private temp folder and are deleted when the monitor stops. The working folder you pick is
+  remembered in the settings file.
+- **Self-update** only happens right after startup, never during a check, and only when the
+  exe's folder is writable. The app verifies the size, the `MZ` header and the SHA-256 digest
+  GitHub publishes, swaps the file after the old process exits, and says "Updated to v…".
+  pip/pipx installs are never touched; they get the badge and a `pipx upgrade` hint.
+- The probe runs in a `read-only` sandbox, but a custom `--prompt` can still make the model read
+  files and send them to OpenAI, like any Codex turn.
+
+</details>
+
+<details>
+<summary><b>How Codex is found</b></summary>
+
+The app looks for `codex` on `PATH` and runs the native binary inside the npm package (npm,
+yarn, pnpm-as-symlink; `codex.cmd` on Windows is resolved to the binary). Without a CLI it tries
+the Windows Desktop bundle (`%LOCALAPPDATA%\OpenAI\Codex\bin\*\codex.exe`) and, unverified,
+`/Applications/Codex.app/Contents/Resources/codex` on macOS. Otherwise pass `--codex PATH`, set
+`CODEX_BIN`, or click **codex · auto-detect** in the window.
+
+</details>
+
+<details>
+<summary><b>Checking by hand, without this app</b></summary>
+
+Drop `--ephemeral` on Codex versions that don't know the flag.
 
 bash / Git Bash:
 
@@ -319,43 +336,19 @@ codex exec --ephemeral -s read-only --skip-git-repo-check -c model=gpt-6-astra "
 Remove-Item Env:RUST_LOG
 ```
 
-Both print the served model once for the warm-up and once for the turn. A turn that failed
-(`response.failed`, for example "at capacity") prints nothing; run it again.
+Both print the served model once for the warm-up and once for the turn. A turn that failed (for
+example "at capacity") prints nothing, so run it again.
 
-## Look and feel
+</details>
 
-The window follows the "Soft Sheet" design in `design_handoff_routing_detector_ui/`: one large
-verdict card with the lavender cat detective in it, pill-shaped controls, an airy result list,
-and a single teal accent on a sage-tinted background. pywebview (an embedded browser view)
-draws it, while all the checking stays in Python.
+## Credits 💜
 
-The mascot pictures and three fonts are embedded in the program (`codex_routing_assets.py`,
-`codex_routing_fonts.py`): Fredoka for latin text, NanumSquareRound for Korean and JetBrains
-Mono for ids and times. The window therefore loads nothing from the network. All three fonts are
-under the SIL Open Font License 1.1; their notices and the license text are in
-`docs/FONT-LICENSES.txt`. `tools/make_assets.py` rebuilds the pictures from the source PNGs and
-writes `docs/icon.ico`.
+- The lavender cat detective and the "Soft Sheet" window design are in
+  `design_handoff_routing_detector_ui/`.
+- Fonts: Fredoka (latin), NanumSquareRound (Korean) and JetBrains Mono (ids and times), all
+  under the SIL Open Font License 1.1. Their notices are in
+  [`docs/FONT-LICENSES.txt`](docs/FONT-LICENSES.txt).
+- Building, tests and design notes: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
+- Released under the [MIT License](LICENSE).
 
-![Live monitor guide](docs/screenshot-guide.png)
-
-## Tests and build
-
-```
-python -m unittest discover -s tests -v   # parser, verdict and window tests; no real Codex call
-build_exe.bat                             # builds dist\codex-routing-detector.exe (PyInstaller)
-```
-
-- `tests/test_parse.py` covers the frame parser and the verdicts. One test checks that a
-  timed-out probe kills its whole process tree.
-- `tests/test_webui.py` drives the window's logic without opening a window, through the data
-  the page renders.
-- `tests/test_gui.py` and `tests/test_gui_live.py` build the fallback tkinter window off-screen
-  and drive both tabs (skipped where tkinter has no display).
-- `tests/test_live.py` runs the built-in proxy end to end against a local TLS WebSocket echo
-  server (CONNECT, throw-away CA, masked and deflated frames) and checks the live aggregation.
-
-The fixtures under `tests/fixtures` are two complete trace runs from 2026-09-22 with every id
-replaced by a placeholder: an astra request served by luna, and a request that ended in
-`server_is_overloaded`. `python codex_routing_webui.py --fake --auto-check` shows the window
-with this fixture data instead of a live check, and `--fake --fake-live` fills the live tab with
-sample rows. Both are for development only; the exe does not include the fixtures.
+<p align="center">Happy coding, and may your models always be who they say they are! 🐾</p>
