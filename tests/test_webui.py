@@ -586,9 +586,27 @@ class ModelCatalog(WebUiBase):
     def test_page_rebuilds_the_effort_choices(self):
         self.assertIn('eff.dataset.key !== effKey', webui.PAGE)
 
-    def test_builtin_model_list_knows_gpt_6_sol_and_luna(self):
-        for slug in ("gpt-6-astra", "gpt-6-sol", "gpt-6-luna"):
-            self.assertIn(slug, gui.FALLBACK_MODELS)
+    def test_builtin_model_list_has_the_current_catalog_models(self):
+        # Codex's listed models as of 2026-10-27, gpt-6-astra first; gpt-5.5 has left the catalog.
+        self.assertEqual(gui.FALLBACK_MODELS, ["gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra", "gpt-6-sol",
+                                               "gpt-6-luna", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"])
+
+    def test_window_without_config_or_catalog_defaults_to_the_terminal_default(self):
+        d = pathlib.Path(tempfile.mkdtemp())  # no config.toml, no models_cache.json
+        old = os.environ.get("CODEX_HOME")
+        os.environ["CODEX_HOME"] = str(d)
+        try:
+            app = webui.WebApp(lang="en", fake=True, update_check=False, confirm=False)
+        finally:
+            if old is None:
+                del os.environ["CODEX_HOME"]
+            else:
+                os.environ["CODEX_HOME"] = old
+        try:
+            self.assertEqual(app.models, gui.FALLBACK_MODELS)
+            self.assertEqual(app.opt["model"], cmc.FALLBACK_MODEL)
+        finally:
+            app.shutdown()
 
 
 if __name__ == "__main__":
