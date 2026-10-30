@@ -343,6 +343,13 @@ class Summary(unittest.TestCase):
         self.assertEqual((overall, code), ("OK", 0))
         self.assertEqual(lines[0], "VERDICT: OK - gpt-6-astra was served as requested.")
 
+    def test_several_models_take_a_plural_verb(self):
+        # regression: "gpt-6-sol, gpt-6-luna was served as requested" on a nine-model run
+        ok = [probe("gpt-6-sol", [rec("resp_a", "gpt-6-sol")]), probe("gpt-6-luna", [rec("resp_b", "gpt-6-luna")], index=2)]
+        self.assertEqual(cmc.summarize(ok)[2][0], "VERDICT: OK - gpt-6-luna, gpt-6-sol were served as requested.")
+        failed = probe("gpt-5.6-luna", stream_errors=[("server_is_overloaded", "busy")], index=3)
+        self.assertIn("gpt-6-luna, gpt-6-sol were served as requested.", cmc.summarize(ok + [failed])[2][0])
+
     def test_rerouted_control_alone_is_still_exit_2(self):
         probes = [probe("gpt-6-astra", [rec("resp_a", "gpt-6-astra")]),
                   probe("gpt-5.6-sol", [rec("resp_b", "gpt-5.6-luna")], is_control=True, index=2)]
@@ -603,6 +610,56 @@ class RunProbeNotes(unittest.TestCase):
     @staticmethod
     def _frame(obj):
         return "x TRACE tungstenite::protocol: Received message " + json.dumps(obj)
+
+    def test_turn_retried_after_capacity_error_is_ok(self):
+        # regression (2026-10-30, real run): the turn got 429 "Codex is at capacity", Codex waited out
+        # Retry-After and sent it again as a fresh request without previous_response_id. That answer
+        # (5 output tokens, from gpt-5.6-luna as asked) was taken for a warm-up and the probe said ERROR.
+        import tempfile
+        original = cmc.run_capture
+        text = load("luna_turn_retried_after_capacity.log").encode("utf-8")
+        cmc.run_capture = lambda cmd, timeout, env=None, cwd=None, on_start=None: (0, b"pong\n", text, False)
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                p = cmc.Probe(index=1, requested="gpt-5.6-luna", effort="low", tier=None, is_control=False, method="trace")
+                p = cmc.run_probe(["codex"], p, "p", 10, False, pathlib.Path(d), None)
+        finally:
+            cmc.run_capture = original
+        self.assertEqual([r.kind for r in p.responses], ["warmup", "turn"])
+        self.assertEqual(p.verdict(), "ok")
+        self.assertTrue(any("first answered turn_rate_limit_exceeded" in n for n in p.notes), p.notes)
+        overall, code, lines = cmc.summarize([p])
+        self.assertEqual((overall, code), ("OK", 0))
+
+    def test_side_request_with_output_never_stands_in_for_a_failed_turn(self):
+        # a response without previous_response_id that wrote output before any error (a warm-up or a
+        # side request) stays a warm-up, so a failed real turn still makes the probe ERROR
+        p = self._run([
+            self._frame({"type": "response.completed", "response": {"id": "resp_w", "model": "gpt-6-astra", "status": "completed",
+                                                                     "usage": {"input_tokens": 300, "output_tokens": 7}}}),
+            self._frame({"type": "response.failed", "response": {"id": "resp_t", "model": "gpt-6-astra", "status": "failed",
+                                                                  "previous_response_id": "resp_w",
+                                                                  "error": {"code": "server_error", "message": "boom"}}})])
+        self.assertEqual([r.kind for r in p.responses], ["warmup", "turn"])
+        self.assertEqual(p.verdict(), "ERROR")
+
+    def test_error_after_a_good_turn_is_not_called_a_retry(self):
+        p = self._run([
+            self._frame({"type": "response.completed", "response": {"id": "resp_w", "model": "gpt-6-astra", "status": "completed"}}),
+            self._frame({"type": "response.completed", "response": {"id": "resp_t", "model": "gpt-6-astra", "status": "completed",
+                                                                     "previous_response_id": "resp_w",
+                                                                     "usage": {"input_tokens": 300, "output_tokens": 7}}}),
+            self._frame({"type": "error", "error": {"code": "websocket_connection_limit_reached", "message": "later"}})])
+        self.assertEqual(p.verdict(), "ok")
+        self.assertFalse(any("tried again" in n for n in p.notes), p.notes)
+
+    def test_warmup_without_output_stays_a_warmup(self):
+        p = self._run([self._frame({"type": "response.completed", "response": {
+                           "id": "resp_w", "model": "gpt-6-astra", "status": "completed",
+                           "usage": {"input_tokens": 2, "output_tokens": 0}}})],
+                      timed_out=True)
+        self.assertEqual(p.responses[0].kind, "warmup")
+        self.assertEqual(p.verdict(), "UNKNOWN")  # a warm-up alone still proves nothing about the turn
 
     def test_warmup_only_is_unknown_with_note(self):
         p = self._run([self._frame({"type": "response.created", "response": {"id": "resp_w", "model": "gpt-6-astra", "status": "in_progress"}}),

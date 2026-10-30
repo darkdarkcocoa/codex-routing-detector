@@ -134,6 +134,8 @@ class ResponseRecord:
     error_code: Optional[str] = None
     error_message: Optional[str] = None
     usage: Optional[dict] = None
+    after_error: bool = False  # it started after a stream error that belonged to no response
+    retried_turn: bool = False  # the turn Codex sent again after that error (see ResponseCollector.feed)
 
     def verdict(self, requested: str) -> str:
         if is_unsupported_error(self.error_code, self.error_message):
@@ -298,6 +300,7 @@ class ResponseCollector:
                     response_id=rid, model=None, status=None,
                     service_tier=r.get("service_tier"), created_at=r.get("created_at"),
                     kind="turn" if r.get("previous_response_id") else "warmup",
+                    after_error=bool(self.stream_errors),
                 )
                 self.by_id[rid] = rec
                 self.order.append(rid)
@@ -313,6 +316,13 @@ class ResponseCollector:
                 rec.created_at = r.get("created_at")
             if r.get("usage"):
                 rec.usage = r["usage"]
+                # After "at capacity" Codex resends the turn as a fresh request, without
+                # previous_response_id. Codex's warm-up asks for no output, so a response that starts
+                # after such an error and writes output is that turn. Only then: earlier side requests
+                # with output stay what they are, or one of them could stand in for a failed turn.
+                out_tokens = r["usage"].get("output_tokens") if isinstance(r["usage"], dict) else None
+                if rec.kind == "warmup" and rec.after_error and isinstance(out_tokens, int) and out_tokens > 0:
+                    rec.kind, rec.retried_turn = "turn", True
             err = r.get("error")
             if isinstance(err, dict) and (err.get("code") or err.get("message")):
                 rec.error_code = err.get("code") or err.get("type") or rec.error_code
@@ -831,6 +841,9 @@ def run_probe(codex: List[str], probe: Probe, prompt: str, timeout: float, ephem
         probe.notes.append(f"wire request frames carried model(s) {sorted(set(probe.wire_requested))}")
     turns = probe.turns()
     tv = [r.verdict(probe.requested) for r in turns]
+    if probe.verdict() == "ok" and any(r.retried_turn for r in turns):
+        codes = ", ".join(sorted({c or "?" for c, _ in probe.stream_errors}))
+        probe.notes.append(f"the server first answered {codes}; Codex tried again and that turn was served as requested")
     if probe.verdict() == "REROUTED":
         if turns and all(v == "ok" for v in tv):
             probe.notes.append("only the warm-up request was served by another model; the turn itself was served as requested")
@@ -884,6 +897,11 @@ def _continuation(text: str, width: int = 110) -> List[str]:
     return ["     " + l for l in lines]
 
 
+def _verb(names: List[str], one: str, many: str) -> str:
+    """`one` after a single model name, `many` after a list of several."""
+    return one if len(names) == 1 else many
+
+
 def summarize(probes: List[Probe]) -> Tuple[str, int, List[str]]:
     """Overall verdict, exit code and the summary lines."""
     main = [p for p in probes if not p.is_control]
@@ -912,7 +930,7 @@ def summarize(probes: List[Probe]) -> Tuple[str, int, List[str]]:
         overall, code = "REROUTED", 2
     elif ctrl_rerouted:
         lines.append("VERDICT: REROUTED - the control model " + ", ".join(sorted({p.requested for p in ctrl_rerouted}))
-                     + " was served by a different model" + (f"; {', '.join(ok)} was fine." if ok else "."))
+                     + " was served by a different model" + (f"; {', '.join(ok)} {_verb(ok, 'was', 'were')} fine." if ok else "."))
         overall, code = "REROUTED", 2
     elif unsupported and not ok and not unchecked:
         lines.append(f"VERDICT: UNSUPPORTED - this account cannot use {', '.join(unsupported)}{plan_s}; "
@@ -923,11 +941,11 @@ def summarize(probes: List[Probe]) -> Tuple[str, int, List[str]]:
         if unchecked:
             parts.append("could not check " + ", ".join(unchecked) + " (see notes / ERROR rows)")
         if unsupported:
-            parts.append(f"{', '.join(unsupported)} is not available on this account{plan_s}")
-        lines.append("VERDICT: " + "; ".join(parts) + (f"; {', '.join(ok)} was served as requested." if ok else "."))
+            parts.append(f"{', '.join(unsupported)} {_verb(unsupported, 'is', 'are')} not available on this account{plan_s}")
+        lines.append("VERDICT: " + "; ".join(parts) + (f"; {', '.join(ok)} {_verb(ok, 'was', 'were')} served as requested." if ok else "."))
         overall, code = "ERROR", 1
     else:
-        lines.append(f"VERDICT: OK - {', '.join(ok)} was served as requested.")
+        lines.append(f"VERDICT: OK - {', '.join(ok)} {_verb(ok, 'was', 'were')} served as requested.")
         if any(p.verdict() != "ok" for p in main):
             lines.append("note: some repeats could not be checked (see the ERROR rows and notes).")
         overall, code = "OK", 0

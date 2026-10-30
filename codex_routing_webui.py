@@ -196,7 +196,6 @@ button:disabled { cursor: default; }
 @keyframes sniff { 0%, 100% { transform: translateY(0) rotate(-3deg) } 30% { transform: translateY(-4px) rotate(3deg) } 60% { transform: translateY(-1px) rotate(-2deg) } }
 @keyframes idleBreath { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.025) } }
 @keyframes walk { 0% { left: 0% } 100% { left: calc(100% - 30px) } }
-@keyframes pulseRing { 0% { transform: scale(.7); opacity: .55 } 100% { transform: scale(1.45); opacity: 0 } }
 @keyframes slideTab { 0% { transform: translateX(22px); opacity: 0 } 100% { transform: translateX(0); opacity: 1 } }
 @keyframes confetti { 0% { transform: translate(0, 0) rotate(0deg); opacity: 0 } 12% { opacity: 1 } 100% { transform: translate(var(--dx), 190px) rotate(var(--rot)); opacity: 0 } }
 
@@ -237,8 +236,6 @@ button:disabled { cursor: default; }
   border-radius: 24px; padding: 26px 28px; box-shadow: 0 2px 14px rgba(47,58,51,.07); }
 .hero.bop { animation: bopIn .5s cubic-bezier(.2,.9,.3,1.3) both; }
 .hero .left { position: relative; width: 150px; flex: none; display: grid; place-items: center; }
-.hero .ring { position: absolute; width: 142px; height: 142px; border-radius: 999px;
-  border: 2px solid #cfe6d8; opacity: .45; }
 .hero .mascot { width: 124px; height: 124px; object-fit: contain; animation: idleBreath 3.4s ease-in-out infinite; }
 .hero .right { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .hero .statusrow { display: flex; align-items: center; gap: 10px; }
@@ -283,11 +280,9 @@ button:disabled { cursor: default; }
 /* hero tones */
 .hero[data-tone="running"] { background: #eef6fa; }
 .hero[data-tone="running"] .headline { color: #1f5b70; }
-.hero[data-tone="running"] .ring { border-color: #9fd8e8; opacity: 1; animation: pulseRing 1.6s ease-out infinite; }
 .hero[data-tone="running"] .mascot { animation: sniff .9s ease-in-out infinite; }
 .hero[data-tone="bad"] { background: #fdf0f0; }
 .hero[data-tone="bad"] .headline { color: #a8323b; }
-.hero[data-tone="bad"] .ring { border-color: #f3bfc1; }
 .hero[data-tone="bad"] .mascot { animation: bounce 2.6s ease-in-out infinite; }
 .hero[data-tone="ok"] { background: #eff9f3; }
 .hero[data-tone="ok"] .headline { color: #1f6f52; }
@@ -485,7 +480,7 @@ button:disabled { cursor: default; }
 
   <div class="page" id="page-check">
     <div class="hero" id="c-hero" data-tone="idle">
-      <div class="left"><div class="ring"></div><img class="mascot" src="__MASCOT__" alt=""></div>
+      <div class="left"><img class="mascot" src="__MASCOT__" alt=""></div>
       <div class="right">
         <div class="statusrow"><span class="chip" id="c-chip"></span><span class="statusline" id="c-status"></span></div>
         <div class="headline" id="c-head"></div>
@@ -537,7 +532,7 @@ button:disabled { cursor: default; }
 
   <div class="page hidden" id="page-live">
     <div class="hero" id="l-hero" data-tone="idle">
-      <div class="left"><div class="ring"></div><img class="mascot" src="__MASCOT__" alt=""></div>
+      <div class="left"><img class="mascot" src="__MASCOT__" alt=""></div>
       <div class="right">
         <div class="statusrow"><span class="chip" id="l-chip"></span><span class="statusline" id="l-status"></span></div>
         <div class="headline" id="l-head"></div>

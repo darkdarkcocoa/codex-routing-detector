@@ -512,14 +512,17 @@ class WebWording(WebUiBase):
         self.assertIn("usage", helps["ko"])
 
     def test_live_guide_explains_codex_side_requests(self):
-        # Codex sends its own gpt-5.6-luna requests (conversation title and similar chores) at the
-        # start of a session; users read that ok line as a reroute unless the guide says so
+        # Codex sends its own requests to a smaller model (conversation title and similar chores) at
+        # the start of a session; users read that ok line as a reroute unless the guide says so. The
+        # model varies: gpt-5.6-luna in September 2026, gpt-5.6-terra beside gpt-6.1-sol in October.
         import codex_routing_webtext as wt
         for lang in ("ko", "en"):
             guide = json.dumps(wt.HELP[lang]["guide"], ensure_ascii=False)
             self.assertIn("gpt-5.6-luna → gpt-5.6-luna", guide, lang)
+            self.assertIn("gpt-5.6-terra", guide, lang)
         for lang in ("en", "ko"):
-            self.assertIn("gpt-5.6-luna", gui.STRINGS[lang]["guide_body"], lang)
+            for slug in ("gpt-5.6-luna", "gpt-5.6-terra"):
+                self.assertIn(slug, gui.STRINGS[lang]["guide_body"], lang)
 
     def test_model_names_are_bold_in_the_brief(self):
         c = self.check_as("gpt-6-astra", "en")
@@ -592,9 +595,10 @@ class ModelCatalog(WebUiBase):
         self.assertIn('eff.dataset.key !== effKey', webui.PAGE)
 
     def test_builtin_model_list_has_the_current_catalog_models(self):
-        # Codex's listed models as of 2026-10-27, gpt-6-astra first; gpt-5.5 has left the catalog.
+        # Codex's listed models as of 2026-10-30, gpt-6-astra first; gpt-5.5 has left the catalog.
         self.assertEqual(gui.FALLBACK_MODELS, ["gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra", "gpt-6-sol",
-                                               "gpt-6-luna", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"])
+                                               "gpt-6-luna", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna",
+                                               "gpt-daybreak-blue-latest"])
 
     def test_window_without_config_or_catalog_defaults_to_the_terminal_default(self):
         d = pathlib.Path(tempfile.mkdtemp())  # no config.toml, no models_cache.json

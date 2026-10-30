@@ -41,7 +41,7 @@ GITHUB_ICON_PNG_B64 = (
 # gpt-6-astra stays first: with neither a model in config.toml nor models_cache.json it is the
 # window's default, as in the terminal version.
 FALLBACK_MODELS = ["gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra", "gpt-6-sol", "gpt-6-luna",
-                   "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]
+                   "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-daybreak-blue-latest"]
 EFFORTS = ["low", "medium", "high", "xhigh"]
 MAX_REPEAT = 10
 
@@ -132,8 +132,8 @@ STRINGS: Dict[str, Dict[str, str]] = {
             "\U0001F50D  Every time Codex calls a model, this tab checks which model really answered\n"
             "and adds a line: the model Codex asked for, the model that answered, and the verdict.\n\n"
             "\U0001F7E2  Green: the model you chose answered.\n\U0001F534  Red: it was quietly routed to another model.\n\n"
-            "\U0001F9F9  A luna line at the start is fine: Codex hands chores such as naming the conversation\n"
-            "to gpt-5.6-luna. Only your model -> another model is a reroute.\n\n"
+            "\U0001F9F9  A small-model line at the start is fine: Codex may hand chores such as naming the\n"
+            "conversation to gpt-5.6-luna or gpt-5.6-terra. Only your model -> another model is a reroute.\n\n"
             "\U0001F512  Everything stays on your computer.\nPrompts, files and answers are never saved; only model names and ids are kept.\n\n"
             "\U0001F4BB  Codex CLI only (not the Codex desktop app).\nWhen you are done, press Stop."
         ),
@@ -227,8 +227,8 @@ STRINGS: Dict[str, Dict[str, str]] = {
             "\U0001F50D  Codex가 모델을 호출할 때마다 실제로 어떤 모델이 답했는지 확인해서\n"
             "여기에 한 줄씩 적어요. 요청한 모델, 실제로 답한 모델, 판정이 나란히 보여요.\n\n"
             "\U0001F7E2  초록: 고른 모델이 답했어요.\n\U0001F534  빨강: 몰래 다른 모델로 라우팅됐어요.\n\n"
-            "\U0001F9F9  처음에 luna가 한 번 보여도 괜찮아요. Codex가 대화 제목 짓기 같은 잡일을\n"
-            "gpt-5.6-luna에게 맡기는 거예요. 내 모델 → 다른 모델일 때만 바꿔치기예요.\n\n"
+            "\U0001F9F9  처음에 작은 모델 줄이 보여도 괜찮아요. Codex가 대화 제목 짓기 같은 잡일을\n"
+            "gpt-5.6-luna나 gpt-5.6-terra에게 맡기기도 해요. 내 모델 → 다른 모델일 때만 바꿔치기예요.\n\n"
             "\U0001F512  전부 내 컴퓨터 안에서만 일어나요.\n프롬프트·파일·답변은 저장하지 않고, 모델명과 ID만 기억해요.\n\n"
             "\U0001F4BB  Codex CLI에서만 돼요 (데스크톱 앱은 아직 안 돼요).\n다 끝나면 중지를 눌러 주세요."
         ),
