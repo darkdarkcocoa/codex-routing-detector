@@ -1,0 +1,13 @@
+Use your built-in image generation tool (highest quality, square size 1024x1024). Two images are attached: the first is the character to draw, the second is the art style reference.
+Generate exactly ONE image and save the PNG to:
+<WORK_DIR>\moods_raw.png
+Do not edit, crop or post-process the image. Do not create any other files. When done, reply with the absolute path of the saved file only.
+
+IMAGE PROMPT:
+Expression sheet: the same girl four times in a strict 2 by 2 grid of equal square cells, each cell a head-and-shoulders bust portrait, centered in its cell with an even margin, nothing touching or crossing the cell borders, no grid lines, no text, no labels, no numbers. Character (keep her exactly as in the first attached image): a cute little detective girl, soft pink-brown short messy pixie-bob with a small ahoge and a pink heart hair clip on her right side, big sparkling violet eyes, soft pink blush, round gold-rimmed glasses pushed up on top of her head, teal headphones with a tiny white cat face on the ear cups resting around her neck, oversized pastel lavender zip hoodie with cat-ear hood down, teal ribbon bows on the sleeves, white knit sweater underneath, a small gold magnifying glass. No pure green anywhere on her.
+Top-left (all good): bright happy closed-eye smile, giving a thumbs up next to her cheek, tiny sparkles.
+Top-right (caught a swap): shocked wide eyes and small open mouth, pointing forward with one finger, a small sweat drop, holding the magnifying glass in the other hand.
+Bottom-left (waiting): sleepy half-closed eyes, gentle yawn, hood pulled up so the cat ears show, a tiny "z" shaped puff above her head drawn as a symbol not as text.
+Bottom-right (something went wrong): teary eyes, worried wobbly mouth, hugging the magnifying glass to her chest, a small blue swirl of confusion beside her head.
+Art style: copy the SECOND attached image's art style only (bright anime illustration finished with a pixel-art look: visible crisp pixel steps on outlines and hair strands, clean flat cel shading, glossy big eyes, airy clear colours). Do not copy that second girl's design.
+Background: plain flat solid pure green #00FF00 everywhere, no scenery, no shadows, no gradients.

@@ -305,7 +305,7 @@ HELP: Dict[str, dict] = {
             "ok": "알겠어요!",
         },
         "about": {
-            "lead": "Codex 요청에 실제로 어떤 모델이 대답했는지 알려 주는 고양이 탐정이에요.",
+            "lead": "Codex 요청에 실제로 어떤 모델이 대답했는지 알려 주는 꼬마 탐정이에요.",
             "paras": [
                 "서버가 응답 객체에 적어 보낸 모델 이름을 읽어요. 화면에 보이는 이름이 아니라 실제로 대답한 "
                 "모델이에요.",
@@ -456,7 +456,7 @@ HELP: Dict[str, dict] = {
             "ok": "Got it!",
         },
         "about": {
-            "lead": "A cat detective that tells you which model really answered your Codex request.",
+            "lead": "A little detective that tells you which model really answered your Codex request.",
             "paras": [
                 "It reads the model name the server writes into its own response objects: the model that really "
                 "answered, not the one on screen.",

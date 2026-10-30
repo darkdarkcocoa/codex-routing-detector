@@ -156,7 +156,9 @@ def _is_pending(row: "live.LiveRow") -> bool:
 
 # ------------------------------------------------------------------ the page
 def _data_uri(name: str) -> str:
-    return "data:image/png;base64," + assets.IMAGES.get(name, "")
+    data = assets.IMAGES.get(name, "")
+    kind = "webp" if data.startswith("UklGR") else "png"  # base64 of "RIFF", the start of every WebP file
+    return f"data:image/{kind};base64," + data
 
 
 PAGE = r"""<!DOCTYPE html>
@@ -237,7 +239,7 @@ button:disabled { cursor: default; }
 .hero .left { position: relative; width: 150px; flex: none; display: grid; place-items: center; }
 .hero .ring { position: absolute; width: 142px; height: 142px; border-radius: 999px;
   border: 2px solid #cfe6d8; opacity: .45; }
-.hero .cat { width: 124px; height: 124px; object-fit: contain; animation: idleBreath 3.4s ease-in-out infinite; }
+.hero .mascot { width: 124px; height: 124px; object-fit: contain; animation: idleBreath 3.4s ease-in-out infinite; }
 .hero .right { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .hero .statusrow { display: flex; align-items: center; gap: 10px; }
 .chip { font-size: 11.5px; font-weight: 700; letter-spacing: .3px; padding: 4px 11px; border-radius: 999px;
@@ -272,15 +274,21 @@ button:disabled { cursor: default; }
 #confetti { position: absolute; left: 60px; top: 40px; width: 1px; height: 1px; pointer-events: none; }
 #confetti div { position: absolute; border-radius: 2px; }
 
+/* Windows' "Animation effects" off: the page holds still too (the mascot swaps to her still picture) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  #sparkles, #confetti { display: none; }
+}
+
 /* hero tones */
 .hero[data-tone="running"] { background: #eef6fa; }
 .hero[data-tone="running"] .headline { color: #1f5b70; }
 .hero[data-tone="running"] .ring { border-color: #9fd8e8; opacity: 1; animation: pulseRing 1.6s ease-out infinite; }
-.hero[data-tone="running"] .cat { animation: sniff .9s ease-in-out infinite; }
+.hero[data-tone="running"] .mascot { animation: sniff .9s ease-in-out infinite; }
 .hero[data-tone="bad"] { background: #fdf0f0; }
 .hero[data-tone="bad"] .headline { color: #a8323b; }
 .hero[data-tone="bad"] .ring { border-color: #f3bfc1; }
-.hero[data-tone="bad"] .cat { animation: bounce 2.6s ease-in-out infinite; }
+.hero[data-tone="bad"] .mascot { animation: bounce 2.6s ease-in-out infinite; }
 .hero[data-tone="ok"] { background: #eff9f3; }
 .hero[data-tone="ok"] .headline { color: #1f6f52; }
 .hero[data-tone="warn"] { background: #fdf6ec; }
@@ -477,7 +485,7 @@ button:disabled { cursor: default; }
 
   <div class="page" id="page-check">
     <div class="hero" id="c-hero" data-tone="idle">
-      <div class="left"><div class="ring"></div><img class="cat" src="__MASCOT__" alt=""></div>
+      <div class="left"><div class="ring"></div><img class="mascot" src="__MASCOT__" alt=""></div>
       <div class="right">
         <div class="statusrow"><span class="chip" id="c-chip"></span><span class="statusline" id="c-status"></span></div>
         <div class="headline" id="c-head"></div>
@@ -529,7 +537,7 @@ button:disabled { cursor: default; }
 
   <div class="page hidden" id="page-live">
     <div class="hero" id="l-hero" data-tone="idle">
-      <div class="left"><div class="ring"></div><img class="cat" src="__MASCOT__" alt=""></div>
+      <div class="left"><div class="ring"></div><img class="mascot" src="__MASCOT__" alt=""></div>
       <div class="right">
         <div class="statusrow"><span class="chip" id="l-chip"></span><span class="statusline" id="l-status"></span></div>
         <div class="headline" id="l-head"></div>
@@ -615,6 +623,21 @@ function buildSparkles() {
 /* ---------------------------------------------------------------- rendering */
 function t() { return crd.T[crd.vm.lang]; }
 
+const REDUCE_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+function heroPicture(tone) { return window.HERO_SRC[tone] || window.HERO_SRC.idle; }
+
+/* while idle or checking she moves, unless motion is turned down (followed live, not just at start) */
+function setMotion() {
+  const moving = REDUCE_MOTION.matches ? window.MASCOT_SRC : window.MASCOT_ANIM_SRC;
+  window.HERO_SRC.idle = window.HERO_SRC.running = moving;
+  ["c-hero", "l-hero"].forEach((id) => {
+    const hero = $(id);
+    const pic = heroPicture(hero.getAttribute("data-tone"));
+    if (hero.querySelector(".mascot").src !== pic) hero.querySelector(".mascot").src = pic;
+  });
+}
+
 function setChip(el, tone, label) {
   el.setAttribute("data-tone", tone);
   el.textContent = label;
@@ -645,6 +668,7 @@ function renderRows(holder, rows, animateFrom) {
 function bopHero(el) { el.classList.remove("bop"); void el.offsetWidth; el.classList.add("bop"); }
 
 function popConfetti() {
+  if (REDUCE_MOTION.matches) return;
   const holder = $("confetti");
   holder.innerHTML = "";
   const colors = ["#8fd3bb", "#f3c3cf", "#bfe0ea", "#f0dda2", "#cfc3ee"];
@@ -695,6 +719,7 @@ function render(vm) {
   const hero = $("c-hero");
   if (crd.prevTone.check !== c.tone) {
     hero.setAttribute("data-tone", c.tone);
+    hero.querySelector(".mascot").src = heroPicture(c.tone);
     bopHero(hero);
     if (c.tone === "ok" && crd.prevTone.check !== null) popConfetti();
     crd.prevTone.check = c.tone;
@@ -757,6 +782,7 @@ function render(vm) {
   const lhero = $("l-hero");
   if (crd.prevTone.live !== l.tone) {
     lhero.setAttribute("data-tone", l.tone);
+    lhero.querySelector(".mascot").src = heroPicture(l.tone);
     bopHero(lhero);
     crd.prevTone.live = l.tone;
   }
@@ -1072,14 +1098,19 @@ window.addEventListener("pywebviewready", () => {
     crd.T = data.t; crd.HELPS = data.helps;
     window.MOOD_IDLE_SRC = $("c-empty-img").src;
     window.MOOD_ERROR_SRC = data.moodError;
-    window.MASCOT_SRC = $("c-hero").querySelector(".cat").src;
+    window.MASCOT_SRC = $("c-hero").querySelector(".mascot").src;
+    /* the verdict card shows her mood (setMotion fills in idle and running) */
+    window.MASCOT_ANIM_SRC = data.hero.anim;
+    window.HERO_SRC = { ok: data.hero.ok, bad: data.hero.bad, warn: data.hero.warn };
     crd.guidePending = data.showGuide && !crd.guideSuppressed;
     fillSelects(data.models, data.efforts);
     buildSparkles();
     wire();
     const first = crd.pendingVm || data.vm;  // a push may have landed before init() resolved
     crd.pendingVm = null;
+    setMotion();
     render(first);
+    REDUCE_MOTION.addEventListener("change", setMotion);
   });
 });
 </script>
@@ -1103,6 +1134,16 @@ def build_page() -> str:
             .replace("__FONT_LATIN__", "data:font/woff2;base64," + fonts.FONTS["fredoka"])
             .replace("__FONT_MONO__", "data:font/woff2;base64," + fonts.FONTS["jetbrains_mono"])
             .replace("__FONT_KO_FACES__", _korean_faces()))
+
+
+def preview_page(data: dict, after: str = "") -> str:
+    """Development only (screenshots, tests): the page with a stand-in for pywebview's API whose init()
+    returns `data` and whose other calls do nothing; the JavaScript `after` runs once it has rendered."""
+    stub = ("<script>window.pywebview = {api: new Proxy({}, {get: (t, k) => k === 'init' ? "
+            "() => Promise.resolve(" + json.dumps(data) + ") : () => Promise.resolve(null)})};"
+            "setTimeout(() => { window.dispatchEvent(new Event('pywebviewready')); "
+            "setTimeout(() => { " + after + " }, 300); }, 50);</script>")
+    return build_page().replace("</body>", stub + "</body>")
 
 
 # ------------------------------------------------------------------ view model
@@ -1486,6 +1527,8 @@ class WebApp:
             return {
                 "t": UI, "helps": helps, "models": self.models, "efforts": EFFORTS,
                 "moodError": _data_uri("mood_error_56"),
+                "hero": {"anim": _data_uri("mascot_anim"), "ok": _data_uri("mood_ok_256"),
+                         "bad": _data_uri("mood_rerouted_256"), "warn": _data_uri("mood_error_256")},
                 "showGuide": not bool(self.settings.get("skip_live_guide")),
                 "vm": self.build_vm(),
             }

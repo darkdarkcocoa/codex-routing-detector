@@ -17,8 +17,7 @@ html = f'''<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face {{ font-family: "JetBrains Mono"; font-weight: 100 800; src: url(data:font/woff2;base64,{f.FONTS["jetbrains_mono"]}) format("woff2"); }}
 html,body {{ margin:0; width:1280px; height:640px; overflow:hidden; }}
 body {{ background: radial-gradient(circle at 22% 45%, #ffffff 0, #f4f6f2 38%, #e9efe8 100%); font-family: Fredoka, sans-serif; color:#2f3a36; position:relative; }}
-.cat {{ position:absolute; left:70px; top:120px; width:400px; height:400px; }}
-.shadow {{ position:absolute; left:150px; top:505px; width:240px; height:26px; border-radius:50%; background:#8a7aa8; opacity:.18; }}
+.mascot {{ position:absolute; left:70px; top:120px; width:400px; height:400px; }}
 svg.deco {{ position:absolute; left:0; top:0; }}
 .text {{ position:absolute; left:520px; top:78px; right:60px; }}
 h1 {{ margin:0; font-size:68px; font-weight:700; letter-spacing:-1.5px; line-height:1; }}
@@ -30,12 +29,11 @@ h1 {{ margin:0; font-size:68px; font-weight:700; letter-spacing:-1.5px; line-hei
 .foot {{ position:absolute; left:520px; right:40px; bottom:40px; font-size:22px; line-height:1.45; color:#6b7671; font-weight:500; }}
 .foot b {{ color:#2a7d96; font-weight:600; }}
 </style></head><body>
-<div class="shadow"></div>
-<img class="cat" src="data:image/png;base64,{mascot}">
+<img class="mascot" src="data:image/png;base64,{mascot}">
 <svg class="deco" width="1280" height="640">{star(96,150,22,"#f6c453")}{star(62,330,15,"#b9a4f0")}{star(118,470,13,"#8fd3c9")}{star(430,110,11,"#f5a3c0")}{star(1210,80,14,"#b9a4f0")}{star(1180,560,18,"#f6c453")}</svg>
 <div class="text">
   <h1>Codex Routing Detector</h1>
-  <div class="tag">Did the model you picked really answer?<br>The cat detective checks for you. 🔍</div>
+  <div class="tag">Did the model you picked really answer?<br>The little detective checks for you. 🔍</div>
   <div class="rows">
     <div class="row bad"><span class="chip">Rerouted</span>gpt-6-astra → gpt-5.6-luna</div>
     <div class="row ok"><span class="chip">All good</span>gpt-6-astra → gpt-6-astra</div>

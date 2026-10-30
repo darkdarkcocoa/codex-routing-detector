@@ -314,14 +314,14 @@ carries them as files under `assets/` (extracted, unmodified):
 
 | File | Used at | Notes |
 |---|---|---|
-| `mascot_256.png` | hero 124×124, header 40×40, walker 30×30 | a 512px source would be sharper for the hero |
+| `mascot_256.png` | hero 124×124, header 40×40, walker 30×30 | the hero now shows the 256px moods and the animation instead |
 | `mood_idle_56.png` | empty state 46×46 | |
-| `mood_ok_56.png`, `mood_rerouted_56.png`, `mood_error_56.png` | reserved for the verdict states | not currently placed in the layout |
+| `mood_ok_56.png`, `mood_rerouted_56.png`, `mood_error_56.png` | verdict states | the window embeds 256px copies in the verdict card |
 | `sticker_*.png` | **dropped** | the sticker icons are not part of this design |
 
-The mascot is the app's own lavender cat detective, made with image generation and rebuilt by
-`tools/make_assets.py`. New poses (sniffing, walking side view, sleeping, blinking) were
-requested but not delivered yet; the design works with the single pose.
+The mascot was a lavender cat detective in this handoff; since October 2026 it is the little
+hoodie detective (`art/`), with four moods and an animated idle loop, rebuilt by
+`tools/make_assets.py`. The mockups load `assets/`, so they show the new pictures.
 
 ## Files
 

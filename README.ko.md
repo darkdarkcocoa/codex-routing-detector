@@ -1,11 +1,14 @@
 <p align="center">
-  <img src="docs/mascot-animated.svg" width="190" alt="라벤더 고양이 탐정">
+  <picture>
+    <source media="(prefers-reduced-motion: reduce)" srcset="docs/mascot.png">
+    <img src="art/source/mascot_anim.webp" width="190" alt="돋보기로 들여다보며 손을 흔드는 후드티 꼬마 탐정">
+  </picture>
 </p>
 
 <h1 align="center">Codex Routing Detector</h1>
 
 <p align="center">
-  <b>내가 고른 모델이 정말 대답했을까요? 고양이 탐정이 확인해 드려요! 🔍</b><br>
+  <b>내가 고른 모델이 정말 대답했을까요? 꼬마 탐정이 확인해 드려요! 🔍</b><br>
   <a href="https://github.com/darkdarkcocoa/codex-routing-detector/releases">다운로드</a> ·
   <a href="README.md">English</a> ·
   <a href="#faq">자주 묻는 질문</a>
@@ -322,7 +325,8 @@ Remove-Item Env:RUST_LOG
 
 ## 만든 것들 💜
 
-- 라벤더 고양이 탐정과 "Soft Sheet" 창 디자인은 `design_handoff_routing_detector_ui/`에 있어요.
+- 후드티 꼬마 탐정은 Codex CLI의 이미지 생성으로 그리고 Grok의 image-to-video로 움직이게 했어요.
+  프롬프트는 `art/prompts/`에 있어요. "Soft Sheet" 창 디자인은 `design_handoff_routing_detector_ui/`에 있어요.
 - 폰트: Fredoka(영문), 나눔스퀘어라운드(한글), JetBrains Mono(응답 ID와 시각). 모두 SIL 오픈 폰트
   라이선스 1.1을 따르고, 저작권 안내는 [`docs/FONT-LICENSES.txt`](docs/FONT-LICENSES.txt)에 있어요.
 - 빌드, 테스트, 디자인 메모: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)

@@ -1,0 +1,8 @@
+Call the image_to_video tool exactly once with:
+- image: <WORK_DIR>\main_raw.png
+- duration: 6
+- resolution_name: 720p if supported, otherwise 480p
+- prompt: "Gentle, cute idle loop of this anime mascot girl. Locked-off static camera, no zoom, no pan. She keeps the same pose and framing: she blinks naturally twice, tilts her head slightly side to side, her short hair and ahoge sway softly, her waving hand waves gently a few times, the magnifying glass bobs slightly in front of her eye, a soft happy smile. Keep the art style, colours and pixel-art look identical to the image. The background stays a perfectly flat solid pure green #00FF00 the whole time with no lighting change, no shadows, no particles. No new objects, no text."
+Then save (copy) the resulting video file to:
+<WORK_DIR>\idle_raw.mp4
+Reply with the saved path only.

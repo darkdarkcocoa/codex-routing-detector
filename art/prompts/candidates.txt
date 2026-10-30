@@ -1,0 +1,11 @@
+Use your built-in image generation tool (highest quality, landscape size 1536x1024). The attached image is a STYLE reference only: copy its art style (bright anime illustration finished with a light pixel-art look: visible crisp pixel steps on the outlines and hair, clean flat cel shading, soft blush, glossy big eyes, airy clear colours). Do NOT copy that girl's design, outfit, pose or background.
+Generate exactly ONE image and save the PNG to:
+<WORK_DIR>\candidates_raw.png
+Do not edit, crop or post-process the image. Do not create any other files. When done, reply with the absolute path of the saved file only.
+
+IMAGE PROMPT:
+Character design lineup of THREE different original mascot girls standing side by side, evenly spaced, each one full body from head to shoes, same height, facing the viewer, nothing overlapping, plain flat solid pure green #00FF00 background with no scenery, no floor, no shadows on the background, no text, no labels.
+Shared brief for all three: the mascot of a small desktop app that checks which AI model really answered your request, so she is a cute little detective. Pretty and cute, gentle smile, chibi-leaning proportions about 4 heads tall, SHORT hair (bob or shorter, nothing below the chin), big sparkling eyes, soft pink blush. The app's palette is pastel: sage green background, one teal accent (#2a7f8f), lavender, peach and soft pink. Avoid any pure green in the characters themselves.
+Candidate 1 (left): silver-lavender short bob with a small teal hairpin, light blue eyes, small pink beret, cream cape-collar blouse with a teal ribbon bow, lavender skirt, holding a gold magnifying glass up beside her face.
+Candidate 2 (middle): honey-blonde short wavy bob with side bangs, warm amber eyes, teal detective cap, white sailor-style top with a peach scarf, navy shorts with knee socks, holding a small notebook and a pencil, one finger raised as if she found the answer.
+Candidate 3 (right): soft pink-brown pixie-bob with a heart hair clip, violet eyes, oversized lavender hoodie with cat-ear hood down, teal headphones around the neck, round glasses pushed up on her head, holding a magnifying glass with both hands.

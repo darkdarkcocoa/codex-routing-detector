@@ -1,0 +1,10 @@
+Use your built-in image generation tool (highest quality, square size 1024x1024). Two images are attached: the first is the character to draw, the second is the art style reference.
+Generate exactly ONE image and save the PNG to:
+<WORK_DIR>\main_raw.png
+Do not edit, crop or post-process the image. Do not create any other files. When done, reply with the absolute path of the saved file only.
+
+IMAGE PROMPT:
+App mascot portrait for a square app icon. Character (keep her exactly as in the first attached image): a cute little detective girl, soft pink-brown short messy pixie-bob with a small ahoge and a pink heart hair clip on her right side, big sparkling violet eyes, soft pink blush, round gold-rimmed glasses pushed up on top of her head, teal headphones with a tiny white cat face on the ear cups resting around her neck, oversized pastel lavender zip hoodie with cat-ear hood down, teal ribbon bows on the sleeves, white knit sweater underneath, a small gold magnifying glass. No pure green anywhere on her.
+Framing: from the top of her head down to her waist, centered, filling most of the square, with a small even margin on every side so nothing is cut off (the ahoge, glasses and both hands must be fully inside). Pose: cheerful, slight head tilt, one hand holding the gold magnifying glass up beside her face and peeking through it, the other hand making a small wave. Gentle closed-mouth smile.
+Art style: copy the SECOND attached image's art style only (bright anime illustration finished with a pixel-art look: visible crisp pixel steps on outlines and hair strands, clean flat cel shading, glossy big eyes, airy clear colours). Do not copy that second girl's design.
+Background: plain flat solid pure green #00FF00 filling the whole square, no scenery, no floor, no shadow, no gradient, no text, no border.

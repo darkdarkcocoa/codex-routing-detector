@@ -1,8 +1,12 @@
 """Web UI logic tests: drive WebApp without a window (window=None) and read the view model the
 page would render. No codex process is launched: run_capture() is replaced by the fixture runs."""
+import base64
+import importlib.util
 import json
 import os
 import pathlib
+import re
+import subprocess
 import sys
 import tempfile
 import time
@@ -10,6 +14,7 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+import codex_routing_assets as assets  # noqa: E402
 import codex_routing_detector as cmc  # noqa: E402
 import codex_routing_detector_gui as gui  # noqa: E402
 import codex_routing_proxy as crp  # noqa: E402
@@ -607,6 +612,84 @@ class ModelCatalog(WebUiBase):
             self.assertEqual(app.opt["model"], cmc.FALLBACK_MODEL)
         finally:
             app.shutdown()
+
+
+EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+
+
+class MascotPictures(WebUiBase):
+    """The verdict card shows the detective's mood, and her idle loop while nothing is decided."""
+
+    def test_verdict_card_pictures_are_webp_moods_and_the_loop(self):
+        hero = self.app.init()["hero"]
+        self.assertEqual(set(hero), {"anim", "ok", "bad", "warn"})
+        for key, uri in hero.items():
+            self.assertTrue(uri.startswith("data:image/webp;base64,") and len(uri) > 1000, key)
+        self.assertEqual(len(set(hero.values())), 4)  # four different pictures
+
+    def test_png_and_webp_data_uris_name_their_type(self):
+        self.assertTrue(webui._data_uri("mascot_256").startswith("data:image/png;base64,iVBOR"))
+        self.assertTrue(webui._data_uri("mascot_anim").startswith("data:image/webp;base64,UklGR"))
+
+    def test_the_loop_is_animated(self):
+        data = base64.b64decode(assets.IMAGES["mascot_anim"])
+        self.assertEqual(data[8:12], b"WEBP")
+        self.assertIn(b"ANIM", data[:64])  # an animated WebP has an ANIM chunk right after VP8X
+
+    def test_tkinter_window_still_has_its_png_pictures(self):
+        for key in ("mascot_72", "mascot_96", "mood_ok_56", "mood_rerouted_56", "mood_idle_56", "mood_error_56"):
+            self.assertTrue(assets.IMAGES[key].startswith("iVBOR"), key)  # Tk reads PNG, not WebP
+
+    def test_readme_and_handoff_copies_match_the_program(self):
+        root = pathlib.Path(__file__).resolve().parent.parent
+        if importlib.util.find_spec("PIL") is None:
+            self.skipTest("tools/make_assets.py needs Pillow, which only the art tools use")
+        spec = importlib.util.spec_from_file_location("make_assets", root / "tools" / "make_assets.py")
+        make_assets = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(make_assets)  # the list of copies it writes
+        copies = dict(make_assets.COPIES, **{"art/source/mascot_anim.webp": "mascot_anim"})
+        self.assertGreaterEqual(len(copies), 12)
+        for path, key in copies.items():
+            self.assertEqual((root / path).read_bytes(), base64.b64decode(assets.IMAGES[key]), path)
+        for readme in ("README.md", "README.ko.md"):
+            text = (root / readme).read_text(encoding="utf-8")
+            self.assertIn('src="art/source/mascot_anim.webp"', text)
+            self.assertIn('srcset="docs/mascot.png"', text)
+
+    def card_picture(self, tone=None, reduce_motion=False):
+        """Which picture the check card shows, from the real page in headless Edge."""
+        data = self.app.init()
+        if tone:
+            data["vm"]["check"]["tone"] = tone
+        names = ("{anim: MASCOT_ANIM_SRC, still: MASCOT_SRC, ok: HERO_SRC.ok, bad: HERO_SRC.bad, "
+                 "warn: HERO_SRC.warn}")
+        after = ("const src = document.querySelector('#c-hero .mascot').src; document.title = 'PIC:' + "
+                 "(Object.entries(" + names + ").find(([k, v]) => v === src) || ['other'])[0];")
+        with tempfile.TemporaryDirectory() as tmp:
+            page = pathlib.Path(tmp) / "page.html"
+            page.write_text(webui.preview_page(dict(data, showGuide=False), after), encoding="utf-8")
+            args = [EDGE, "--headless=new", "--disable-gpu", "--virtual-time-budget=5000",
+                    f"--user-data-dir={pathlib.Path(tmp) / 'edge'}", "--dump-dom", page.as_uri()]
+            if reduce_motion:
+                args.insert(1, "--force-prefers-reduced-motion")
+            out = subprocess.run(args, capture_output=True, timeout=90).stdout.decode("utf-8", "replace")
+        found = re.search(r"<title>PIC:(\w+)</title>", out)
+        self.assertIsNotNone(found, "the page did not render")
+        return found.group(1)
+
+    @unittest.skipUnless(os.path.exists(EDGE), "needs Microsoft Edge")
+    def test_card_moves_while_idle_and_shows_the_mood_of_a_verdict(self):
+        self.assertEqual(self.card_picture(), "anim")
+        self.assertEqual(self.card_picture("running"), "anim")
+        self.assertEqual(self.card_picture("ok"), "ok")
+        self.assertEqual(self.card_picture("bad"), "bad")
+        self.assertEqual(self.card_picture("warn"), "warn")
+
+    @unittest.skipUnless(os.path.exists(EDGE), "needs Microsoft Edge")
+    def test_card_holds_still_when_motion_is_turned_down(self):
+        self.assertEqual(self.card_picture(reduce_motion=True), "still")
+        self.assertEqual(self.card_picture("bad", reduce_motion=True), "bad")
+        self.assertIn("@media (prefers-reduced-motion: reduce)", webui.PAGE)  # the page's own motion too
 
 
 if __name__ == "__main__":
