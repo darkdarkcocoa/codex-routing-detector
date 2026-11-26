@@ -1,0 +1,7 @@
+Use your built-in image generation tool to EDIT the attached image (keep the same square size as the attached image).
+Generate exactly ONE image and save the PNG to:
+<WORK_DIR>\blink_raw.png
+Do not create any other files. When done, reply with the absolute path of the saved file only.
+
+IMAGE EDIT PROMPT:
+Change ONLY her eyes: both of her eyes are now gently closed in a natural mid-blink, drawn as calm closed eyelids with lashes in the same 1990s OVA cel style (this includes the eye seen magnified through the round lens). Everything else must stay exactly the same as the attached image: identical pose, framing, position, size, line art, hair, clothes, staff, colours and lighting, and the same plain flat solid pure green #00FF00 background. Do not move, redraw or restyle anything else.

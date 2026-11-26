@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT))
 # the animation instead, so the idle mood is only needed small).
 MOOD = ((56, "png"), (256, "webp"))
 SIZES = {"mascot": ((72, "png"), (96, "png"), (256, "png")),
+         "icon": ((112, "png"),),  # her face, for the round avatar in the header and dialogs
          "mood_ok": MOOD, "mood_rerouted": MOOD, "mood_idle": ((56, "png"),), "mood_error": MOOD,
          "sticker_flower": ((26, "png"), (44, "png")), "sticker_leaf": ((26, "png"), (44, "png")),
          "sticker_sparkle": ((26, "png"), (44, "png")), "sticker_heart": ((26, "png"), (44, "png"))}

@@ -27,24 +27,32 @@ sample rows. Both are for development only; the exe does not include the fixture
 
 ## Look and feel
 
-The window follows the "Soft Sheet" design in `design_handoff_routing_detector_ui/`: one large
-verdict card with the little hoodie detective in it, pill-shaped controls, an airy result list,
-and a single teal accent on a sage-tinted background. pywebview (an embedded browser view)
-draws it, while all the checking stays in Python. The page is loaded from a temporary file,
-because it is larger than WebView2's limit for pages passed as a string.
+The window follows the "Night Launcher" design, the look of a modern fantasy game launcher: a
+deep navy night with two soft glows and a little drifting dust, frosted-glass panels with a thin
+light edge, one violet accent, and plain high-contrast sans-serif text. The two tabs sit in the
+top bar as a segmented control. The verdict card puts the half-elf seer large on its left, before
+a glowing ring that takes the verdict's colour; on its right, under the headline, the model that
+was called and the model that answered stand side by side as the biggest text on the card (the
+first swapped answer, else the latest one). A reroute shakes the card, flashes it red and pops a
+"!" beside her; an all-clear bursts small lights around her; while checking, the ring spins fast
+and a striped bar fills. With Windows' animation effects turned off, all of this holds still. pywebview (an embedded browser view) draws it, while all
+the checking stays in Python. The page is loaded from a temporary file, because it is larger than
+WebView2's limit for pages passed as a string. The older "Soft Sheet" design is kept for reference
+in `design_handoff_routing_detector_ui/`.
 
 The mascot pictures and three fonts are embedded in the program (`codex_routing_assets.py`,
-`codex_routing_fonts.py`): Fredoka for latin text, NanumSquareRound for Korean and JetBrains
-Mono for ids and times. The window therefore loads nothing from the network. All three fonts are
+`codex_routing_fonts.py`): NanumSquareRound for Korean and JetBrains Mono for model names, ids
+and times. Latin text uses Segoe UI, which every Windows install has. Fredoka is used only by the
+social preview card. The window therefore loads nothing from the network. All three embedded fonts are
 under the SIL Open Font License 1.1; their notices and the license text are in
 `docs/FONT-LICENSES.txt`.
 
-The verdict card shows the detective's mood: thumbs up for all good, a surprised point for a reroute,
-tears when something needs a look, and the animated idle loop while idle or checking (the still
-picture when Windows asks for reduced motion). The pictures were drawn with Codex CLI image
-generation on a flat green background and the loop was made from the main picture with Grok's
-`image_to_video`; `art/prompts/` holds the prompts. `tools/key_green.py` keys the green out (also
-for every video frame, writing the looping WebP) into `art/source/`, and `tools/make_assets.py`
+The verdict card shows the seer's mood: a calm smile for all good, a sharp point with her lens
+blazing red for a reroute, a troubled frown when something needs a look, and the animated idle
+loop while idle or checking (the still picture when Windows asks for reduced motion). The pictures were drawn with Codex CLI image
+generation on a flat green background; `art/prompts/` holds the prompts. `tools/key_green.py` keys
+the green out into `art/source/`, `tools/make_idle_loop.py` builds the looping WebP from the main
+picture and an eyes-closed edit of it (see `art/README.md`), and `tools/make_assets.py`
 builds `codex_routing_assets.py` and `docs/icon.ico` from there, together with the copies the READMEs
 and the design handoff show (`docs/mood-*.png`, `docs/mascot.png` for readers who prefer reduced
 motion, `design_handoff_routing_detector_ui/assets/`). The READMEs show `art/source/mascot_anim.webp`
