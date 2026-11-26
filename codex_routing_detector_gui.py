@@ -38,10 +38,12 @@ GITHUB_ICON_PNG_B64 = (
     "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXElEQVR42mNgwAJUNPX/Y8MMhAAujUQZRKxmrIbABGGAWD5BA9AxVgOwKSAEULyC"
     "yxZiNA9SA/AZgjU6CYU4oZjBmYjQ4x9vYiI23olKjcQaQFR+wBny5OZKbGoBaIzPPu93aOcAAAAASUVORK5CYII="
 )
-# gpt-6-astra stays first: with neither a model in config.toml nor models_cache.json it is the
-# window's default, as in the terminal version.
-FALLBACK_MODELS = ["gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra", "gpt-6-sol", "gpt-6-luna",
-                   "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-daybreak-blue-latest"]
+# Codex's listed models, gpt-6.2-astra first: with neither a model in config.toml nor
+# models_cache.json it is the window's default, as in the terminal version. The rest follow the
+# catalog's own order.
+FALLBACK_MODELS = ["gpt-6.2-astra", "gpt-6.2-sol", "gpt-6.1-terra", "gpt-6.1-sol", "gpt-6-astra",
+                   "gpt-6-sol", "gpt-6-luna", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna",
+                   "gpt-daybreak-blue-latest"]
 EFFORTS = ["low", "medium", "high", "xhigh"]
 MAX_REPEAT = 10
 

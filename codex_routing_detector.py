@@ -54,7 +54,7 @@ from typing import Dict, List, Optional, Tuple
 
 __version__ = "1.7.1"
 
-FALLBACK_MODEL = "gpt-6-astra"
+FALLBACK_MODEL = "gpt-6.2-astra"
 DEFAULT_CONTROL = "gpt-5.6-sol"
 DEFAULT_PROMPT = "Reply with exactly the single word: pong"
 # Only the WebSocket library's message log. `tungstenite::protocol::frame` (raw frame

@@ -595,10 +595,15 @@ class ModelCatalog(WebUiBase):
         self.assertIn('eff.dataset.key !== effKey', webui.PAGE)
 
     def test_builtin_model_list_has_the_current_catalog_models(self):
-        # Codex's listed models as of 2026-10-30, gpt-6-astra first; gpt-5.5 has left the catalog.
-        self.assertEqual(gui.FALLBACK_MODELS, ["gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra", "gpt-6-sol",
-                                               "gpt-6-luna", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna",
-                                               "gpt-daybreak-blue-latest"])
+        # Codex's listed models as of 2026-11-20 in catalog order, except that gpt-6.2-astra, the
+        # default, comes first; the hidden gpt-reserve and codex-auto-review are left out.
+        self.assertEqual(gui.FALLBACK_MODELS, ["gpt-6.2-astra", "gpt-6.2-sol", "gpt-6.1-terra", "gpt-6.1-sol",
+                                               "gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gpt-5.6-sol",
+                                               "gpt-5.6-terra", "gpt-5.6-luna", "gpt-daybreak-blue-latest"])
+
+    def test_builtin_default_is_codex_most_capable_model(self):
+        self.assertEqual(cmc.FALLBACK_MODEL, "gpt-6.2-astra")
+        self.assertEqual(gui.FALLBACK_MODELS[0], cmc.FALLBACK_MODEL)
 
     def test_window_without_config_or_catalog_defaults_to_the_terminal_default(self):
         d = pathlib.Path(tempfile.mkdtemp())  # no config.toml, no models_cache.json
